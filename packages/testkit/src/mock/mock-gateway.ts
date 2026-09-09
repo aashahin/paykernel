@@ -1034,13 +1034,11 @@ export function mockGateway(options: MockGatewayOptions = {}): MockGateway {
 
   function ensurePaymentLedger(
     id: string,
-    params: { amount: AmountInput; currency: string },
+    currency: string,
     result: GatewayPaymentResult,
-    resolved?: { major: number; minor: number },
+    amountMinor: number,
   ): void {
-    if (!result.gatewayId) return;
     const key = result.gatewayId;
-    const currency = params.currency;
     if (payments.has(key)) {
       const state = payments.get(key)!;
       state.status = result.status;
@@ -1060,11 +1058,6 @@ export function mockGateway(options: MockGatewayOptions = {}): MockGateway {
       }
       return;
     }
-    const amountMinor =
-      resolved?.minor ??
-      (result.amount !== undefined
-        ? majorToMinor(result.amount, currency)
-        : majorToMinor(params.amount as number | Money, currency));
     // Only paid settles full capture by default. partially_captured without an
     // explicit capturedAmount fails closed to 0 (incomplete money snapshot).
     // pending / requires_action / authorized / processing / failed → 0 capture
@@ -1571,7 +1564,7 @@ export function mockGateway(options: MockGatewayOptions = {}): MockGateway {
                 : finalResult;
 
             if (isLedgerSettlingResult(settledResult)) {
-              ensurePaymentLedger(id, params, settledResult, resolved);
+              ensurePaymentLedger(id, params.currency, settledResult, minor);
             } else {
               // Honest ledger for non-settling outcomes — record amount/status
               // with zero money movement (never leave paid hanging, never claim capture).

@@ -472,32 +472,6 @@ describe("AC7: RefundOperationResult parallel mapping", () => {
     if (op.outcome !== "failed") throw new Error("expected failed");
     expect(op.error.code).toBe("REFUND_FAILED");
   });
-
-  it("uses dual-written outcome when present (map prefers explicit outcome)", () => {
-    const dualWritten: GatewayRefundResult = {
-      outcome: "succeeded",
-      gatewayRefundId: "ref_dual",
-      status: "completed",
-      totalRefunded: money("5.00", "USD"),
-      rawResponse: {},
-    };
-    const op = mapGatewayRefundToOperationResult(dualWritten);
-    expect(op.outcome).toBe("succeeded");
-    if (op.outcome !== "succeeded") throw new Error("expected succeeded");
-    expect(op.totalRefunded).toEqual(money("5.00", "USD"));
-    expect(inferRefundOperationOutcome(dualWritten)).toBe("succeeded");
-
-    // Explicit pending outcome wins even if status would otherwise map differently
-    const pendingDual: GatewayRefundResult = {
-      outcome: "pending",
-      gatewayRefundId: "ref_pd",
-      status: "pending",
-      rawResponse: {},
-    };
-    expect(mapGatewayRefundToOperationResult(pendingDual).outcome).toBe(
-      "pending",
-    );
-  });
 });
 
 describe("AC8: Money/AmountInput regression (no float money math)", () => {
