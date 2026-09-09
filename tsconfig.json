@@ -17,6 +17,7 @@
     { "path": "./packages/integration-cloudflare-workers" },
     { "path": "./packages/gateway-tap" },
     { "path": "./packages/gateway-myfatoorah" },
+    { "path": "./packages/gateway-hesabe" },
     { "path": "./packages/store-contracts" },
     { "path": "./packages/sql-foundation" },
     { "path": "./packages/testkit" },

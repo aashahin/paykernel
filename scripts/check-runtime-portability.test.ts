@@ -166,6 +166,7 @@ describe("PORTABLE_PACKAGE_DIRS", () => {
         "packages/testkit",
         "packages/gateway-tap",
         "packages/gateway-myfatoorah",
+        "packages/gateway-hesabe",
         "packages/integration-http",
         "packages/integration-hono",
         "packages/integration-elysia",

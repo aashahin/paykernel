@@ -43,6 +43,7 @@ paykernel/                         # private workspace root (not published)
 │   │   ├── docs/                     # overview, routing-inputs, selection, safe-fallback, telemetry
 │   │   ├── package.json              # paymentsSdk.portable: true; depends on core only
 │   │   └── README.md
+│   ├── gateway-hesabe/              # @paykernel/gateway-hesabe (portable KWD adapter; not a built-in)
 │   ├── gateway-myfatoorah/           # @paykernel/gateway-myfatoorah (Phase 23; portable MyFatoorah adapter; not a built-in)
 │   │   ├── src/                      # gateway, types, money, idempotency, docs
 │   │   ├── dist/
@@ -191,7 +192,7 @@ Root scripts forward into workspace packages so Phase 0 command names stay stabl
 
 | Command                            | Purpose                                                                                      |
 | ---------------------------------- | -------------------------------------------------------------------------------------------- |
-| `bun run build`                    | Build core → webhooks → reconciliation → observability → routing → gateway-tap → gateway-myfatoorah → integration-http → integration-hono/elysia/express/cloudflare-workers → store-contracts → testkit → sql-foundation → internal-sql-store → store-postgres → store-redis → store-sqlite → store-turso → store-d1 → store-durable-objects |
+| `bun run build`                    | Build core → webhooks → reconciliation → observability → routing → gateway-tap → gateway-myfatoorah → gateway-hesabe → integration-http → integration-hono/elysia/express/cloudflare-workers → store-contracts → testkit → sql-foundation → internal-sql-store → store-postgres → store-redis → store-sqlite → store-turso → store-d1 → store-durable-objects |
 | `bun test`                         | Run core + store-contracts + testkit + webhooks + reconciliation + observability + routing + sql-foundation + internal-sql-store + store-* adapters + `examples` |
 | `bun run test:examples`            | Example apps only (`bun test examples`)                                                      |
 | `bun run test:coverage`            | Core tests with coverage thresholds (`bunfig.toml`; core-focused)                            |
@@ -218,7 +219,7 @@ Root scripts forward into workspace packages so Phase 0 command names stay stabl
 | `bun run baseline`                 | Regenerate Phase 0 API + package baselines                                                   |
 | `bun run changeset`                | Record a Changeset for the next release                                                      |
 
-**Build order:** `core` first (no internal workspace deps), then `webhooks` (depends on core), then `reconciliation` (depends on core only), then `observability` (depends on core only; optional peer `@opentelemetry/api`), then `routing` (depends on core only), then `gateway-tap` / `gateway-myfatoorah` (each depends on core only), then `integration-http` (core + webhooks), then `integration-hono`/`integration-elysia`/`integration-express`/`integration-cloudflare-workers` (each depends on integration-http only), then `store-contracts` (zero workspace deps), then `testkit` (core + webhooks + reconciliation + store-contracts; re-exports contracts for BC), then `sql-foundation` (publishable relational foundation), then `internal/sql-store` (private thin re-export), then `store-postgres` / `store-sqlite` / `store-turso` / `store-d1` …
+**Build order:** `core` first (no internal workspace deps), then `webhooks` (depends on core), then `reconciliation` (depends on core only), then `observability` (depends on core only; optional peer `@opentelemetry/api`), then `routing` (depends on core only), then `gateway-tap` / `gateway-myfatoorah` / `gateway-hesabe` (each depends on core only), then `integration-http` (core + webhooks), then `integration-hono`/`integration-elysia`/`integration-express`/`integration-cloudflare-workers` (each depends on integration-http only), then `store-contracts` (zero workspace deps), then `testkit` (core + webhooks + reconciliation + store-contracts; re-exports contracts for BC), then `sql-foundation` (publishable relational foundation), then `internal/sql-store` (private thin re-export), then `store-postgres` / `store-sqlite` / `store-turso` / `store-d1` …
 
 Package-local work:
 

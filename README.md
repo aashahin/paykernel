@@ -76,6 +76,7 @@ Full composition (verify → claim → fulfill → reconcile): [`docs/getting-st
 | [`packages/routing`](./packages/routing) | [`@paykernel/routing`](https://www.npmjs.com/package/@paykernel/routing) | Select-only gateway routing + restricted post-attempt fallback |
 | [`packages/gateway-tap`](./packages/gateway-tap) | [`@paykernel/gateway-tap`](https://www.npmjs.com/package/@paykernel/gateway-tap) | **Tap Payments** adapter (charges, auth/capture/void, refunds, webhooks) |
 | [`packages/gateway-myfatoorah`](./packages/gateway-myfatoorah) | [`@paykernel/gateway-myfatoorah`](https://www.npmjs.com/package/@paykernel/gateway-myfatoorah) | **MyFatoorah** adapter (V3 hosted payments, refunds, Webhook V2) |
+| [`packages/gateway-hesabe`](./packages/gateway-hesabe) | `@paykernel/gateway-hesabe` (unreleased) | **Hesabe** adapter (KWD hosted payments, enquiry, refunds, verified callbacks/webhooks) |
 | [`packages/testkit`](./packages/testkit) | [`@paykernel/testkit`](https://www.npmjs.com/package/@paykernel/testkit) | Mock gateway, conformance suites, NON-PRODUCTION memory stores |
 | [`packages/store-contracts`](./packages/store-contracts) | [`@paykernel/store-contracts`](https://www.npmjs.com/package/@paykernel/store-contracts) | Portable store contracts (lease stores, errors, manifests) |
 | [`packages/sql-foundation`](./packages/sql-foundation) | [`@paykernel/sql-foundation`](https://www.npmjs.com/package/@paykernel/sql-foundation) | Relational schemas, migrations, claim SQL templates |
@@ -219,7 +220,7 @@ See [`docs/monorepo.md`](./docs/monorepo.md) for layout details, boundary rules,
 | Inbox | [`packages/webhooks/README.md`](./packages/webhooks/README.md) · [webhook-inbox.md](./packages/webhooks/docs/webhook-inbox.md) |
 | Reconciliation | [`packages/reconciliation/README.md`](./packages/reconciliation/README.md) |
 | Routing | [`packages/routing/README.md`](./packages/routing/README.md) |
-| Extra gateways | [Tap Payments](./packages/gateway-tap/README.md) (`@paykernel/gateway-tap`) · [MyFatoorah](./packages/gateway-myfatoorah/README.md) (`@paykernel/gateway-myfatoorah`) — Phase 23; not core built-ins |
+| Extra gateways | [Tap Payments](./packages/gateway-tap/README.md) (`@paykernel/gateway-tap`) · [MyFatoorah](./packages/gateway-myfatoorah/README.md) (`@paykernel/gateway-myfatoorah`) · [Hesabe](./packages/gateway-hesabe/README.md) (`@paykernel/gateway-hesabe`) — external adapters |
 | Observability | [`packages/observability/README.md`](./packages/observability/README.md) (`@paykernel/opentelemetry`) |
 | Contracts | [`packages/store-contracts/README.md`](./packages/store-contracts/README.md) · [contracts.md](./packages/store-contracts/docs/contracts.md) |
 | SQL foundation | [`packages/sql-foundation/README.md`](./packages/sql-foundation/README.md) · [relational-foundation.md](./packages/sql-foundation/docs/relational-foundation.md) |
