@@ -4,10 +4,10 @@ import { BaseGateway } from "../base.gateway";
 import type {
   AmountInput,
   CaptureParams,
-  CreatePaymentParams,
   GetPaymentParams,
   GatewayPaymentResult,
   GatewayRefundResult,
+  PayPalCreatePaymentParams,
   RefundParams,
   VoidParams,
 } from "../../types/payment.types";
@@ -27,7 +27,6 @@ import {
 } from "../../types/payment-event";
 import type { PayPalConfig } from "../../types/config.types";
 import type { HooksManager } from "../../hooks/hooks.manager";
-import type { PayPalCreatePaymentParams } from "../../types/validation";
 import {
   PayPalCreatePaymentParamsSchema,
   CaptureParamsSchema,
@@ -535,7 +534,7 @@ export class PayPalGateway extends BaseGateway {
    * Create a PayPal order
    */
   async createPayment(
-    params: CreatePaymentParams,
+    params: PayPalCreatePaymentParams,
   ): Promise<GatewayPaymentResult> {
     return this.executeWithHooks("createPayment", params, async (p) => {
       // PayPal experience_context needs return + cancel URLs.
@@ -2860,7 +2859,7 @@ export class PayPalGateway extends BaseGateway {
         try {
           return {
             currency_code: currencyCode,
-            value: this.formatAmount(money("0", currencyCode), currencyCode, { allowZero: true }),
+            value: this.formatAmount(money("0", currencyCode, { allowZero: true }), currencyCode, { allowZero: true }),
           };
         } catch {
           return undefined;
@@ -3003,7 +3002,7 @@ export class PayPalGateway extends BaseGateway {
       try {
         return {
           currency_code: faceMoney.currency_code,
-          value: this.formatAmount(money("0", faceMoney.currency_code), faceMoney.currency_code, {
+          value: this.formatAmount(money("0", faceMoney.currency_code, { allowZero: true }), faceMoney.currency_code, {
             allowZero: true,
           }),
         };

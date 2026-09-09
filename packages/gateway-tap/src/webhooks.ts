@@ -1,6 +1,7 @@
 import {
   hmacSha256Hex,
   InvalidRequestError,
+  sha256Hex,
   timingSafeEqualHex,
 } from "@paykernel/core";
 import { formatTapIsoAmount, parseTapAmount } from "./money";
@@ -88,6 +89,12 @@ export function computeTapHashstring(
   secretKey: string,
 ): string {
   return hmacSha256Hex(secretKey, canonicalTapHashstring(fields));
+}
+
+export function tapWebhookEventId(payload: unknown): string {
+  const fields = hashFieldsFromTapObject(payload);
+  const digest = sha256Hex(canonicalTapHashstring(fields));
+  return `${fields.id}:${digest}`;
 }
 
 function tapHashableObject(

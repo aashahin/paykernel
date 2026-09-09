@@ -21,7 +21,7 @@ import { PayPalGateway } from "./paypal/paypal.gateway";
 import { PaymobGateway } from "./paymob/paymob.gateway";
 import { hmacSha256Hex, hmacSha512Hex } from "../runtime/crypto-portable";
 import { createPaymentClient } from "../create-payment-client";
-import { PaymentClient } from "../client";
+import { money } from "../utils/money";
 
 const CORE_SRC = join(import.meta.dir, "..");
 
@@ -53,7 +53,7 @@ function jsonResponse(body: unknown, status = 200): Response {
   });
 }
 
-describe.skip("gateway injected runtime (Stream B)", () => {
+describe("gateway injected runtime (Stream B)", () => {
   const originalFetch = globalThis.fetch;
   let globalFetchCalls = 0;
 
@@ -71,7 +71,7 @@ describe.skip("gateway injected runtime (Stream B)", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it.skip("StripeGateway uses injected fetch (ctor runtime) without touching globalThis.fetch", async () => {
+  it("StripeGateway uses injected fetch (ctor runtime) without touching globalThis.fetch", async () => {
     const urls: string[] = [];
     const mockFetch = (async (input: RequestInfo | URL) => {
       urls.push(String(input));
@@ -96,7 +96,7 @@ describe.skip("gateway injected runtime (Stream B)", () => {
     );
 
     const result = await gw.createPayment({
-      amount: 10,
+      amount: money(10, "USD"),
       currency: "USD",
       callbackUrl: "https://example.com/cb",
     });
@@ -106,7 +106,7 @@ describe.skip("gateway injected runtime (Stream B)", () => {
     expect(globalFetchCalls).toBe(0);
   });
 
-  it.skip("MoyasarGateway uses injected fetch (ctor runtime) without touching globalThis.fetch", async () => {
+  it("MoyasarGateway uses injected fetch (ctor runtime) without touching globalThis.fetch", async () => {
     const paymentId = "11111111-1111-4111-8111-111111111111";
     const urls: string[] = [];
     const mockFetch = (async (input: RequestInfo | URL) => {
@@ -148,7 +148,7 @@ describe.skip("gateway injected runtime (Stream B)", () => {
     expect(globalFetchCalls).toBe(0);
   });
 
-  it.skip("PaymobGateway uses injected fetch (ctor runtime) without touching globalThis.fetch", async () => {
+  it("PaymobGateway uses injected fetch (ctor runtime) without touching globalThis.fetch", async () => {
     const urls: string[] = [];
     const mockFetch = (async (input: RequestInfo | URL) => {
       urls.push(String(input));
@@ -175,10 +175,9 @@ describe.skip("gateway injected runtime (Stream B)", () => {
     );
 
     const result = await gw.createPayment({
-      amount: 10,
+      amount: money(10, "EGP"),
       currency: "EGP",
       callbackUrl: "https://example.com/cb",
-      returnUrl: "https://example.com/ok",
       metadata: {
         email: "customer@example.com",
         firstName: "Test",
@@ -192,7 +191,7 @@ describe.skip("gateway injected runtime (Stream B)", () => {
     expect(globalFetchCalls).toBe(0);
   });
 
-  it.skip("PayPalGateway uses injected fetch (ctor runtime) without touching globalThis.fetch", async () => {
+  it("PayPalGateway uses injected fetch (ctor runtime) without touching globalThis.fetch", async () => {
     const urls: string[] = [];
     const mockFetch = (async (input: RequestInfo | URL) => {
       const url = String(input);
@@ -241,7 +240,7 @@ describe.skip("gateway injected runtime (Stream B)", () => {
     expect(globalFetchCalls).toBe(0);
   });
 
-  it.skip("factory create(context) passes context.fetch into Stripe HTTP path", async () => {
+  it("factory create(context) passes context.fetch into Stripe HTTP path", async () => {
     const urls: string[] = [];
     const mockFetch = (async (input: RequestInfo | URL) => {
       urls.push(String(input));
@@ -262,7 +261,7 @@ describe.skip("gateway injected runtime (Stream B)", () => {
     const gw = stripeGateway({ secretKey: "sk_factory" }).create(ctx);
 
     await gw.createPayment({
-      amount: 5,
+      amount: money(5, "USD"),
       currency: "USD",
       callbackUrl: "https://example.com",
     });
@@ -271,7 +270,7 @@ describe.skip("gateway injected runtime (Stream B)", () => {
     expect(globalFetchCalls).toBe(0);
   });
 
-  it.skip("createPaymentClient runtime.fetch reaches gateway HTTP", async () => {
+  it("createPaymentClient runtime.fetch reaches gateway HTTP", async () => {
     const urls: string[] = [];
     const mockFetch = (async (input: RequestInfo | URL) => {
       urls.push(String(input));
@@ -297,7 +296,7 @@ describe.skip("gateway injected runtime (Stream B)", () => {
     });
 
     await client.createPayment({
-      amount: 1,
+      amount: money(1, "USD"),
       currency: "USD",
       callbackUrl: "https://example.com",
     });
@@ -306,7 +305,7 @@ describe.skip("gateway injected runtime (Stream B)", () => {
     expect(globalFetchCalls).toBe(0);
   });
 
-  it.skip("legacy PaymentClient constructor runtime.fetch reaches Stripe HTTP", async () => {
+  it("configured default gateway runtime.fetch reaches Stripe HTTP", async () => {
     const urls: string[] = [];
     const mockFetch = (async (input: RequestInfo | URL) => {
       urls.push(String(input));
@@ -323,14 +322,14 @@ describe.skip("gateway injected runtime (Stream B)", () => {
       });
     }) as typeof fetch;
 
-    const client = new PaymentClient({
-      stripe: { secretKey: "sk_legacy_rt" },
+    const client = createPaymentClient({
+      gateways: { stripe: stripeGateway({ secretKey: "sk_legacy_rt" }) },
       defaultGateway: "stripe",
       runtime: { fetch: mockFetch },
     });
 
     await client.createPayment({
-      amount: 1,
+      amount: money(1, "USD"),
       currency: "USD",
       callbackUrl: "https://example.com",
     });
@@ -339,7 +338,7 @@ describe.skip("gateway injected runtime (Stream B)", () => {
     expect(globalFetchCalls).toBe(0);
   });
 
-  it.skip("default runtime still delegates to live globalThis.fetch (compat)", async () => {
+  it("default runtime still delegates to live globalThis.fetch (compat)", async () => {
     // Restore real-ish mock on globalThis — defaultFetch must follow it.
     globalThis.fetch = (async (input: RequestInfo | URL) => {
       globalFetchCalls += 1;
@@ -363,7 +362,7 @@ describe.skip("gateway injected runtime (Stream B)", () => {
     );
 
     const result = await gw.createPayment({
-      amount: 2,
+      amount: money(2, "USD"),
       currency: "USD",
       callbackUrl: "https://example.com",
     });
@@ -373,8 +372,8 @@ describe.skip("gateway injected runtime (Stream B)", () => {
   });
 });
 
-describe.skip("portable webhook verify (no node:crypto in production path)", () => {
-  it.skip("Stripe verifyWebhook accepts portable HMAC-SHA256 signature", () => {
+describe("portable webhook verify (no node:crypto in production path)", () => {
+  it("Stripe verifyWebhook accepts portable HMAC-SHA256 signature", () => {
     const secret = "whsec_portable_test";
     const payload = JSON.stringify({
       id: "evt_1",
@@ -394,7 +393,7 @@ describe.skip("portable webhook verify (no node:crypto in production path)", () 
     expect(gw.verifyWebhook(payload, `t=${timestamp},v1=deadbeef`)).toBe(false);
   });
 
-  it.skip("Stripe verifyWebhook respects injected clock for skew", () => {
+  it("Stripe verifyWebhook respects injected clock for skew", () => {
     const secret = "whsec_clock";
     const payload = "{}";
     const eventTs = 1_700_000_000;
@@ -428,7 +427,7 @@ describe.skip("portable webhook verify (no node:crypto in production path)", () 
     expect(stale.verifyWebhook(payload, header)).toBe(false);
   });
 
-  it.skip("Paymob verifyWebhook accepts portable HMAC-SHA512", () => {
+  it("Paymob verifyWebhook accepts portable HMAC-SHA512", () => {
     const hmacSecret = "paymob_hmac_secret";
     // Minimal transaction obj fields used by HMAC_FIELDS
     const obj = {
@@ -476,7 +475,7 @@ describe.skip("portable webhook verify (no node:crypto in production path)", () 
     ).toBe(false);
   });
 
-  it.skip("Moyasar verifyWebhook uses portable timing-safe compare", () => {
+  it("Moyasar verifyWebhook uses portable timing-safe compare", () => {
     const secret = "moyasar_whsec";
     const payload = {
       id: "evt_m1",
@@ -504,8 +503,8 @@ describe.skip("portable webhook verify (no node:crypto in production path)", () 
   });
 });
 
-describe.skip("production core src has zero node: imports", () => {
-  it.skip("no production .ts under packages/core/src imports node:*", () => {
+describe("production core src has zero node: imports", () => {
+  it("no production .ts under packages/core/src imports node:*", () => {
     const files = walkProductionTs(CORE_SRC);
     expect(files.length).toBeGreaterThan(20);
 
@@ -524,8 +523,8 @@ describe.skip("production core src has zero node: imports", () => {
   });
 });
 
-describe.skip("factory runtime wiring", () => {
-  it.skip("all four factories forward context fetch/crypto/clock/uuid", async () => {
+describe("factory runtime wiring", () => {
+  it("all four factories forward context fetch/crypto/clock/uuid", async () => {
     const seen: string[] = [];
     const mockFetch = (async (input: RequestInfo | URL) => {
       seen.push(String(input));
@@ -618,17 +617,16 @@ describe.skip("factory runtime wiring", () => {
     }).create(ctx);
 
     await stripe.createPayment({
-      amount: 1,
+      amount: money(1, "USD"),
       currency: "USD",
       callbackUrl: "https://example.com",
     });
     await moyasar.getPayment({ gatewayPaymentId: moyasarPaymentId });
     await paypal.getPayment({ gatewayPaymentId: "ORDER_X" });
     await paymob.createPayment({
-      amount: 1,
+      amount: money(1, "EGP"),
       currency: "EGP",
       callbackUrl: "https://example.com",
-      returnUrl: "https://example.com/ok",
       metadata: {
         email: "customer@example.com",
         firstName: "Test",

@@ -75,6 +75,7 @@ import {
   extractHashstringHeader,
   tapCreatedRaw,
   tapObjectKind,
+  tapWebhookEventId,
   verifyTapHashstring,
 } from "./webhooks";
 
@@ -222,6 +223,8 @@ export class TapGateway extends BaseGateway {
       });
       const mapped = this.mapPaymentObject(raw, "charge", authorizeId);
       if (!isPartialCapture) return mapped;
+      // Only normalize after a confirmed capture to preserve decline/failure detail.
+      if (mapped.status !== "paid" || mapped.outcome !== "succeeded") return mapped;
       return applyOutcomeToGatewayResult(
         {
           gateway: "tap",
@@ -452,7 +455,7 @@ export class TapGateway extends BaseGateway {
     const created = tapWebhookTimestamp(createdRaw);
 
     const legacy: WebhookEvent = {
-      id,
+      id: tapWebhookEventId(normalized),
       type: stable ?? nativeType,
       gateway: "tap",
       paymentId,

@@ -247,22 +247,23 @@ const MoyasarAftRecipientSchema = z.object({
     street_name: z.string().max(50).optional(),
     postal_code: z.string().max(10).optional(),
     locality: z.string().max(25).optional(),
-    country: z.string().length(2).optional(),
+    country: z.string().regex(/^[A-Za-z]{2}$/, "Moyasar AFT recipient country must be ISO alpha-2").optional(),
     building_number: z.string().max(19).optional(),
 });
 
 const MoyasarAftSenderSchema = z.object({
+    // Legacy AFT sender account block, kept for backwards compatibility.
     account: z.object({
         funds_source: z.string().min(1).max(2),
         number: z.string().min(1),
-    }),
+    }).optional(),
     first_name: z.string().min(1).max(30),
     last_name: z.string().min(1).max(35),
     address: z.string().min(1).max(50),
     locality: z.string().max(25).optional(),
     postal_code: z.string().max(10).optional(),
     administrative_area: z.string().max(2).optional(),
-    country_code: z.string().length(2),
+    country_code: z.string().max(2).optional(),
     id_type: z.enum([
         "ARNB",
         "BTHD",
@@ -403,6 +404,8 @@ export const MoyasarCreatePaymentParamsSchema = CreatePaymentParamsObjectSchema.
     moyasarSource: MoyasarBackendPaymentSourceSchema.optional(),
     applyCoupon: z.boolean().optional(),
     splits: z.array(MoyasarPaymentSplitSchema).optional(),
+    recipient: MoyasarAftRecipientSchema.optional(),
+    sender: MoyasarAftSenderSchema.optional(),
 });
 
 /**

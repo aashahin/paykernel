@@ -97,14 +97,15 @@ function asRecord(value: unknown): Record<string, unknown> {
   return {};
 }
 
-/**
- * Coerce a raw webhook body (string) to parsed JSON.
- * Gateways receive Buffer/string bodies; paykernel normalizes to object before verify,
- * but direct callers may still pass a raw JSON string. On bad JSON throw
- * InvalidRequestError (canonical helpers) — verifyMyFatoorahSignature catches and
- * returns false (fail-closed).
- */
+/** Coerce a raw webhook body to parsed JSON. */
 export function coerceWebhookPayload(payload: unknown): unknown {
+  if (payload instanceof Uint8Array) {
+    try {
+      payload = new TextDecoder("utf-8", { fatal: true }).decode(payload);
+    } catch {
+      throw new InvalidRequestError("MyFatoorah webhook payload is not valid JSON");
+    }
+  }
   if (typeof payload === "string") {
     const trimmed = payload.trim();
     if (trimmed.length === 0) return payload;

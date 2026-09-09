@@ -11,10 +11,10 @@ bun run docs:capabilities
 
 ## Providers
 
-- **Stripe** (`stripe`) `0.1.0-next.0`
-- **Moyasar** (`moyasar`) `0.1.0-next.0`
-- **PayPal** (`paypal`) `0.1.0-next.0`
-- **Paymob** (`paymob`) `0.1.0-next.0`
+- **Stripe** (`stripe`) `1.0.0`
+- **Moyasar** (`moyasar`) `1.0.0`
+- **PayPal** (`paypal`) `1.0.0`
+- **Paymob** (`paymob`) `1.0.0`
 
 ## Capability matrix
 

@@ -1,0 +1,81 @@
+{
+  "notice": "Unverified worker hypotheses. See REPORT.md for parent-verified findings and rejected claims.",
+  "id": "450d0cf9-db33-47b7-b2d1-7863b0906804",
+  "model": "opencode-go/muse-spark-1.3-contributor",
+  "status": "completed",
+  "summary": "Deep audit of Paymob (3850-line Intention+legacy gateway) and Moyasar gateways vs shared types/validation/money/webhook-map and local fixtures (Paymob guide, Moyasar payments/payouts JSON). No web fetch available; all provider-doc claims marked verified-only-if-local vs inference. Found currency-unit divergence (Paymob OMR cents vs ISO-3), HMAC alias verification risk, legacy gatewayId unusable for post-pay ops, undocumented auth-only fields, single-callback conflation, Moyasar dead 3DS branch and strict STC URL gate, plus billing defaults. No fake production features found; unsupported-capability errors and mocks are deliberate.",
+  "findings": [
+    {
+      "kind": "FACT",
+      "message": "Paymob amounts use ISO exponent via currencyFractionDigits/getCurrencyExponent (OMR->3, SAR/EGP->2) at paymob.gateway.ts:2725-2732,2814-2821 and currency.ts:63-71. Local Paymob guide states Total Amount and Items Amount are 'in cents' (resources/gateways/paymob/guides_api-reference-guide.md:504,509) implying fixed x100. If Paymob Intention expects cents for OMR, SDK over-scales 10x (e.g. money('10.000','OMR') -> 10000 vs expected 1000). Evidence: toMinorUnits passes explicit exponent=fractionDigits; defaultCurrency/region map at paymob.gateway.ts:115-121,2716-2723.",
+      "file": "packages/core/src/gateways/paymob/paymob.gateway.ts",
+      "severity": "high"
+    },
+    {
+      "kind": "INFERENCE",
+      "message": "OMR scaling hypothesis unverified without live docs/API: guide examples show amount 10 and 2000 for OMR (guides_api-reference-guide.md:300,532,561) without stating minor-unit base, and code comment says merchant overrides e.g. {OMR:2} only after confirming with Paymob (config.types.ts:139-148). Requires orchestrator to verify against https://developers.paymob.com Intention reference and live intent (cents vs fils) before changing exponent table.",
+      "file": "packages/core/src/gateways/paymob/paymob.gateway.ts",
+      "severity": "high"
+    },
+    {
+      "kind": "FACT",
+      "message": "Paymob verify path builds HMAC string with alias fallbacks: is_refunded??is_refund, is_voided??is_void, order.id from order.id|order.id|order_id|order, source_data.* from dotted|underscored|nested at paymob.gateway.ts:3605-3635, HMAC_FIELDS at 130-151. This lets two distinct payload shapes produce same dataString. Status path later sanitizes unsigned aliases (sanitizeWebhookTransactionForStatus 1510-1530) but verification does not, so attacker-controlled alias could satisfy timingSafeEqualHex at 3789-3801. Should verify strictly on documented fields per https://developers.paymob.com/paymob-docs/developers/webhook-callbacks-and-hmac cited at 128,1276.",
+      "file": "packages/core/src/gateways/paymob/paymob.gateway.ts",
+      "severity": "high"
+    },
+    {
+      "kind": "FACT",
+      "message": "Legacy create returns gatewayId='legacy:<orderId>' at paymob.gateway.ts:802 with comment that order id must not be on gatewayId, but assertPaymobTransactionId at 2326-2341 only accepts ^\\d+$ and rejects pi_*/legacy:*/order ids for capture/refund/void/get (830-833,970,1060-1061,1775,2085). So legacy checkout result is unusable for subsequent ops without out-of-band transaction id from webhook/dashboard. Misleading workflow; document or return orderId-only shape.",
+      "file": "packages/core/src/gateways/paymob/paymob.gateway.ts",
+      "severity": "medium"
+    },
+    {
+      "kind": "FACT",
+      "message": "Intention create sends undocumented auth-only flags is_auth=true + payment_type='AUTH' at paymob.gateway.ts:566-569 while also enforcing integration-driven auth (resolvePaymentMethods 2537-2548 requires authIntegrationId/paymobIntegrationId, legacy path 660-678). Local Intention examples (guides_api-reference-guide.md:295-339,527-565) show no is_auth/payment_type fields. If provider ignores/rejects them, sale integration guard is the only protection; if provider requires different field, auth-only may silently become sale. Verify against Intention API reference.",
+      "file": "packages/core/src/gateways/paymob/paymob.gateway.ts",
+      "severity": "medium"
+    },
+    {
+      "kind": "FACT",
+      "message": "Intention sets both notification_url and redirection_url to same params.callbackUrl (with normalizeRedirectUrl) at paymob.gateway.ts:550-552,3834-3849. Local guide distinguishes them: notification_url is server POST, redirection_url is browser GET query params, only for card integrations (guides_api-reference-guide.md:438,518-519, plus card-only warning helper at 2582-2613). Conflation forces same endpoint to handle trusted server callbacks and replayable browser redirects; redirect demotion (1424-1486,1519-1524) mitigates but caller cannot set distinct URLs.",
+      "file": "packages/core/src/gateways/paymob/paymob.gateway.ts",
+      "severity": "medium"
+    },
+    {
+      "kind": "FACT",
+      "message": "Moyasar mapNextAction at moyasar.gateway.ts:1998-2014 only handles creditcard challenge (isCardChallenge 1994-1996 requires source.type==='creditcard') + stcpay OTP; token/applepay/samsungpay initiated with transaction_url get no nextAction (redirectUrl undefined unless stcpay). mapNextActionLegacy at 2221-2242 (generic initiated+transaction_url -> redirect/stcpay_otp) is defined but has zero callers (only caller is mapNextAction at 1340). If Moyasar returns token-based 3DS transaction_url, caller gets initiated without actionable redirect. Verify against https://docs.moyasar.com/api/payments/01-create-payment 3DS behavior.",
+      "file": "packages/core/src/gateways/moyasar/moyasar.gateway.ts",
+      "severity": "medium"
+    },
+    {
+      "kind": "FACT",
+      "message": "Moyasar confirmStcPayOtp hard-gates transactionUrl to https://api.moyasar.com/v1/stc_pays/*/proceed at moyasar.gateway.ts:2244-2266. Create-path fixtures/tests use https://api.moyasar.com/stc/otp (moyasar.gateway.test.ts:330,367) for transaction_url shape, showing provider URL shape variance. Strict host+path check will reject valid future/versioned OTP URLs with InvalidRequestError before fence (1017-1043). Consider prefix/allowlist or config override.",
+      "file": "packages/core/src/gateways/moyasar/moyasar.gateway.ts",
+      "severity": "medium"
+    },
+    {
+      "kind": "FACT",
+      "message": "Paymob billing defaults fill missing city/street/building/apartment/floor/postal/state with 'NA' and country with region default (SA/EG/PK/OM/AE) at paymob.gateway.ts:2645-2658,2667-2678, while requiring email/firstName/lastName/phone at 2622-2638. Guide billing example uses dummy strings, not 'NA', and field requirements/lengths (e.g. 50-char names at 2640-2643 matching guide 511-512) are SDK-side only. 'NA' for country/city may be rejected by Paymob validation; unverified against live API.",
+      "file": "packages/core/src/gateways/paymob/paymob.gateway.ts",
+      "severity": "low"
+    },
+    {
+      "kind": "FACT",
+      "message": "No fake/nonfunctional production features found. Payouts fixture explicitly states endpoints are not implemented (resources/gateways/moyasar/payouts.json:4). Capabilities correctly claim false for tokenization/customers/paymentMethods/disputes/paymentLinks/providerRecurring for both Moyasar (builtin-capabilities.ts:59-77) and Paymob (110-128). Deliberate unsupported errors (e.g. Moyasar raw creditcard reject at moyasar.gateway.ts:668-671, validation CreditCardSource excluded at validation.ts:85-92,336-339; Paymob missing-auth-integration at paymob.gateway.ts:2544-2548) are fail-closed, not fake functionality. Test mocks (mockFetchJson etc.) are isolated to *.test.ts.",
+      "file": "packages/core/src/gateways/builtin-capabilities.ts",
+      "severity": "info"
+    },
+    {
+      "kind": "INFERENCE",
+      "message": "Paymob redirect HMAC reuses HMAC_FIELDS over flat query payload (buildRedirectHmacString 1292-1294, asRedirectWebhookPayload 3554-3575) citing same HMAC docs, but local guide contains no HMAC field order/redirect canonicalization to confirm. Alias risk above applies equally to redirect path. Parent must verify canonical redirect string (order of amount_cents/created_at/currency/error_occured/has_parent/is_* etc., string-vs-boolean coercion via hmacValue 3637-3639, URL-decoding) against official HMAC processed/redirection/card-token pages before tightening.",
+      "file": "packages/core/src/gateways/paymob/paymob.gateway.ts",
+      "severity": "medium"
+    },
+    {
+      "kind": "RECOMMENDATION",
+      "message": "Verify Paymob OMR/minor-unit base with live Intention docs/support; if cents-fixed, replace currencyFractionDigits for Intention amount/items with fixed exponent 2 (keep ISO-3 only where provider confirms fils) and add OMR regression tests. Tighten readHmacField to exact documented keys (no is_refund/is_void/order_id/source_data_* fallbacks) or verify-then-fallback with mismatch logging. Add separate notificationUrl/redirectionUrl params (fallback to callbackUrl). Document legacy gatewayId unusable for post-pay ops. Verify is_auth/payment_type fields or drop to integration-only. For Moyasar: wire generic transaction_url redirect for token/applepay/samsungpay or delete mapNextActionLegacy; relax STC URL validation to configurable prefix.",
+      "file": "packages/core/src/gateways/paymob/paymob.gateway.ts",
+      "severity": "medium"
+    }
+  ]
+}

@@ -204,9 +204,12 @@ export interface MoyasarAftRecipient {
 /**
  * Moyasar AFT sender payload.
  * Required only for Account Funding Transaction payment creation.
+ * `account` is a legacy optional block kept for backwards compatibility and
+ * is forwarded as provided when present. `country_code` is optional per
+ * current docs.
  */
 export interface MoyasarAftSender {
-    account: {
+    account?: {
         funds_source: string;
         number: string;
     };
@@ -216,7 +219,7 @@ export interface MoyasarAftSender {
     locality?: string;
     postal_code?: string;
     administrative_area?: string;
-    country_code: string;
+    country_code?: string;
     id_type:
     | "ARNB"
     | "BTHD"

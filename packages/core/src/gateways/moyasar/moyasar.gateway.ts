@@ -25,9 +25,7 @@ import type {
   GatewayRefundResult,
   MoyasarConfirmStcPayOtpParams,
   MoyasarCreatePaymentParams,
-  MoyasarStcPayOtpNextAction,
   PaymentNextAction,
-  RedirectPaymentNextAction,
   RefundParams,
   VoidParams,
 } from "../../types/payment.types";
@@ -1991,24 +1989,28 @@ export class MoyasarGateway extends BaseGateway {
     return "refund_completed";
   }
 
-  private isCardChallenge(payment: MoyasarPaymentResponse): boolean {
+  private isCardChallenge(
+    payment: MoyasarPaymentResponse,
+  ): payment is MoyasarPaymentResponse & {
+    source: MoyasarPaymentResponse["source"] & { transaction_url: string };
+  } {
     return payment.source?.type === "creditcard" && typeof payment.source?.transaction_url === "string" && payment.source.transaction_url.length > 0 && payment.status === "initiated";
   }
 
   private mapNextAction(payment: MoyasarPaymentResponse): PaymentNextAction | undefined {
     if (this.isCardChallenge(payment)) {
       return {
-        type: "redirect_to_url" as const,
-        redirectUrl: payment.source.transaction_url!,
-      } as unknown as RedirectPaymentNextAction;
+        type: "redirect",
+        url: payment.source.transaction_url,
+      };
     }
     if (payment.status === "initiated" && payment.source.type === "stcpay") {
       return {
-        type: "stcpay_otp" as const,
+        type: "stcpay_otp",
         transactionUrl: payment.source.transaction_url ?? "",
-        method: "POST" as const,
-        parameter: "otp_value" as const,
-      } as unknown as MoyasarStcPayOtpNextAction;
+        method: "POST",
+        parameter: "otp_value",
+      };
     }
     return undefined;
   }
@@ -2216,29 +2218,6 @@ export class MoyasarGateway extends BaseGateway {
     }
 
     return this.fromMinorUnits(data.amount, data.currency);
-  }
-
-  private mapNextActionLegacy(
-    payment: MoyasarPaymentResponse,
-  ): PaymentNextAction | undefined {
-    const transactionUrl = payment.source?.transaction_url;
-    if (!transactionUrl || payment.status !== "initiated") {
-      return undefined;
-    }
-
-    if (payment.source.type === "stcpay") {
-      return {
-        type: "stcpay_otp",
-        transactionUrl,
-        method: "POST",
-        parameter: "otp_value",
-      };
-    }
-
-    return {
-      type: "redirect",
-      url: transactionUrl,
-    };
   }
 
   private assertMoyasarStcTransactionUrl(transactionUrl: string): string {

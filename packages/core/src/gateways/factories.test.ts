@@ -35,11 +35,11 @@ function expectCapabilitiesEqual(
   }
 }
 
-describe.skip("built-in gateway adapter factories", () => {
+describe("built-in gateway adapter factories", () => {
   const ctx = createDefaultGatewayContext();
 
-  describe.skip("stripeGateway", () => {
-    it.skip("exposes name/manifest and create() returns StripeGateway", () => {
+  describe("stripeGateway", () => {
+    it("exposes name/manifest and create() returns StripeGateway", () => {
       const adapter = stripeGateway({ secretKey: "sk_test_mock" });
       expect(adapter.name).toBe("stripe");
       expect(adapter.manifest.name).toBe("stripe");
@@ -51,7 +51,7 @@ describe.skip("built-in gateway adapter factories", () => {
       expect(gateway.name).toBe("stripe");
     });
 
-    it.skip("rejects empty secretKey at factory call time", () => {
+    it("rejects empty secretKey at factory call time", () => {
       expect(() => stripeGateway({ secretKey: "" })).toThrow(
         InvalidRequestError,
       );
@@ -61,8 +61,8 @@ describe.skip("built-in gateway adapter factories", () => {
     });
   });
 
-  describe.skip("moyasarGateway", () => {
-    it.skip("exposes name/manifest and create() returns MoyasarGateway", () => {
+  describe("moyasarGateway", () => {
+    it("exposes name/manifest and create() returns MoyasarGateway", () => {
       const adapter = moyasarGateway({ secretKey: "sk_test_mock" });
       expect(adapter.name).toBe("moyasar");
       expect(adapter.manifest.name).toBe("moyasar");
@@ -74,15 +74,15 @@ describe.skip("built-in gateway adapter factories", () => {
       expect(gateway.name).toBe("moyasar");
     });
 
-    it.skip("rejects empty secretKey at factory call time", () => {
+    it("rejects empty secretKey at factory call time", () => {
       expect(() => moyasarGateway({ secretKey: "" })).toThrow(
         InvalidRequestError,
       );
     });
   });
 
-  describe.skip("paypalGateway", () => {
-    it.skip("exposes name/manifest and create() returns PayPalGateway", () => {
+  describe("paypalGateway", () => {
+    it("exposes name/manifest and create() returns PayPalGateway", () => {
       const adapter = paypalGateway({
         clientId: "client_id",
         clientSecret: "client_secret",
@@ -97,7 +97,7 @@ describe.skip("built-in gateway adapter factories", () => {
       expect(gateway.name).toBe("paypal");
     });
 
-    it.skip("rejects missing client credentials at factory call time", () => {
+    it("rejects missing client credentials at factory call time", () => {
       expect(() =>
         paypalGateway({ clientId: "", clientSecret: "secret" }),
       ).toThrow(/paypal\.clientId must be a non-empty string/);
@@ -107,8 +107,8 @@ describe.skip("built-in gateway adapter factories", () => {
     });
   });
 
-  describe.skip("paymobGateway", () => {
-    it.skip("exposes name/manifest and create() returns PaymobGateway (secretKey)", () => {
+  describe("paymobGateway", () => {
+    it("exposes name/manifest and create() returns PaymobGateway (secretKey)", () => {
       const adapter = paymobGateway({ secretKey: "egy_sk_test" });
       expect(adapter.name).toBe("paymob");
       expect(adapter.manifest.name).toBe("paymob");
@@ -120,13 +120,13 @@ describe.skip("built-in gateway adapter factories", () => {
       expect(gateway.name).toBe("paymob");
     });
 
-    it.skip("accepts legacy apiKey only", () => {
+    it("accepts legacy apiKey only", () => {
       const adapter = paymobGateway({ apiKey: "legacy_api_key" });
       expect(adapter.name).toBe("paymob");
       expect(adapter.create(ctx).name).toBe("paymob");
     });
 
-    it.skip("rejects when neither secretKey nor apiKey is non-empty", () => {
+    it("rejects when neither secretKey nor apiKey is non-empty", () => {
       expect(() => paymobGateway({})).toThrow(
         /paymob requires secretKey or apiKey/,
       );
@@ -136,7 +136,7 @@ describe.skip("built-in gateway adapter factories", () => {
     });
   });
 
-  it.skip("manifest does not include credential fields", () => {
+  it("manifest does not include credential fields", () => {
     const adapters = [
       stripeGateway({ secretKey: "sk_secret_value" }),
       moyasarGateway({ secretKey: "sk_secret_value" }),
@@ -152,7 +152,7 @@ describe.skip("built-in gateway adapter factories", () => {
     }
   });
 
-  describe.skip("manifest.capabilities matches gateway.capabilities", () => {
+  describe("manifest.capabilities matches gateway.capabilities", () => {
     // Full honesty matrix lives in capability-claims.test.ts (Phase 3.4).
     // Factories only assert wiring: manifest → instance → shared constant.
     const cases: Array<{
@@ -186,7 +186,7 @@ describe.skip("built-in gateway adapter factories", () => {
     ];
 
     for (const { name, adapter, expected } of cases) {
-      it.skip(`${name}: factory manifest equals create().capabilities for all keys`, () => {
+      it(`${name}: factory manifest equals create().capabilities for all keys`, () => {
         const gateway = adapter.create(ctx) as PaymentGateway;
         expect(adapter.manifest.capabilities).toBeDefined();
         expectCapabilitiesEqual(

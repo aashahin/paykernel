@@ -19,8 +19,8 @@ import type { GatewayManifest } from "./gateway-manifest";
 const CORE_ROOT = join(dirname(fileURLToPath(import.meta.url)), "../..");
 const CHECKED_IN_DOC = join(CORE_ROOT, "docs", "gateway-capabilities.md");
 
-describe.skip("generateGatewayCapabilitiesMarkdown", () => {
-  it.skip("includes partialRefunds and each built-in provider name", () => {
+describe("generateGatewayCapabilitiesMarkdown", () => {
+  it("includes partialRefunds and each built-in provider name", () => {
     const md = generateGatewayCapabilitiesMarkdown(BUILTIN_GATEWAY_MANIFESTS);
 
     expect(md).toContain(CAPABILITY_DOCS_BANNER);
@@ -35,7 +35,7 @@ describe.skip("generateGatewayCapabilitiesMarkdown", () => {
     expect(md).toContain("Paymob");
   });
 
-  it.skip("renders a row for every capability key and ✓ for claimed cells", () => {
+  it("renders a row for every capability key and ✓ for claimed cells", () => {
     const md = generateGatewayCapabilitiesMarkdown(BUILTIN_GATEWAY_MANIFESTS);
 
     for (const key of GATEWAY_CAPABILITY_KEYS) {
@@ -54,7 +54,7 @@ describe.skip("generateGatewayCapabilitiesMarkdown", () => {
     expect(md).toMatch(/\| marketplaceSplits \| ✗ \| ✓ \| ✗ \| ✗ \|/);
   });
 
-  it.skip("marks missing capabilities as unsupported (all ✗)", () => {
+  it("marks missing capabilities as unsupported (all ✗)", () => {
     const bare: GatewayManifest[] = [
       { name: "acme", displayName: "Acme" },
     ];
@@ -64,13 +64,13 @@ describe.skip("generateGatewayCapabilitiesMarkdown", () => {
     expect(md).toContain("| partialRefunds | ✗ |");
   });
 
-  it.skip("handles empty manifest list", () => {
+  it("handles empty manifest list", () => {
     const md = generateGatewayCapabilitiesMarkdown([]);
     expect(md.startsWith(CAPABILITY_DOCS_BANNER)).toBe(true);
     expect(md).toContain("No gateway manifests");
   });
 
-  it.skip("does not embed credential values or secret material", () => {
+  it("does not embed credential values or secret material", () => {
     const md = generateGatewayCapabilitiesMarkdown(BUILTIN_GATEWAY_MANIFESTS);
     // No live/test key material or env secret values in generated docs
     expect(md).not.toMatch(/sk_live|sk_test_|pk_live|whsec_/i);
@@ -78,8 +78,8 @@ describe.skip("generateGatewayCapabilitiesMarkdown", () => {
   });
 });
 
-describe.skip("checked-in gateway-capabilities.md drift", () => {
-  it.skip("matches generateGatewayCapabilitiesMarkdown(BUILTIN_GATEWAY_MANIFESTS)", () => {
+describe("checked-in gateway-capabilities.md drift", () => {
+  it("matches generateGatewayCapabilitiesMarkdown(BUILTIN_GATEWAY_MANIFESTS)", () => {
     expect(existsSync(CHECKED_IN_DOC)).toBe(true);
     const onDisk = readFileSync(CHECKED_IN_DOC, "utf8");
     const expected = generateGatewayCapabilitiesMarkdown(

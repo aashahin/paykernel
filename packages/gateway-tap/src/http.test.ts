@@ -37,7 +37,7 @@ describe("assertTapSuccessBody", () => {
     }
   });
 
-  it.skip("GET empty 2xx is NetworkError without afterProviderSubmit", () => {
+  it("GET empty 2xx is NetworkError without afterProviderSubmit", () => {
     try {
       assertTapSuccessBody({
         method: "GET",
@@ -53,7 +53,7 @@ describe("assertTapSuccessBody", () => {
     }
   });
 
-  it.skip("accepts a mutating 2xx object with id and status", () => {
+  it("accepts a mutating 2xx object with id and status", () => {
     expect(() =>
       assertTapSuccessBody({
         method: "POST",
@@ -65,7 +65,7 @@ describe("assertTapSuccessBody", () => {
     ).not.toThrow();
   });
 
-  it.skip("throws NetworkError afterProviderSubmit when mutating 2xx status is whitespace", () => {
+  it("throws NetworkError afterProviderSubmit when mutating 2xx status is whitespace", () => {
     try {
       assertTapSuccessBody({
         method: "POST",
@@ -81,7 +81,7 @@ describe("assertTapSuccessBody", () => {
     }
   });
 
-  it.skip("throws NetworkError afterProviderSubmit when mutating 2xx has id but missing status", () => {
+  it("throws NetworkError afterProviderSubmit when mutating 2xx has id but missing status", () => {
     try {
       assertTapSuccessBody({
         method: "POST",
@@ -98,7 +98,7 @@ describe("assertTapSuccessBody", () => {
     }
   });
 
-  it.skip("throws NetworkError afterProviderSubmit when mutating 2xx status is not a string", () => {
+  it("throws NetworkError afterProviderSubmit when mutating 2xx status is not a string", () => {
     try {
       assertTapSuccessBody({
         method: "POST",
@@ -117,7 +117,7 @@ describe("assertTapSuccessBody", () => {
 });
 
 describe("mapTapHttpFailure", () => {
-  it.skip("tags mutating 5xx NetworkError even when the body is not JSON", () => {
+  it("tags mutating 5xx NetworkError even when the body is not JSON", () => {
     const error = mapTapHttpFailure({
       status: 500,
       body: { body: "<html>upstream</html>" },
@@ -127,7 +127,7 @@ describe("mapTapHttpFailure", () => {
     expect((error as NetworkError).afterProviderSubmit).toBe(true);
   });
 
-  it.skip("does not tag GET 5xx as afterProviderSubmit", () => {
+  it("does not tag GET 5xx as afterProviderSubmit", () => {
     const error = mapTapHttpFailure({
       status: 500,
       body: { body: "<html>upstream</html>" },
@@ -137,7 +137,7 @@ describe("mapTapHttpFailure", () => {
     expect((error as NetworkError).afterProviderSubmit).not.toBe(true);
   });
 
-  it.skip("maps POST 500 code 1106 to NetworkError afterProviderSubmit not InvalidRequestError", () => {
+  it("maps POST 500 code 1106 to NetworkError afterProviderSubmit not InvalidRequestError", () => {
     const error = mapTapHttpFailure({
       status: 500,
       body: { errors: [{ code: 1106, description: "Customer not found" }] },
@@ -148,7 +148,7 @@ describe("mapTapHttpFailure", () => {
     expect((error as NetworkError).afterProviderSubmit).toBe(true);
   });
 
-  it.skip("maps GET 500 code 1106 to NetworkError without afterProviderSubmit", () => {
+  it("maps GET 500 code 1106 to NetworkError without afterProviderSubmit", () => {
     const error = mapTapHttpFailure({
       status: 500,
       body: { errors: [{ code: 1106, description: "Customer not found" }] },
@@ -159,7 +159,7 @@ describe("mapTapHttpFailure", () => {
     expect((error as NetworkError).afterProviderSubmit).not.toBe(true);
   });
 
-  it.skip("treats POST 400 code 1151 as NetworkError afterProviderSubmit", () => {
+  it("treats POST 400 code 1151 as NetworkError afterProviderSubmit", () => {
     const error = mapTapHttpFailure({
       status: 400,
       body: { errors: [{ code: 1151, description: "Request timed out" }] },
@@ -169,7 +169,7 @@ describe("mapTapHttpFailure", () => {
     expect((error as NetworkError).afterProviderSubmit).toBe(true);
   });
 
-  it.skip("treats GET 400 code 1151 as NetworkError without afterProviderSubmit", () => {
+  it("treats GET 400 code 1151 as NetworkError without afterProviderSubmit", () => {
     const error = mapTapHttpFailure({
       status: 400,
       body: { errors: [{ code: 1151 }] },
@@ -179,7 +179,7 @@ describe("mapTapHttpFailure", () => {
     expect((error as NetworkError).afterProviderSubmit).not.toBe(true);
   });
 
-  it.skip("does not map POST 400 errors code 504 to CardDeclinedError", () => {
+  it("does not map POST 400 errors code 504 to CardDeclinedError", () => {
     const error = mapTapHttpFailure({
       status: 400,
       body: { errors: [{ code: 504, description: "Declined" }] },
@@ -191,7 +191,7 @@ describe("mapTapHttpFailure", () => {
     ).toBe(true);
   });
 
-  it.skip("does not map POST 400 errors code 501 to CardDeclinedError", () => {
+  it("does not map POST 400 errors code 501 to CardDeclinedError", () => {
     const error = mapTapHttpFailure({
       status: 400,
       body: { errors: [{ code: 501 }] },
@@ -203,7 +203,7 @@ describe("mapTapHttpFailure", () => {
     ).toBe(true);
   });
 
-  it.skip("maps POST 400 code 1106 to InvalidRequestError not ResourceNotFoundError", () => {
+  it("maps POST 400 code 1106 to InvalidRequestError not ResourceNotFoundError", () => {
     const error = mapTapHttpFailure({
       status: 400,
       body: { errors: [{ code: 1106, description: "Customer not found" }] },
@@ -213,7 +213,7 @@ describe("mapTapHttpFailure", () => {
     expect(error).not.toBeInstanceOf(ResourceNotFoundError);
   });
 
-  it.skip("maps GET 400 code 1106 to InvalidRequestError not ResourceNotFoundError", () => {
+  it("maps GET 400 code 1106 to InvalidRequestError not ResourceNotFoundError", () => {
     const error = mapTapHttpFailure({
       status: 400,
       body: { errors: [{ code: 1106, description: "Customer not found" }] },
@@ -223,7 +223,7 @@ describe("mapTapHttpFailure", () => {
     expect(error).not.toBeInstanceOf(ResourceNotFoundError);
   });
 
-  it.skip("maps POST 400 code 1114 to InvalidRequestError", () => {
+  it("maps POST 400 code 1114 to InvalidRequestError", () => {
     const error = mapTapHttpFailure({
       status: 400,
       body: {
@@ -236,7 +236,7 @@ describe("mapTapHttpFailure", () => {
     expect(error).toBeInstanceOf(InvalidRequestError);
   });
 
-  it.skip("maps POST 400 code 1126 to InvalidRequestError", () => {
+  it("maps POST 400 code 1126 to InvalidRequestError", () => {
     const error = mapTapHttpFailure({
       status: 400,
       body: { errors: [{ code: 1126, description: "Invalid authorize id" }] },
@@ -246,7 +246,7 @@ describe("mapTapHttpFailure", () => {
     expect(error).not.toBeInstanceOf(GatewayApiError);
   });
 
-  it.skip("maps POST 400 code 1149 to InvalidRequestError", () => {
+  it("maps POST 400 code 1149 to InvalidRequestError", () => {
     const error = mapTapHttpFailure({
       status: 400,
       body: { errors: [{ code: 1149, description: "Invalid request" }] },
@@ -256,7 +256,7 @@ describe("mapTapHttpFailure", () => {
     expect(error).not.toBeInstanceOf(GatewayApiError);
   });
 
-  it.skip("maps POST 400 code 1101 to AuthenticationError not InvalidRequestError", () => {
+  it("maps POST 400 code 1101 to AuthenticationError not InvalidRequestError", () => {
     const error = mapTapHttpFailure({
       status: 400,
       body: { errors: [{ code: 1101, description: "Unauthorized" }] },
@@ -297,7 +297,7 @@ describe("mapTapHttpFailure", () => {
     expect(error).not.toBeInstanceOf(AuthenticationError);
   });
 
-  it.skip("passes raw {status,body,code} on AMOUNT_CODES InvalidRequestError", () => {
+  it("passes raw {status,body,code} on AMOUNT_CODES InvalidRequestError", () => {
     const body = { errors: [{ code: 1150, description: "Invalid amount" }] };
     const error = mapTapHttpFailure({
       status: 400,

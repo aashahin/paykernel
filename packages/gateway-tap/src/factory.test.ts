@@ -12,7 +12,7 @@ import { TapGateway } from "./gateway";
 import { TAP_TEST_SECRET } from "./fixtures/charges";
 
 describe("tapGateway", () => {
-  it.skip("rejects empty secretKey", () => {
+  it("rejects empty secretKey", () => {
     expect(() => tapGateway({ secretKey: "  " })).toThrow(InvalidRequestError);
   });
 
@@ -28,7 +28,7 @@ describe("tapGateway", () => {
     },
   );
 
-  it.skip("accepts HTTPS webhookUrl", () => {
+  it("accepts HTTPS webhookUrl", () => {
     expect(() =>
       tapGateway({
         secretKey: TAP_TEST_SECRET,
@@ -37,13 +37,13 @@ describe("tapGateway", () => {
     ).not.toThrow();
   });
 
-  it.skip("trims secretKey", () => {
+  it("trims secretKey", () => {
     expect(copyTapConfig({ secretKey: `  ${TAP_TEST_SECRET}  ` }).secretKey).toBe(
       TAP_TEST_SECRET,
     );
   });
 
-  it.skip("rejects non-positive timeoutMs on TapGateway as well as the factory", () => {
+  it("rejects non-positive timeoutMs on TapGateway as well as the factory", () => {
     expect(
       () =>
         new TapGateway(
@@ -53,7 +53,7 @@ describe("tapGateway", () => {
     ).toThrow(InvalidRequestError);
   });
 
-  it.skip("rejects non-positive timeoutMs", () => {
+  it("rejects non-positive timeoutMs", () => {
     expect(() =>
       tapGateway({ secretKey: TAP_TEST_SECRET, timeoutMs: 0 }),
     ).toThrow(InvalidRequestError);
@@ -62,7 +62,7 @@ describe("tapGateway", () => {
     ).toThrow(InvalidRequestError);
   });
 
-  it.skip("rejects autoVoidHours outside 1..168", () => {
+  it("rejects autoVoidHours outside 1..168", () => {
     expect(() =>
       tapGateway({ secretKey: TAP_TEST_SECRET, autoVoidHours: 0 }),
     ).toThrow(InvalidRequestError);
@@ -74,7 +74,7 @@ describe("tapGateway", () => {
     ).toThrow(InvalidRequestError);
   });
 
-  it.skip("accepts autoVoidHours 1 and 168", () => {
+  it("accepts autoVoidHours 1 and 168", () => {
     expect(() =>
       tapGateway({ secretKey: TAP_TEST_SECRET, autoVoidHours: 1 }),
     ).not.toThrow();
@@ -83,7 +83,7 @@ describe("tapGateway", () => {
     ).not.toThrow();
   });
 
-  it.skip("closes over secrets and keeps them off the manifest", () => {
+  it("closes over secrets and keeps them off the manifest", () => {
     const adapter = tapGateway({ secretKey: TAP_TEST_SECRET });
     expect(adapter.name).toBe("tap");
     expect(adapter.manifest.name).toBe("tap");
@@ -97,7 +97,7 @@ describe("tapGateway", () => {
     expect(gateway.supports("customers")).toBe(false);
   });
 
-  it.skip("composes with createPaymentClient without core factory edits", () => {
+  it("composes with createPaymentClient without core factory edits", () => {
     const client = createPaymentClient({
       gateways: { tap: tapGateway({ secretKey: TAP_TEST_SECRET }) },
       defaultGateway: "tap",

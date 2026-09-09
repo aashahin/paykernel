@@ -9,12 +9,12 @@
 - **Source of truth (exports)**: `src/index.ts`
 - **Runtime module inspected**: `dist/index.js`
 - **Declarations inspected**: `dist/**/*.d.ts`
-- **Bundle**: `dist/index.js` — 506708 bytes, sha256 `33b212c0f7d7002beb0f81b086b06cc08d81825020296e5c10474e8c65f5d126`
+- **Bundle**: `dist/index.js` — 506454 bytes, sha256 `fa024a1a511afdc9e8570d15673c7551204c5ec33f5cbbdd7bf7cabaf717cbeb`
 
 ## Package
 
 - **name**: `@paykernel/core`
-- **version**: `0.1.0-next.0`
+- **version**: `1.0.0`
 
 ## Entry points
 

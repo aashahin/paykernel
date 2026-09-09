@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, mock } from "bun:test";
 import { StripeGateway } from "./stripe.gateway";
 import { HooksManager } from "../../hooks/hooks.manager";
 import type { StripeConfig } from "../../types/config.types";
-import { InvalidRequestError, NetworkError, PaymentClient } from "../../index";
+import { InvalidRequestError, NetworkError, createPaymentClient, stripeGateway, money } from "../../index";
 
 
 const STRIPE_TEST_CONFIG: StripeConfig = {
@@ -29,7 +29,7 @@ function createMockResponse(data: unknown, ok = true, status = 200): Response {
   } as unknown as Response;
 }
 
-describe.skip("StripeGateway customers and payment methods", () => {
+describe("StripeGateway customers and payment methods", () => {
   let gateway: StripeGateway;
   const originalFetch = globalThis.fetch;
 
@@ -665,7 +665,7 @@ describe.skip("StripeGateway customers and payment methods", () => {
 
     await expect(
       gateway.createPayment({
-        amount: 10,
+        amount: money(10, "SAR"),
         currency: "SAR",
         callbackUrl: "https://merchant.example/callback",
         paymentMethodId: "pm_card_1",
@@ -691,7 +691,7 @@ describe.skip("StripeGateway customers and payment methods", () => {
     }) as unknown as typeof fetch;
 
     const result = await gateway.createPayment({
-      amount: 10,
+      amount: money(10, "SAR"),
       currency: "SAR",
       callbackUrl: "https://merchant.example/callback",
       customerId: "cus_123",
@@ -709,7 +709,7 @@ describe.skip("StripeGateway customers and payment methods", () => {
       "never",
     );
     expect(body.get("return_url")).toBeNull();
-    expect(result.success).toBe(true);
+    expect(result.outcome).toBe("succeeded");
     expect(result.gatewayId).toBe("pi_off");
   });
 
@@ -722,7 +722,7 @@ describe.skip("StripeGateway customers and payment methods", () => {
 
     await expect(
       gateway.createPayment({
-        amount: 10,
+        amount: money(10, "SAR"),
         currency: "SAR",
         callbackUrl: "https://merchant.example/callback",
         customerId: "cus_a",
@@ -743,8 +743,8 @@ describe.skip("StripeGateway customers and payment methods", () => {
       });
     }) as unknown as typeof fetch;
 
-    const client = new PaymentClient({
-      stripe: STRIPE_TEST_CONFIG,
+    const client = createPaymentClient({
+      gateways: { stripe: stripeGateway(STRIPE_TEST_CONFIG) },
       defaultGateway: "stripe",
     });
     const result = await client.createCustomer({

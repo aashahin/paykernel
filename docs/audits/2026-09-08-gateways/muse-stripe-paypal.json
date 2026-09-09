@@ -1,0 +1,39 @@
+{
+  "notice": "Unverified worker hypotheses. See REPORT.md for parent-verified findings and rejected claims.",
+  "id": "39d1d003-9a27-45b4-9e46-43bb125c4da1",
+  "model": "opencode-go/muse-spark-1.3-contributor",
+  "status": "completed",
+  "summary": "Audited Stripe and PayPal gateways on main snapshot for API request/response, capture/refund/error, customer/payment-method/dispute/payment-link and false-functionality. Read stripe.gateway.ts (full), paypal.gateway.ts (full), customer types, capabilities, Stripe customer tests, and local resource README. Found one concrete request-shape bug (Stripe listPaymentMethods omits type); capture/refund/void/error endpoints otherwise match expected provider shapes in-code; PayPal correctly claims no customer/dispute/payment-link surface.",
+  "findings": [
+    {
+      "kind": "FACT",
+      "message": "Stripe listPaymentMethods builds GET /customers/{id}/payment_methods with only limit and starting_after and no type filter. See lines 3384-3394: query sets limit then optional starting_after, then GET `/customers/${pathId}/payment_methods?${query}`. ListPaymentMethodsParams (customer.types.ts:88-90) also carries only customerId, so callers cannot supply type. Verification: inspect stripe.gateway.ts:3371-3423 and customer.types.ts:88-90; parent must check https://docs.stripe.com/api/payment_methods/customer_list for required type param and run stripe.customers.test.ts listPaymentMethods cases.",
+      "file": "packages/core/src/gateways/stripe/stripe.gateway.ts",
+      "severity": "high"
+    },
+    {
+      "kind": "INFERENCE",
+      "message": "If the live Stripe Customer PaymentMethods list endpoint requires `type` (e.g. type=card), the current request will fail with 400 invalid_request_error and listPaymentMethods will never succeed live despite unit mocks accepting the URL. This is inferred from Stripe API contract knowledge, not proven from local sources; requires parent verification against official web docs before fixing.",
+      "file": "packages/core/src/gateways/stripe/stripe.gateway.ts",
+      "severity": "high"
+    },
+    {
+      "kind": "RECOMMENDATION",
+      "message": "Parent verify official Stripe doc for GET /v1/customers/{customer}/payment_methods required type param; if required, add explicit type (e.g. card) or expose type filter on ListPaymentMethodsParams, update query builder at stripe.gateway.ts:3384-3389, and extend stripe.customers.test.ts:448-527 to assert type param. Alternative verified-correct list path is GET /v1/payment_methods?customer={id}&type=card.",
+      "file": "packages/core/src/gateways/stripe/stripe.gateway.ts",
+      "severity": "medium"
+    },
+    {
+      "kind": "FACT",
+      "message": "No false customer/dispute/payment-link functionality found on PayPal surface: PAYPAL_CAPABILITIES sets customers/paymentMethods/disputes/paymentLinks false (builtin-capabilities.ts:86-104) and paypal.gateway.ts implements only Orders/Payments paths (create/capture/authorize/refund/void/get + webhooks) with no createCustomer/attach/dispute/payment-link methods; Stripe correctly claims customers/paymentMethods/disputes/paymentLinks true (builtin-capabilities.ts:35-53) with matching implementations at stripe.gateway.ts:3260,3321,3371,3425,3449,3476,3541,3594,3655,3682. Verification: grep paypal.gateway.ts for those method names returns no matches; compare capability-claims.test.ts expectations.",
+      "file": "packages/core/src/gateways/builtin-capabilities.ts",
+      "severity": "info"
+    },
+    {
+      "kind": "FACT",
+      "message": "Core money-mutation endpoints observed in-code use provider-native shapes: Stripe capture POST /payment_intents/{pi}/capture with amount_to_capture (capturePayment), refund POST /refunds with payment_intent+amount+expand charge (refundPayment), void POST /payment_intents/{pi}/cancel (voidPayment), attach POST /payment_methods/{id}/attach with customer, detach POST /payment_methods/{id}/detach; PayPal order create/capture POST /v2/checkout/orders[/{id}/capture], auth capture POST /v2/payments/authorizations/{id}/capture with final_capture handling, refund POST /v2/payments/captures/{id}/refund, void POST /v2/payments/authorizations/{id}/void expecting 204. No additional concrete request/response bug proven from local sources alone; error mapping correctly separates 429/401/decline vs invalid_request in both gateways. Verification: read cited methods and mapError handlers; parent to confirm against official Stripe/PayPal docs and run gateway tests.",
+      "file": "packages/core/src/gateways/stripe/stripe.gateway.ts",
+      "severity": "info"
+    }
+  ]
+}

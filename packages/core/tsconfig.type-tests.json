@@ -7,6 +7,6 @@
     "declarationMap": false,
     "sourceMap": false
   },
-  "include": ["src/public-api.types.test.ts", "src/1.0-contracts.types.test.ts"],
+  "include": ["src/public-api.types.test.ts", "src/1.0-contracts.types.test.ts", "src/gateways/paypal/paypal.types.test.ts"],
   "exclude": ["node_modules", "dist"]
 }

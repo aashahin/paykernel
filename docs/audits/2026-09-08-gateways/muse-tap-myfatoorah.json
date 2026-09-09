@@ -1,0 +1,63 @@
+{
+  "notice": "Unverified worker hypotheses. See REPORT.md for parent-verified findings and rejected claims.",
+  "id": "f9ddd5a3-f535-4576-8669-69856a8bfec2",
+  "model": "opencode-go/muse-spark-1.3-contributor",
+  "status": "completed",
+  "summary": "Deep audit of packages/gateway-tap and packages/gateway-myfatoorah: traced gateway.ts, http.ts, status.ts, money.ts, webhooks.ts, webhook-map.ts, refund-support.ts, sources.ts, config.ts, capabilities.ts, factory.ts, types.ts, fixtures and docs for both adapters. No shell/tests run; no official web docs fetched (no web tools available) so provider-contract claims are local-docs/inference only. Concrete logic findings below; deliberate unsupported-capability errors and test mocks excluded per constraints.",
+  "findings": [
+    {
+      "kind": "FACT",
+      "message": "Tap remaining-refundable sums ALL nested refund amounts without status filter, so FAILED/CANCELLED refunds incorrectly reduce remaining. refund-support.ts:32-46 sumRefundAmounts() loops items and adds every parseable amount with no status check; tapRemainingRefundMajor() uses it at line 149 as fallback. Trigger: charge amount 10.5 with one FAILED 10.5 refund entry + omitted refund amount => remaining computed 0 => throws fully-refunded or posts 0 instead of full 10.5. Expected: only REFUNDED/PENDING/ACCEPTED count (cf. MyFatoorah refund-support.ts:116-117 which correctly filters to REFUNDED/PENDING). Severity medium. Evidence: packages/gateway-tap/src/refund-support.ts:32-46,137-170.",
+      "file": "packages/gateway-tap/src/refund-support.ts",
+      "severity": "medium"
+    },
+    {
+      "kind": "FACT",
+      "message": "Tap refundPayment does not validate explicit amount against known remaining, allowing over-refund POST. gateway.ts:335-369 computes remaining via tapRemainingRefundMajor() but lines 354-357 select p.amount verbatim when defined with no req<=remaining check; only remaining===0 short-circuits. Trigger: charge 10.5, amount_refunded 4 (remaining 6.5), caller amount 10.5 => POST /refunds amount 10.5 instead of InvalidRequestError. Expected: minor-units req>rem => InvalidRequestError like MyFatoorah gateway.ts:499-509 and Tap capture gateway.ts:963-971. Severity medium. Evidence: packages/gateway-tap/src/gateway.ts:335-369.",
+      "file": "packages/gateway-tap/src/gateway.ts",
+      "severity": "medium"
+    },
+    {
+      "kind": "FACT",
+      "message": "Tap resolveTapSourceId advertises auth_ as allowed but createPayment rejects it, inconsistent contract for direct helper callers. sources.ts:5 ALLOWED_SOURCE includes auth_ and :26 error message says use auth_ ids, while gateway.ts:815-819 throws InvalidRequestError on auth_ tapSource for create. Trigger: resolveTapSourceId({id:'auth_x'}) succeeds then createPayment rejects. Expected: either sources helper excludes auth_ for create path or documents capture-only. Severity low/info. Evidence: packages/gateway-tap/src/sources.ts:5-28 vs packages/gateway-tap/src/gateway.ts:815-819.",
+      "file": "packages/gateway-tap/src/sources.ts",
+      "severity": "low"
+    },
+    {
+      "kind": "FACT",
+      "message": "Tap copyTapConfig does not trim/validate merchantId while secretKey/webhookUrl are trimmed/validated. config.ts:79 copies merchantId as-is. Trigger: merchantId '  ' or padded id sent verbatim as merchant.id in buildCreateBody/capture. Expected: trim + non-empty check or document verbatim passthrough. Severity low. Evidence: packages/gateway-tap/src/config.ts:76-93 vs gateway.ts:213-214,779.",
+      "file": "packages/gateway-tap/src/config.ts",
+      "severity": "low"
+    },
+    {
+      "kind": "INFERENCE",
+      "message": "Tap refundReason falls back to arbitrary free-text caller reason (gateway.ts:1015 return trimmed) when not matching duplicate/fraudulent/requested_by_customer. If Tap POST /refunds reason is enum-only, this produces invalid provider request (Tap 1157 length check only enforced). Local docs/refunds.md:11 documents free-text passthrough as intentional, but no first-party Tap Refunds reference was fetchable in this environment (no web tools). Needs parent verification against https://developers.tap.company reference for Refunds reason enum. Severity medium if provider is enum-only, else no bug. Evidence: packages/gateway-tap/src/gateway.ts:998-1016.",
+      "file": "packages/gateway-tap/src/gateway.ts",
+      "severity": "medium"
+    },
+    {
+      "kind": "INFERENCE",
+      "message": "Tap partial-capture returns status partially_captured with outcome requires_action and redirectUrl undefined (gateway.ts:225-239). Partial capture is a settled money movement, not a redirect; requires_action with no action/redirect may confuse core consumers (docs/authorize.md:16 says capture may still be requires_action if Tap returns INITIATED, but code forces requires_action even when mapped charge was CAPTURED/paid). Needs parent verification of core partially_captured outcome contract. Severity low. Evidence: packages/gateway-tap/src/gateway.ts:224-240.",
+      "file": "packages/gateway-tap/src/gateway.ts",
+      "severity": "low"
+    },
+    {
+      "kind": "FACT",
+      "message": "Tap invoice webhooks hardcode status cancelled regardless of invoice status (webhook-map.ts:119 status:'cancelled', nativeType invoice.{status}). Deliberate per docs/webhooks.md:23 and locked by gateway.test.ts:1415 (expects not-paid/cancelled), so NOT a logic bug, but type invoice.PAID + cancelled is misleading; callers must not fulfill invoices. Flagged for parent awareness only. Evidence: packages/gateway-tap/src/webhook-map.ts:95-151; docs/webhooks.md:23.",
+      "file": "packages/gateway-tap/src/webhook-map.ts",
+      "severity": "info"
+    },
+    {
+      "kind": "FACT",
+      "message": "MyFatoorah MakeRefund with myfatoorahKeyType PaymentId intentionally sends KeyType/Key as caller PaymentId (gateway.ts:515-522 invoiceId:refundKey.key) while GetRefundStatus uses resolved InvoiceId. Matches docs/refunds.md:3,11 and locked by gateway.test.ts:919-943. NOT a bug; flagged to prevent false positive. No correction proposed. Evidence: packages/gateway-myfatoorah/src/gateway.ts:420-434,439-472,1238-1262; docs/refunds.md:3-11.",
+      "file": "packages/gateway-myfatoorah/src/gateway.ts",
+      "severity": "info"
+    },
+    {
+      "kind": "INFERENCE",
+      "message": "No other concrete MyFatoorah provider-request bugs confirmed by static trace: Idempotency-Key gating (KWT/SAU only), CustomerReference replay, base-currency enforcement, MakeRefund pending-only, webhook canonical strings, KD/SR aliasing, and PaymentCompleted paid-evidence all match local docs. All remaining MyFatoorah concerns (e.g. 14-digit InvoiceId heuristic, TOCTOU concurrent different-key refunds documented in docs/refunds.md:14-19, stateless PAID-terminal requiring inbox enforcement) are documented limitations, not logic bugs. Official docs URLs cited in code (https://docs.myfatoorah.com/docs/idempotency, /docs/get-payment-status, /docs/payment-inquiry, /docs/webhook-v2, /docs/v3-updating-payment-status-guidelines, /docs/iso-lookups) were NOT fetched here; parent must verify. Coverage: full src trace, partial test/docs read; no runtime verification.",
+      "file": "packages/gateway-myfatoorah/src/gateway.ts",
+      "severity": "info"
+    }
+  ]
+}

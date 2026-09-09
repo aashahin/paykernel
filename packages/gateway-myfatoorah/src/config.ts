@@ -1,4 +1,4 @@
-import { InvalidRequestError } from "@paykernel/core";
+import { InvalidRequestError, type IdempotencyStore } from "@paykernel/core";
 import { assertMyFatoorahPaymentMethod } from "./sources";
 import type { MyFatoorahPaymentMethod } from "./types";
 
@@ -73,6 +73,10 @@ export type MyFatoorahConfig = {
   webhookUrl?: string;
   /** Default `PaymentMethod` on V3 create. Omitted: all enabled methods. */
   defaultPaymentMethod?: MyFatoorahPaymentMethod;
+  /**
+   * Required outside KWT/SAU; must be atomic and shared across instances.
+   */
+  idempotencyStore?: IdempotencyStore;
 };
 
 export function resolveMyFatoorahBaseUrl(config: MyFatoorahConfig): string {
@@ -216,5 +220,26 @@ export function copyMyFatoorahConfig(config: MyFatoorahConfig): MyFatoorahConfig
     assertMyFatoorahPaymentMethod(config.defaultPaymentMethod);
     copied.defaultPaymentMethod = config.defaultPaymentMethod;
   }
+  if (config.idempotencyStore !== undefined) {
+    assertMyFatoorahIdempotencyStore(config.idempotencyStore);
+    copied.idempotencyStore = config.idempotencyStore;
+  }
   return copied;
+}
+
+function assertMyFatoorahIdempotencyStore(store: unknown): asserts store is IdempotencyStore {
+  const rec = (
+    store !== null && typeof store === "object" ? (store as Record<string, unknown>) : undefined
+  );
+  if (
+    rec === undefined ||
+    typeof rec.get !== "function" ||
+    typeof rec.set !== "function" ||
+    typeof rec.delete !== "function" ||
+    typeof rec.reserve !== "function"
+  ) {
+    throw new InvalidRequestError(
+      "myfatoorah.idempotencyStore must provide get/set/delete/reserve functions (use InMemoryIdempotencyStore or a shared store with atomic reserve())",
+    );
+  }
 }

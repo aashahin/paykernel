@@ -47,6 +47,8 @@ import type {
 } from "../types/payment.types";
 import type { WebhookEvent } from "../types/webhook.types";
 import { HooksManager } from "../hooks/hooks.manager";
+import { InvalidRequestError } from "../errors";
+import { money } from "../utils/money";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const CORE_ROOT = join(HERE, "../..");
@@ -101,11 +103,11 @@ function assertClaimImpliesMethod(
   ).toBe(true);
 }
 
-describe.skip("capability claim validation (Phase 3.4)", () => {
-  describe.skip("built-in factories", () => {
+describe("capability claim validation (Phase 3.4)", () => {
+  describe("built-in factories", () => {
     for (const { name, adapter, expected } of BUILTIN_CASES) {
-      describe.skip(name, () => {
-        it.skip("create() gateway supports/capabilities match manifest and constants", () => {
+      describe(name, () => {
+        it("create() gateway supports/capabilities match manifest and constants", () => {
           const gateway = adapter.create(ctx) as PaymentGateway;
           const manifestCaps = adapter.manifest.capabilities;
           expect(manifestCaps).toBeDefined();
@@ -126,7 +128,7 @@ describe.skip("capability claim validation (Phase 3.4)", () => {
           expect(Object.isFrozen(gateway.capabilities)).toBe(true);
         });
 
-        it.skip("claimed capabilities imply required method presence", () => {
+        it("claimed capabilities imply required method presence", () => {
           const gateway = adapter.create(ctx) as PaymentGateway;
           for (const key of GATEWAY_CAPABILITY_KEYS) {
             if (gateway.supports(key)) {
@@ -137,7 +139,7 @@ describe.skip("capability claim validation (Phase 3.4)", () => {
       });
     }
 
-    it.skip("only Stripe claims hostedCheckout; only Moyasar claims marketplaceSplits", () => {
+    it("only Stripe claims hostedCheckout; only Moyasar claims marketplaceSplits", () => {
       expect(STRIPE_CAPABILITIES.hostedCheckout).toBe(true);
       expect(MOYASAR_CAPABILITIES.hostedCheckout).toBe(false);
       expect(PAYPAL_CAPABILITIES.hostedCheckout).toBe(false);
@@ -149,7 +151,7 @@ describe.skip("capability claim validation (Phase 3.4)", () => {
       expect(PAYMOB_CAPABILITIES.marketplaceSplits).toBe(false);
     });
 
-    it.skip("only Stripe claims disputes and paymentLinks; all deny providerRecurring", () => {
+    it("only Stripe claims disputes and paymentLinks; all deny providerRecurring", () => {
       expect(STRIPE_CAPABILITIES.disputes).toBe(true);
       expect(STRIPE_CAPABILITIES.paymentLinks).toBe(true);
       expect(MOYASAR_CAPABILITIES.disputes).toBe(false);
@@ -173,7 +175,7 @@ describe.skip("capability claim validation (Phase 3.4)", () => {
       expect(PAYMOB_CAPABILITIES.paymentMethods).toBe(false);
     });
 
-    it.skip("BUILTIN_GATEWAY_MANIFESTS names match factory adapters", () => {
+    it("BUILTIN_GATEWAY_MANIFESTS names match factory adapters", () => {
       const names = BUILTIN_GATEWAY_MANIFESTS.map((m) => m.name).sort();
       expect(names).toEqual(["moyasar", "paymob", "paypal", "stripe"]);
       for (const manifest of BUILTIN_GATEWAY_MANIFESTS) {
@@ -182,7 +184,7 @@ describe.skip("capability claim validation (Phase 3.4)", () => {
       }
     });
 
-    it.skip("BUILTIN_ADAPTER_VERSION matches packages/core/package.json version (P05-VER-1)", () => {
+    it("BUILTIN_ADAPTER_VERSION matches packages/core/package.json version (P05-VER-1)", () => {
       const pkg = JSON.parse(
         readFileSync(join(CORE_ROOT, "package.json"), "utf8"),
       ) as { version: string };
@@ -193,7 +195,7 @@ describe.skip("capability claim validation (Phase 3.4)", () => {
       }
     });
 
-    it.skip("PayPal keeps partialCapture true; order captures reject amount (P05-PAYPAL-1)", () => {
+    it("PayPal keeps partialCapture true; order captures reject amount (P05-PAYPAL-1)", async () => {
       // Auth-path captures accept amount — keep the claim true.
       expect(PAYPAL_CAPABILITIES.partialCapture).toBe(true);
       expect(PAYPAL_CAPABILITIES.authorization).toBe(true);
@@ -218,10 +220,24 @@ describe.skip("capability claim validation (Phase 3.4)", () => {
       );
       expect(customGateways).toMatch(/paypalCaptureType/);
       expect(customGateways).toMatch(/order captures reject amount/i);
+
+      // Provider boundary still rejects a Money amount on order captures.
+      const paypal = paypalGateway({
+        clientId: "client_id_claim",
+        clientSecret: "client_secret_claim",
+      }).create(ctx);
+      await expect(
+        paypal.capturePayment({
+          gatewayPaymentId: "ORDER-1",
+          amount: money("10.00", "USD"),
+          currency: "USD",
+          idempotencyKey: "idem-paypal-order-reject",
+        }),
+      ).rejects.toBeInstanceOf(InvalidRequestError);
     });
   });
 
-  describe.skip("custom adapter with all-false capabilities", () => {
+  describe("custom adapter with all-false capabilities", () => {
     class AllFalseGateway extends BaseGateway {
       readonly name = "all-false-caps";
 
@@ -291,7 +307,7 @@ describe.skip("capability claim validation (Phase 3.4)", () => {
       }
     }
 
-    it.skip("supports never true for any GatewayCapabilityKey", () => {
+    it("supports never true for any GatewayCapabilityKey", () => {
       const gateway = new AllFalseGateway();
       for (const key of GATEWAY_CAPABILITY_KEYS) {
         expect(gateway.supports(key)).toBe(false);
@@ -303,8 +319,8 @@ describe.skip("capability claim validation (Phase 3.4)", () => {
     });
   });
 
-  describe.skip("snapshot immutability", () => {
-    it.skip("gateway.capabilities is frozen and complete", () => {
+  describe("snapshot immutability", () => {
+    it("gateway.capabilities is frozen and complete", () => {
       for (const { adapter } of BUILTIN_CASES) {
         const gateway = adapter.create(ctx) as PaymentGateway;
         expect(Object.isFrozen(gateway.capabilities)).toBe(true);

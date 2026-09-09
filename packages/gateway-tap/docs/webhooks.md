@@ -20,7 +20,9 @@ Tests lock Tap’s published Create-a-Charge `hashstring` header (docs example s
 
 Charge webhooks set `gatewayPaymentId` to the `chg_…` id. Auth/capture merchants must also match `reference.order` / `metadata.paymentId`: capture settlement is a **charge** object (`chg_…`), not the original `auth_…`. An authorize `CAPTURED` webhook with `charge_id` sets `gatewayPaymentId` to that `chg_…` id. Authorize objects may also carry `relatedIds.chargeId` when `charge_id` is present. `paymentId` is `metadata.paymentId`, then `metadata.orderId`, then `reference.order`. **`metadata.udf1` is not a payment id** (Tap uses udf1 as a free-form metadata slot).
 
-Invoice objects parse as **non-paid** (`cancelled`) so they are not fulfilled. Missing `id` or `created` is `InvalidRequestError`. Do not fulfill against invoices.
+Invoice objects stay native (`type: invoice.<status>`, `event.type: provider.unmapped`, no `stableType`) with `gatewayPaymentId` set to the invoice id. `status` is always `processing` as a nonterminal placeholder, not invoice/payment state; inspect `rawPayload.status` or the related charge events for settlement. Missing `id` or `created` is `InvalidRequestError`. Do not fulfill against invoices.
+
+Migration: Tap event `id` is now the raw object id plus a signed-snapshot digest (`tapWebhookEventId`). Stored old Tap inbox keys may redeliver once; application handlers should retain business idempotency.
 
 Refund objects use the charge/authorize hashstring field formula when those fields exist. Tap’s official table lists charge / authorize / invoice.
 

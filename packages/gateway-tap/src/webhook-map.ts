@@ -7,7 +7,7 @@ import {
 } from "@paykernel/core";
 import { parseTapAmount } from "./money";
 import type { TapApiObject } from "./types";
-import { tapCreatedRaw } from "./webhooks";
+import { tapCreatedRaw, tapWebhookEventId } from "./webhooks";
 
 export function chargeIdFromAuthorize(obj: TapApiObject): string | undefined {
   if (typeof obj.charge_id === "string" && obj.charge_id.startsWith("chg_")) {
@@ -88,9 +88,10 @@ export function tapWebhookTimestamp(createdRaw: string): Date {
 
 /**
  * Parse a Tap invoice webhook object into a normalized {@link WebhookEvent}.
- * Invoice `amount` is a major-unit {@link Money} value when present (e.g. `money("1.00", "SAR")`);
- * webhook verification (`verifyTapHashstring`) and parsing are independent — either order is safe
- * because `payloadHash` is derived from the raw payload via `hashWebhookPayload`, not from verification state.
+ * Invoices stay provider-native (`type: invoice.<status>`, `event.type:
+ * provider.unmapped`, no `stableType`) and never fulfill payment. `status` is
+ * always `processing` as a nonterminal placeholder, not invoice/payment state;
+ * inspect `rawPayload.status` or the related charge events for settlement.
  */
 export function parseTapInvoiceWebhookEvent(obj: TapApiObject): WebhookEvent {
   if (typeof obj.id !== "string" || obj.id.length === 0) {
@@ -111,12 +112,12 @@ export function parseTapInvoiceWebhookEvent(obj: TapApiObject): WebhookEvent {
   }
   const nativeType = `invoice.${tapStatus}`;
   const legacy: WebhookEvent = {
-    id,
+    id: tapWebhookEventId(obj),
     type: nativeType,
     gateway: "tap",
     paymentId: tapMetadataPaymentId(obj),
     gatewayPaymentId: id,
-    status: "cancelled",
+    status: "processing",
     timestamp: created,
     rawPayload: obj,
   };

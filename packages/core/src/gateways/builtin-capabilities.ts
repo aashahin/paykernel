@@ -21,7 +21,7 @@ import {
 import type { GatewayManifest } from "./gateway-manifest";
 
 /** Built-in adapter package version — must match `packages/core/package.json`. */
-export const BUILTIN_ADAPTER_VERSION = "0.1.0-next.0";
+export const BUILTIN_ADAPTER_VERSION = "1.0.0";
 
 /**
  * Stripe PaymentIntent + Checkout Session + Customer / PaymentMethod +

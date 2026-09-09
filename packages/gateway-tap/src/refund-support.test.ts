@@ -16,13 +16,13 @@ describe("tapRemainingRefundMajor", () => {
     );
   });
 
-  it.skip("throws when remaining is negative", () => {
+  it("throws when remaining is negative", () => {
     expect(() =>
       tapRemainingRefundMajor(capturedCharge({ remaining: -1 }), "SAR"),
     ).toThrow(InvalidRequestError);
   });
 
-  it.skip("throws when a refunds list mixes parseable and opaque amounts", () => {
+  it("throws when a refunds list mixes parseable and opaque amounts", () => {
     expect(() =>
       tapRemainingRefundMajor(
         capturedCharge({
@@ -33,7 +33,7 @@ describe("tapRemainingRefundMajor", () => {
     ).toThrow(InvalidRequestError);
   });
 
-  it.skip("throws when the charge does not expose remaining or refunded", () => {
+  it("throws when the charge does not expose remaining or refunded", () => {
     expect(() => tapRemainingRefundMajor(capturedCharge(), "SAR")).toThrow(
       InvalidRequestError,
     );
@@ -41,7 +41,7 @@ describe("tapRemainingRefundMajor", () => {
 });
 
 describe("nestedRefundFromCharge", () => {
-  it.skip("returns the refund whose reference.idempotent matches", () => {
+  it("returns the refund whose reference.idempotent matches", () => {
     const nested = nestedRefundFromCharge(
       capturedCharge({
         refunds: [
@@ -54,7 +54,7 @@ describe("nestedRefundFromCharge", () => {
     expect((nested as { id: string }).id).toBe("re_b");
   });
 
-  it.skip("returns undefined when multiple nested refunds do not match the key", () => {
+  it("returns undefined when multiple nested refunds do not match the key", () => {
     expect(
       nestedRefundFromCharge(
         capturedCharge({
@@ -68,7 +68,7 @@ describe("nestedRefundFromCharge", () => {
     ).toBeUndefined();
   });
 
-  it.skip("returns undefined when the only nested refund has a different idempotent key", () => {
+  it("returns undefined when the only nested refund has a different idempotent key", () => {
     expect(
       nestedRefundFromCharge(
         capturedCharge({
@@ -81,7 +81,7 @@ describe("nestedRefundFromCharge", () => {
     ).toBeUndefined();
   });
 
-  it.skip("returns the only nested refund when Tap omitted the idempotent field", () => {
+  it("returns the only nested refund when Tap omitted the idempotent field", () => {
     const nested = nestedRefundFromCharge(
       capturedCharge({
         refunds: [{ id: "re_a", status: "REFUNDED" }],

@@ -7,13 +7,13 @@ import {
   combineAbortSignals,
   createTimeoutSignal,
   InvalidRequestError,
-  isAbortError,
   mapHttpAbortError,
   NetworkError,
   OperationNotSupportedError,
   PaymentAbortedError,
   RateLimitError,
   ResourceNotFoundError,
+  sha256Hex,
   toMinorUnits,
   withRetry,
   type CaptureParams,
@@ -76,6 +76,7 @@ import {
   verifyMyFatoorahSignature,
 } from "./webhooks";
 import { normalizeMyFatoorahCurrency } from "./currency";
+import { withCreateReservation } from "./create-reservation";
 const MYFATOORAH_REFUND_COMMENT_MAX = 500;
 const CURRENCY_CODE = /^[A-Za-z]{3}$/;
 
@@ -224,8 +225,7 @@ export class MyFatoorahGateway extends BaseGateway {
       assertMyFatoorahHttpsUrl(p.callbackUrl, "callbackUrl");
       // Idempotency-Key is only honored in KWT/SAU. Elsewhere we omit the header
       // and use CustomerReference lookup to avoid double-charge on replay.
-      const idempotencySupported =
-        this.myfatoorahConfig.country === "KWT" || this.myfatoorahConfig.country === "SAU";
+      const idempotencySupported = this.supportsNativeIdempotency();
       // MF-CREATE-REPLAY: only when the header is omitted. CustomerReference is
       // not unique — reuse a Paid invoice only when amount+currency match.
       // Pending / mismatch / refunded / partially_refunded fail closed
@@ -241,163 +241,23 @@ export class MyFatoorahGateway extends BaseGateway {
           "MyFatoorah createPayment requires orderId or myfatoorahCustomer.reference outside KWT/SAU (Idempotency-Key is omitted; CustomerReference is the replay key)",
         );
       }
-      // I5 optional hardening (KWT/SAU 250m): best-effort reuse of Paid matching
-      // invoice without blocking creation on failures. Prevents double-charge
-      // after 250m Idempotency-Key expiry while preserving header dedupe.
-      // Only Paid+matching amount+currency is reused; Pending/mismatch/5xx/429
-      // fall through to normal POST. Abort is rethrown — not swallowed.
-      if (idempotencySupported && replayReference !== undefined) {
-        try {
-          const { data: kwtData, raw: kwtRaw } = await this.myfatoorahRequest(
-            "POST",
-            "/v2/GetPaymentStatus",
-            { Key: replayReference, KeyType: "CustomerReference" },
-            { signal: p.signal, retry: true, postSubmit: false },
-          );
-          const kwtInvoiceId = stringOrNumberId(kwtData.InvoiceId);
-          if (kwtInvoiceId !== undefined) {
-            const kwtStatusRaw =
-              typeof kwtData.InvoiceStatus === "string" ? kwtData.InvoiceStatus : "";
-            const kwtStatus = mapMyFatoorahInvoiceStatus(kwtStatusRaw);
-            if (kwtStatus === "paid" && this.replayInvoiceMatchesRequest(kwtData, p)) {
-              return this.mapGetPaymentResult(kwtData, kwtRaw);
-            }
-          }
-        } catch (error) {
-          if (p.signal?.aborted) throw error;
-          const isAbort =
-            error instanceof PaymentAbortedError ||
-            (error instanceof NetworkError && error.message.includes("aborted by caller"));
-          if (isAbort) throw error;
-          if (error instanceof RateLimitError) {
-            // Best-effort hardening: RateLimit on KWT preflight must not block
-            // creation — header dedupes within window, so fall through to POST.
-          }
-          // All other lookup failures — fall through to normal POST.
-        }
-      }
-      if (replayReference !== undefined && !idempotencySupported) {
-        try {
-          const { data, raw } = await this.myfatoorahRequest(
-            "POST",
-            "/v2/GetPaymentStatus",
-            { Key: replayReference, KeyType: "CustomerReference" },
-            { signal: p.signal, retry: true, postSubmit: false },
-          );
-          const existingInvoiceId = stringOrNumberId(data.InvoiceId);
-          if (existingInvoiceId !== undefined) {
-            const invoiceStatusRaw =
-              typeof data.InvoiceStatus === "string" ? data.InvoiceStatus : "";
-            const invoiceStatus = mapMyFatoorahInvoiceStatus(invoiceStatusRaw);
-            if (invoiceStatus === "paid" && this.replayInvoiceMatchesRequest(data, p)) {
-              return this.mapGetPaymentResult(data, raw);
-            }
-            // Cancelled / failed (including Expired→failed) are terminal — allow
-            // creating a new invoice with the same CustomerReference. Only
-            // pending, refunded, partially_refunded, and paid mismatch block.
-            if (invoiceStatus === "cancelled" || invoiceStatus === "failed") {
-              // fall through to POST /v3/payments
-            } else {
-              // Any other invoice for this CustomerReference (Pending, Paid with a
-              // different amount, refunded, …) must not create a second chargeable
-              // invoice. Return indeterminate with the real InvoiceId so callers
-              // can getPayment — do not throw (BaseGateway would remap gatewayId
-              // to orderId / idempotencyKey).
-              // I1: GetPaymentStatus has no PaymentURL and GET /v3/invoices/{id}
-              // returns "No invoices match this InvoiceId" when there are no
-              // InvoiceTransactions (official). A pending invoice's PaymentURL
-              // cannot be recovered via inquiry — caller must have persisted
-              // PaymentURL before ACK; after a crash query GetPaymentStatus for
-              // status but the redirect is lost. To let the customer pay, create
-              // a new invoice with a new orderId / CustomerReference (new
-              // CustomerReference value, not a replay of the same one).
-              return applyIndeterminatePaymentOutcome({
-                gateway: this.name,
-                gatewayId: existingInvoiceId,
-                message:
-                  invoiceStatus === "pending"
-                    ? "MyFatoorah createPayment found a pending invoice for this CustomerReference; refusing to create a second invoice"
-                    : "MyFatoorah createPayment found an existing invoice for this CustomerReference that does not match the request; refusing to create a second invoice",
-                errorName: "NetworkError",
-              });
-            }
-          } else {
-            // No InvoiceId in lookup response — fail closed with replayReference
-            // (CustomerReference) instead of throwing tagged NetworkError which
-            // BaseGateway would remap to orderId/idempotencyKey.
-            return applyIndeterminatePaymentOutcome({
-              gateway: this.name,
-              gatewayId: replayReference,
-              message:
-                "MyFatoorah createPayment replay lookup returned no InvoiceId; refusing to create a second invoice",
-              errorName: "NetworkError",
-            });
-          }
-        } catch (error) {
-          if (p.signal?.aborted) throw error;
-          const isAbort =
-            error instanceof PaymentAbortedError ||
-            (error instanceof NetworkError && error.message.includes("aborted by caller"));
-          if (isAbort) throw error;
-          if (this.isCreateReplayNotFound(error)) {
-            // True not-found — safe to create the first invoice.
-          } else if (error instanceof RateLimitError) {
-            // I2: GetPaymentStatus 429 is rate-limited (official warning). Surface
-            // retryAfter so callers can backoff and retry the same orderId/idempotencyKey.
-            // Do NOT convert to indeterminate; still no second POST.
-            throw error;
-          } else {
-            // 5xx / generic lookup failures: return indeterminate with
-            // replayReference (CustomerReference) directly instead of throwing
-            // NetworkError{afterProviderSubmit:true} which BaseGateway would
-            // map to indeterminate with providerObjectId = orderId/idempotencyKey.
-            return applyIndeterminatePaymentOutcome({
-              gateway: this.name,
-              gatewayId: replayReference,
-              message: "MyFatoorah createPayment replay lookup failed; refusing to create a second invoice",
-              errorName: "NetworkError",
-            });
-          }
-        }
-      }
-      const body = this.buildCreateBody(p);
-      const isRetryable = idempotencySupported
-        ? isMyFatoorahRetryableNetworkError
-        : isMyFatoorahRetryableBeforeSubmit;
-      const requestOptions = {
-        signal: p.signal,
-        retry: true as const,
-        idempotencyKey,
-        postSubmit: true as const,
-        isRetryable,
+      const executeCreate = async (markSubmitted: () => void): Promise<GatewayPaymentResult> => {
+        const replay = await this.lookupCreateReplay(p, replayReference);
+        if (replay !== undefined) return replay;
+        return this.submitCreatePayment(p, idempotencyKey, markSubmitted);
       };
-      try {
-        const { data, raw } = await this.myfatoorahRequest(
-          "POST",
-          "/v3/payments",
-          body,
-          requestOptions,
-        );
-        return this.mapCreateResult(data, raw, p.currency.trim().toUpperCase());
-      } catch (error) {
-        if (hasMyFatoorahIdempotencyValidationError(error)) {
-          // Header not supported (or other idempotency validation) — retry once without header,
-          // without post-submit retry to avoid double-charge if the headerless POST is accepted.
-          const retryWithoutHeader = {
-            signal: requestOptions.signal,
-            retry: false as const,
-            postSubmit: requestOptions.postSubmit,
-          };
-          const { data, raw } = await this.myfatoorahRequest(
-            "POST",
-            "/v3/payments",
-            body,
-            retryWithoutHeader,
-          );
-          return this.mapCreateResult(data, raw, p.currency.trim().toUpperCase());
-        }
-        throw error;
+      if (idempotencySupported) {
+        return executeCreate(() => {});
       }
+      return withCreateReservation(
+        {
+          store: this.myfatoorahConfig.idempotencyStore,
+          key: `myfatoorah:create:${sha256Hex(JSON.stringify([this.myfatoorahConfig.apiToken, this.myfatoorahConfig.country, this.myfatoorahConfig.live ?? false, replayReference]))}`,
+          fingerprintInput: p,
+          createdAt: this.clock.nowMs(),
+        },
+        executeCreate,
+      );
     });
   }
 
@@ -617,6 +477,9 @@ export class MyFatoorahGateway extends BaseGateway {
     currency: string | undefined,
     allowMissingData: boolean,
   ): Promise<{ data: Record<string, unknown>; raw: unknown }> {
+    if (callerSignal?.aborted) {
+      throw new PaymentAbortedError("MyFatoorah API request aborted by caller signal");
+    }
     const timeoutMs = this.myfatoorahConfig.timeoutMs ?? MYFATOORAH_DEFAULT_TIMEOUT_MS;
     const { signal: timeoutSignal, clear } = createTimeoutSignal(timeoutMs);
     const signal = combineAbortSignals(callerSignal, timeoutSignal);
@@ -627,8 +490,7 @@ export class MyFatoorahGateway extends BaseGateway {
     };
     // Idempotency-Key is only honored in KWT/SAU per https://docs.myfatoorah.com/docs/idempotency.
     // Outside those countries we omit the header entirely to avoid a validation rejection.
-    const idempotencySupported =
-      this.myfatoorahConfig.country === "KWT" || this.myfatoorahConfig.country === "SAU";
+    const idempotencySupported = this.supportsNativeIdempotency();
     if (idempotencyKey !== undefined && postSubmit && idempotencySupported) {
       headers["Idempotency-Key"] = idempotencyKey;
     }
@@ -640,26 +502,23 @@ export class MyFatoorahGateway extends BaseGateway {
 
     let response: Response;
     let responseText = "";
-    let responseReceived = false;
     try {
       response = await this.fetch(
         `${resolveMyFatoorahBaseUrl(this.myfatoorahConfig)}${path}`,
         init,
       );
-      responseReceived = true;
       responseText = await response.text();
     } catch (error) {
-      // C1/C2: Do not mark pre-send TypeError/DNS/connect as afterProviderSubmit.
-      // Only an abort (timeout/caller abort) after a mutating POST may have been accepted.
-      // responseReceived stays false when fetch throws before headers.
-      const shouldTagPostSubmit = postSubmit && (responseReceived || isAbortError(error));
+      // Portable fetch rejection before response headers does not prove the
+      // server did not accept the POST; treat any fetch failure on a mutating
+      // request as after provider submit.
       throw mapHttpAbortError(error, {
         callerSignal,
         timeoutSignal,
         timeoutMessage: `MyFatoorah API request timed out after ${timeoutMs}ms`,
         networkMessage: "Failed to reach MyFatoorah API",
         callerAbortMessage: "MyFatoorah API request aborted by caller signal",
-        afterProviderSubmit: shouldTagPostSubmit,
+        afterProviderSubmit: postSubmit,
       });
     } finally {
       clear();
@@ -713,6 +572,103 @@ export class MyFatoorahGateway extends BaseGateway {
   }
 
   // ─── Create helpers ─────────────────────────────────────────────────────
+
+  private supportsNativeIdempotency(): boolean {
+    return this.myfatoorahConfig.country === "KWT" || this.myfatoorahConfig.country === "SAU";
+  }
+
+  private async lookupCreateReplay(
+    params: MyFatoorahCreatePaymentParams,
+    reference: string | undefined,
+  ): Promise<GatewayPaymentResult | undefined> {
+    if (reference === undefined) return undefined;
+    try {
+      const { data, raw } = await this.myfatoorahRequest(
+        "POST",
+        "/v2/GetPaymentStatus",
+        { Key: reference, KeyType: "CustomerReference" },
+        { signal: params.signal, retry: true, postSubmit: false },
+      );
+      return this.mapCreateReplay({ data, raw, reference }, params);
+    } catch (error) {
+      if (params.signal?.aborted || error instanceof PaymentAbortedError) throw error;
+      if (error instanceof NetworkError && error.message.includes("aborted by caller")) throw error;
+      // Native header deduplication makes the KWT/SAU lookup best-effort.
+      if (this.supportsNativeIdempotency() || this.isCreateReplayNotFound(error)) return undefined;
+      if (error instanceof RateLimitError) throw error;
+      return applyIndeterminatePaymentOutcome({
+        gateway: this.name,
+        gatewayId: reference,
+        message: "MyFatoorah createPayment replay lookup failed; refusing to create a second invoice",
+        errorName: "NetworkError",
+      });
+    }
+  }
+
+  private mapCreateReplay(
+    inquiry: { data: Record<string, unknown>; raw: unknown; reference: string },
+    params: MyFatoorahCreatePaymentParams,
+  ): GatewayPaymentResult | undefined {
+    const { data, raw, reference } = inquiry;
+    const invoiceId = stringOrNumberId(data.InvoiceId);
+    const status = mapMyFatoorahInvoiceStatus(
+      typeof data.InvoiceStatus === "string" ? data.InvoiceStatus : "",
+    );
+    if (invoiceId !== undefined && status === "paid" && this.replayInvoiceMatchesRequest(data, params)) {
+      return this.mapGetPaymentResult(data, raw);
+    }
+    if (this.supportsNativeIdempotency()) return undefined;
+    if (invoiceId !== undefined && (status === "cancelled" || status === "failed")) return undefined;
+    // Inquiry cannot recover PaymentURL. Preserve the invoice identity so the
+    // caller can reconcile instead of creating a second chargeable invoice.
+    const message = invoiceId === undefined
+      ? "MyFatoorah createPayment replay lookup returned no InvoiceId; refusing to create a second invoice"
+      : status === "pending"
+        ? "MyFatoorah createPayment found a pending invoice for this CustomerReference; refusing to create a second invoice"
+        : "MyFatoorah createPayment found an existing invoice for this CustomerReference that does not match the request; refusing to create a second invoice";
+    return applyIndeterminatePaymentOutcome({
+      gateway: this.name,
+      gatewayId: invoiceId ?? reference,
+      message,
+      errorName: "NetworkError",
+    });
+  }
+
+  private async submitCreatePayment(
+    params: MyFatoorahCreatePaymentParams,
+    idempotencyKey: string,
+    markSubmitted: () => void,
+  ): Promise<GatewayPaymentResult> {
+    const body = this.buildCreateBody(params);
+    const idempotencySupported = this.supportsNativeIdempotency();
+    const requestOptions = {
+      signal: params.signal,
+      retry: idempotencySupported,
+      idempotencyKey,
+      postSubmit: true as const,
+      isRetryable: idempotencySupported
+        ? isMyFatoorahRetryableNetworkError
+        : isMyFatoorahRetryableBeforeSubmit,
+    };
+    if (params.signal?.aborted) {
+      throw new PaymentAbortedError("MyFatoorah API request aborted by caller signal");
+    }
+    markSubmitted();
+    try {
+      const { data, raw } = await this.myfatoorahRequest("POST", "/v3/payments", body, requestOptions);
+      return this.mapCreateResult(data, raw, params.currency.trim().toUpperCase());
+    } catch (error) {
+      if (!hasMyFatoorahIdempotencyValidationError(error)) throw error;
+      // Retry a rejected header once; headerless mutations cannot be retried
+      // after transport errors because the provider may have accepted them.
+      const { data, raw } = await this.myfatoorahRequest("POST", "/v3/payments", body, {
+        signal: params.signal,
+        retry: false,
+        postSubmit: true,
+      });
+      return this.mapCreateResult(data, raw, params.currency.trim().toUpperCase());
+    }
+  }
 
   private buildCreateBody(params: MyFatoorahCreatePaymentParams): Record<string, unknown> {
     const currency = params.currency.trim().toUpperCase();
@@ -848,11 +804,15 @@ export class MyFatoorahGateway extends BaseGateway {
     const retrieved =
       normalizeMyFatoorahCurrency(mapped.currency) ?? mapped.currency.trim().toUpperCase();
     if (requested !== retrieved) return false;
+    const amountCurrency =
+      normalizeMyFatoorahCurrency(mapped.amount.currency) ??
+      mapped.amount.currency.trim().toUpperCase();
+    if (amountCurrency !== retrieved) return false;
     try {
       const requestedMinor = toMinorUnits(
         parseMyFatoorahAmount(this.myfatoorahOutboundMajor(params.amount, requested), requested),
       );
-      const retrievedMinor = toMinorUnits(parseMyFatoorahAmount(mapped.amount, retrieved));
+      const retrievedMinor = toMinorUnits(mapped.amount);
       return requestedMinor === retrievedMinor;
     } catch {
       return false;

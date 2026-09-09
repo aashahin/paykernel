@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import * as myfatoorah from "./index";
 
 describe("public API runtime surface", () => {
-  it.skip("re-exports documented runtime symbols", () => {
+  it("re-exports documented runtime symbols", () => {
     expect(typeof myfatoorah.myfatoorahGateway).toBe("function");
     expect(typeof myfatoorah.MyFatoorahGateway).toBe("function");
     expect(myfatoorah.MYFATOORAH_ADAPTER_VERSION).toBe("0.1.0-next.0");

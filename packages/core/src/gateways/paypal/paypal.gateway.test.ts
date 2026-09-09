@@ -24,7 +24,7 @@ import {
 } from '../../types/payment-event';
 import type { HookContext } from '../../hooks/hooks.types';
 import type { Logger } from '../../utils/logger';
-import { money } from '../../utils/money';
+import { money, moneyToMajorNumber } from '../../utils/money';
 import { isPaidOutcome } from '../../types/operation-result';
 
 /** Logger that records warn/error messages for assertions. */
@@ -153,7 +153,7 @@ function createMockRawFetch(
 // Test Suite
 // ═══════════════════════════════════════════════════════════════════════════════
 
-describe.skip('PayPalGateway', () => {
+describe('PayPalGateway', () => {
     let gateway: PayPalGateway;
     let hooksManager: HooksManager;
     const originalFetch = globalThis.fetch;
@@ -641,7 +641,7 @@ describe.skip('PayPalGateway', () => {
             expect(event.gatewayPaymentId).toBe('capture-abc123');
             expect(event.paymentId).toBe('internal_payment_001');
             expect(event.status).toBe('paid');
-            expect(event.amount).toBe(99.99);
+            expect(moneyToMajorNumber(event.amount!)).toBe(99.99);
             expect(event.currency).toBe('USD');
             expect(event.timestamp).toBeInstanceOf(Date);
             expect(event.rawPayload).toEqual(payload);
@@ -892,7 +892,7 @@ describe.skip('PayPalGateway', () => {
             // PAYPAL-1: multi-capture uses order id, not latest capture + full aggregate amount.
             expect(event.gatewayPaymentId).toBe('order-multi');
             expect(event.gatewayPaymentId).not.toBe('CAPTURE-LAST');
-            expect(event.amount).toBe(100);
+            expect(moneyToMajorNumber(event.amount!)).toBe(100);
             expect(event.status).toBe('paid');
             expect(isPaidOutcome({
                 success: true,
@@ -954,7 +954,7 @@ describe.skip('PayPalGateway', () => {
             expect(event.gatewayPaymentId).not.toBe('CAPTURE-NEWER');
             expect(event.gatewayPaymentId).not.toBe('CAPTURE-OLDER-LAST-IN-ARRAY');
             // Aggregate 40+60, not last-by-time slice 40 alone
-            expect(event.amount).toBe(100);
+            expect(moneyToMajorNumber(event.amount!)).toBe(100);
             expect(event.status).toBe('paid');
         });
 
@@ -1003,8 +1003,8 @@ describe.skip('PayPalGateway', () => {
             // Not false paid; remaining held is 60 not 100.
             expect(event.status).toBe('partially_refunded');
             expect(event.status).not.toBe('paid');
-            expect(event.amount).toBe(60);
-            expect(event.amount).not.toBe(100);
+            expect(moneyToMajorNumber(event.amount!)).toBe(60);
+            expect(moneyToMajorNumber(event.amount!)).not.toBe(100);
             // Single refundable capture remains → capture id is honest refund target.
             expect(event.gatewayPaymentId).toBe('CAPTURE-STILL-HELD');
             expect(isPaidOutcome({
@@ -1065,7 +1065,7 @@ describe.skip('PayPalGateway', () => {
             // Remaining-held money must attach to the still-held capture, not
             // last / related_ids.capture_id (the already-refunded slice).
             expect(event.status).toBe('partially_refunded');
-            expect(event.amount).toBe(50);
+            expect(moneyToMajorNumber(event.amount!)).toBe(50);
             expect(event.gatewayPaymentId).toBe('CAPTURE-STILL-HELD');
             expect(event.gatewayPaymentId).not.toBe('CAPTURE-REFUNDED-LAST');
             expect(event.gatewayPaymentId).not.toBe('order-multi-held-not-last');
@@ -1222,7 +1222,7 @@ describe.skip('PayPalGateway', () => {
 
             expect(event.status).toBe('refunded');
             // Live zero remaining path (not dead formatAmount(0) catch).
-            expect(event.amount).toBe(0);
+            expect(moneyToMajorNumber(event.amount!, { allowZero: true })).toBe(0);
             expect(event.currency).toBe('USD');
         });
 
@@ -1272,7 +1272,7 @@ describe.skip('PayPalGateway', () => {
             const event = gateway.parseWebhookEvent(payload);
 
             expect(event.gatewayPaymentId).toBe('CAPTURE-PARTIAL-ONLY');
-            expect(event.amount).toBe(40);
+            expect(moneyToMajorNumber(event.amount!)).toBe(40);
             expect(event.status).toBe('partially_captured');
             expect(event.stableType).toBe('payment.processing');
             expect(event.stableType).not.toBe('payment.succeeded');
@@ -1323,7 +1323,7 @@ describe.skip('PayPalGateway', () => {
             expect(event.status).not.toBe('approved');
             expect(event.status).not.toBe('paid');
             expect(event.gatewayPaymentId).toBe('order-auth-only');
-            expect(event.amount).toBe(25);
+            expect(moneyToMajorNumber(event.amount!)).toBe(25);
             expect(isPaidOutcome({
                 success: true,
                 gatewayId: event.gatewayPaymentId ?? 'order-auth-only',
@@ -1555,7 +1555,7 @@ describe.skip('PayPalGateway', () => {
             const event = gateway.parseWebhookEvent(payload);
 
             expect(event.status).toBe('approved');
-            expect(event.amount).toBe(42);
+            expect(moneyToMajorNumber(event.amount!)).toBe(42);
             expect(event.currency).toBe('EUR');
         });
 
@@ -1645,7 +1645,7 @@ describe.skip('PayPalGateway', () => {
             expect(event.stableType).not.toBe('refund.completed');
             expect(event.event?.type).toBe('refund.pending');
             expect(event.provider?.eventType).toBe('PAYMENT.REFUND.COMPLETED');
-            expect(event.amount).toBe(5);
+            expect(moneyToMajorNumber(event.amount!)).toBe(5);
             expect(event.currency).toBe('USD');
         });
 
@@ -1761,7 +1761,7 @@ describe.skip('PayPalGateway', () => {
             expect(event.paymentId).toBe('internal-payment-reversed');
             expect(event.gatewayPaymentId).toBe('CAPTURE-REVERSED');
             // Audit PAYPAL-1: never publish original capture face as still-held after reverse.
-            expect(event.amount).toBe(0);
+            expect(moneyToMajorNumber(event.amount!, { allowZero: true })).toBe(0);
             expect(event.currency).toBe('USD');
         });
 
@@ -1884,8 +1884,8 @@ describe.skip('PayPalGateway', () => {
             });
 
             expect(event.status).toBe('partially_refunded');
-            expect(event.amount).toBe(70);
-            expect(event.amount).not.toBe(100);
+            expect(moneyToMajorNumber(event.amount!)).toBe(70);
+            expect(moneyToMajorNumber(event.amount!)).not.toBe(100);
             expect(event.currency).toBe('USD');
         });
 
@@ -1932,7 +1932,6 @@ describe.skip('PayPalGateway', () => {
 
             expect(event.status).toBe('partially_refunded');
             expect(event.amount).toBeUndefined();
-            expect(event.amount).not.toBe(100);
         });
 
         it('CAPTURE.REVERSED this-op COMPLETED publishes 0 remaining not face (NEW-PAYPAL-4)', () => {
@@ -1952,8 +1951,8 @@ describe.skip('PayPalGateway', () => {
             });
 
             expect(event.status).toBe('reversed');
-            expect(event.amount).toBe(0);
-            expect(event.amount).not.toBe(88);
+            expect(moneyToMajorNumber(event.amount!, { allowZero: true })).toBe(0);
+            expect(moneyToMajorNumber(event.amount!, { allowZero: true })).not.toBe(88);
             expect(event.currency).toBe('USD');
         });
 
@@ -1975,7 +1974,7 @@ describe.skip('PayPalGateway', () => {
             });
 
             expect(event.status).toBe('refunded');
-            expect(event.amount).toBe(0);
+            expect(moneyToMajorNumber(event.amount!, { allowZero: true })).toBe(0);
             expect(event.currency).toBe('USD');
             expect(event.stableType).toBe('refund.completed');
         });
@@ -2004,7 +2003,7 @@ describe.skip('PayPalGateway', () => {
             });
 
             expect(event.status).toBe('partially_refunded');
-            expect(event.amount).toBe(60);
+            expect(moneyToMajorNumber(event.amount!)).toBe(60);
             expect(event.currency).toBe('USD');
         });
 
@@ -2032,10 +2031,10 @@ describe.skip('PayPalGateway', () => {
             });
 
             expect(event.status).toBe('partially_refunded');
-            expect(event.amount).toBe(0.1);
+            expect(moneyToMajorNumber(event.amount!)).toBe(0.1);
             expect(event.currency).toBe('USD');
             // Not a float residue (e.g. 0.09999999999999998).
-            expect(Object.is(event.amount, 0.1)).toBe(true);
+            expect(Object.is(moneyToMajorNumber(event.amount!), 0.1)).toBe(true);
         });
 
         it('CAPTURE.REFUNDED face equals total_refunded → exact zero remaining omit path (PAYPAL-2)', () => {
@@ -2064,9 +2063,9 @@ describe.skip('PayPalGateway', () => {
             expect(event.status).toBe('partially_refunded');
             // Zero remaining: either omit or publish 0 — never original face 10.
             if (event.amount !== undefined) {
-                expect(event.amount).toBe(0);
+                expect(moneyToMajorNumber(event.amount!, { allowZero: true })).toBe(0);
+                expect(moneyToMajorNumber(event.amount!, { allowZero: true })).not.toBe(10);
             }
-            expect(event.amount).not.toBe(10);
         });
 
         it('CAPTURE.REFUNDED KWD 3-decimal remaining held is honest (PAYPAL-2)', () => {
@@ -2092,7 +2091,7 @@ describe.skip('PayPalGateway', () => {
             });
 
             expect(event.status).toBe('partially_refunded');
-            expect(event.amount).toBe(0.505);
+            expect(moneyToMajorNumber(event.amount!)).toBe(0.505);
             expect(event.currency).toBe('KWD');
         });
 
@@ -2356,7 +2355,7 @@ describe.skip('PayPalGateway', () => {
 
             expect(event.type).toBe('PAYMENT.CAPTURE.COMPLETED');
             expect(event.status).toBe('partially_captured');
-            expect(event.amount).toBe(20);
+            expect(moneyToMajorNumber(event.amount!)).toBe(20);
             // Dual-write demoted so type-only fulfillment does not over-ship
             expect(event.stableType).toBe('payment.processing');
             expect(event.stableType).not.toBe('capture.completed');
@@ -2574,7 +2573,7 @@ describe.skip('PayPalGateway', () => {
 
             await expect(
                 gateway.createPayment({
-                    amount: 10,
+                    amount: money(10, "USD"),
                     currency: 'USD',
                     callbackUrl: 'https://example.com/callback',
                 })
@@ -2596,7 +2595,7 @@ describe.skip('PayPalGateway', () => {
 
             await expect(
                 gateway.createPayment({
-                    amount: 10,
+                    amount: money(10, "USD"),
                     currency: 'USD',
                     callbackUrl: 'https://example.com/callback',
                 })
@@ -2636,7 +2635,7 @@ describe.skip('PayPalGateway', () => {
             }) as unknown as typeof fetch;
 
             const params: CreatePaymentParams = {
-                amount: 99.99,
+                amount: money(99.99, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com/callback',
                 orderId: 'order-001',
@@ -2648,7 +2647,6 @@ describe.skip('PayPalGateway', () => {
 
             const result = await gateway.createPayment(params);
 
-            expect(result.success).toBe(true);
             expect(result.gatewayId).toBe('ORDER-123');
             expect(result.status).toBe('pending');
             expect(result.redirectUrl).toBe('https://paypal.com/approve/ORDER-123');
@@ -2713,14 +2711,14 @@ describe.skip('PayPalGateway', () => {
             }) as unknown as typeof fetch;
 
             const result = await gateway.createPayment({
-                amount: 10,
+                amount: money(10, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com/callback',
                 returnUrl: 'https://example.com/success',
                 cancelUrl: 'https://example.com/cancel',
             });
 
-            expect(result.success).toBe(true);
+            expect(result.outcome).toBe('requires_action');
             expect((capturedBody as any).payment_source.paypal.experience_context).toMatchObject({
                 return_url: 'https://example.com/success',
                 cancel_url: 'https://example.com/cancel',
@@ -2755,12 +2753,12 @@ describe.skip('PayPalGateway', () => {
             }) as unknown as typeof fetch;
 
             const result = await gateway.createPayment({
-                amount: 10,
+                amount: money(10, "USD"),
                 currency: 'USD',
                 returnUrl: 'https://example.com/return',
             } as CreatePaymentParams);
 
-            expect(result.success).toBe(true);
+            expect(result.outcome).toBe('requires_action');
             expect((capturedBody as any).payment_source.paypal.experience_context).toMatchObject({
                 return_url: 'https://example.com/return',
                 cancel_url: 'https://example.com/return',
@@ -2776,7 +2774,7 @@ describe.skip('PayPalGateway', () => {
 
             await expect(
                 gateway.createPayment({
-                    amount: 10,
+                    amount: money(10, "USD"),
                     currency: 'USD',
                     callbackUrl: 'https://example.com/callback',
                     paypalShippingPreference: 'SET_PROVIDED_ADDRESS',
@@ -2785,7 +2783,7 @@ describe.skip('PayPalGateway', () => {
 
             await expect(
                 gateway.createPayment({
-                    amount: 10,
+                    amount: money(10, "USD"),
                     currency: 'USD',
                     callbackUrl: 'https://example.com/callback',
                     paypalShippingPreference: 'SET_PROVIDED_ADDRESS',
@@ -2823,7 +2821,7 @@ describe.skip('PayPalGateway', () => {
             }) as unknown as typeof fetch;
 
             await gateway.createPayment({
-                amount: 50,
+                amount: money(50, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com/callback',
                 idempotencyKey: 'unique-key-abc',
@@ -2860,7 +2858,7 @@ describe.skip('PayPalGateway', () => {
             }) as unknown as typeof fetch;
 
             await gateway.createPayment({
-                amount: 50,
+                amount: money(50, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com/callback',
                 idempotencyKey: '  unique-key-abc  ',
@@ -2904,7 +2902,7 @@ describe.skip('PayPalGateway', () => {
             }) as unknown as typeof fetch;
 
             await idemGateway.createPayment({
-                amount: 50,
+                amount: money(50, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com/callback',
             });
@@ -2923,7 +2921,7 @@ describe.skip('PayPalGateway', () => {
             });
 
             const result = await gateway.createPayment({
-                amount: 50,
+                amount: money(50, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com/callback',
             });
@@ -2950,13 +2948,12 @@ describe.skip('PayPalGateway', () => {
             }) as unknown as typeof fetch;
 
             const result = await gateway.createPayment({
-                amount: 50,
+                amount: money(50, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com/callback',
             });
             expect(result.outcome).toBe('indeterminate');
             expect(result.reconciliationRequired).toBe(true);
-            expect(result.success).toBe(false);
         });
 
         it('create HTTP 200 missing id is indeterminate, not a clean API throw', async () => {
@@ -2968,39 +2965,36 @@ describe.skip('PayPalGateway', () => {
             });
 
             const result = await gateway.createPayment({
-                amount: 50,
+                amount: money(50, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com/callback',
             });
             expect(result.outcome).toBe('indeterminate');
             expect(result.reconciliationRequired).toBe(true);
-            expect(result.success).toBe(false);
         });
 
         it('create HTTP 200 empty body is indeterminate, not a clean API throw', async () => {
             globalThis.fetch = createMockFetch({});
 
             const result = await gateway.createPayment({
-                amount: 50,
+                amount: money(50, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com/callback',
             });
             expect(result.outcome).toBe('indeterminate');
             expect(result.reconciliationRequired).toBe(true);
-            expect(result.success).toBe(false);
         });
 
         it('create HTTP 200 empty or non-JSON body is indeterminate, not invented {} (S20-PAYPAL-JSON)', async () => {
             for (const body of ['', '<html>proxy failure</html>']) {
                 globalThis.fetch = createMockRawFetch(body);
                 const result = await gateway.createPayment({
-                    amount: 50,
+                    amount: money(50, "USD"),
                     currency: 'USD',
                     callbackUrl: 'https://example.com/callback',
                 });
                 expect(result.outcome).toBe('indeterminate');
                 expect(result.reconciliationRequired).toBe(true);
-                expect(result.success).toBe(false);
                 expect(result.status).not.toBe('failed');
             }
         });
@@ -3028,7 +3022,7 @@ describe.skip('PayPalGateway', () => {
             }) as unknown as typeof fetch;
 
             await gateway.createPayment({
-                amount: 75,
+                amount: money(75, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com/callback',
                 capture: false,
@@ -3062,7 +3056,7 @@ describe.skip('PayPalGateway', () => {
             }) as unknown as typeof fetch;
 
             await gateway.createPayment({
-                amount: 1000,
+                amount: money(1000, "jpy"),
                 currency: 'jpy',
                 callbackUrl: 'https://example.com/callback',
             });
@@ -3128,7 +3122,7 @@ describe.skip('PayPalGateway', () => {
 
             await expect(
                 gateway.createPayment({
-                    amount: 10,
+                    amount: money(10, "USD"),
                     currency: 'USD',
                     callbackUrl: 'https://example.com/callback',
                     metadata: { paymentId: 123 },
@@ -3147,7 +3141,7 @@ describe.skip('PayPalGateway', () => {
 
             await expect(
                 gateway.createPayment({
-                    amount: 10,
+                    amount: money(10, "USD"),
                     currency: 'USD',
                     callbackUrl: 'https://example.com/callback',
                     description: 'x'.repeat(128),
@@ -3156,7 +3150,7 @@ describe.skip('PayPalGateway', () => {
 
             await expect(
                 gateway.createPayment({
-                    amount: 10,
+                    amount: money(10, "USD"),
                     currency: 'USD',
                     callbackUrl: 'https://example.com/callback',
                     description: 'x'.repeat(128),
@@ -3175,7 +3169,7 @@ describe.skip('PayPalGateway', () => {
 
             await expect(
                 gateway.createPayment({
-                    amount: 10,
+                    amount: money(10, "USD"),
                     currency: 'USD',
                     callbackUrl: 'https://example.com/callback',
                     orderId: 'x'.repeat(257),
@@ -3188,7 +3182,7 @@ describe.skip('PayPalGateway', () => {
         it('should reject PayPal request IDs longer than PayPal supports', async () => {
             await expect(
                 gateway.createPayment({
-                    amount: 10,
+                    amount: money(10, "USD"),
                     currency: 'USD',
                     callbackUrl: 'https://example.com/callback',
                     idempotencyKey: 'x'.repeat(109),
@@ -3211,7 +3205,7 @@ describe.skip('PayPalGateway', () => {
 
             await expect(
                 gateway.createPayment({
-                    amount: 10,
+                    amount: money(10, "USD"),
                     currency: 'USD',
                     callbackUrl: 'https://example.com/callback',
                 })
@@ -3244,7 +3238,7 @@ describe.skip('PayPalGateway', () => {
 
             await expect(
                 gateway.createPayment({
-                    amount: 10,
+                    amount: money(10, "USD"),
                     currency: 'USD',
                     callbackUrl: 'https://example.com/callback',
                 })
@@ -3293,7 +3287,7 @@ describe.skip('PayPalGateway', () => {
             }) as unknown as typeof fetch;
 
             const result = await gateway.createPayment({
-                amount: 10,
+                amount: money(10, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com/callback',
                 idempotencyKey: 'conflict-retry-key',
@@ -3322,7 +3316,7 @@ describe.skip('PayPalGateway', () => {
                 // Use a known ISO currency so the request reaches PayPal; the
                 // mock returns CURRENCY_NOT_SUPPORTED for an unknown provider code.
                 await gateway.createPayment({
-                    amount: 100,
+                    amount: money(100, "USD"),
                     currency: 'USD',
                     callbackUrl: 'https://example.com/callback',
                 });
@@ -3369,7 +3363,7 @@ describe.skip('PayPalGateway', () => {
 
             await expect(
                 gateway.createPayment({
-                    amount: 10,
+                    amount: money(10, "USD"),
                     currency: 'USD',
                     callbackUrl: 'https://example.com/callback',
                 })
@@ -3422,14 +3416,13 @@ describe.skip('PayPalGateway', () => {
                 idempotencyKey: 'test-idem',
             });
 
-            expect(result.success).toBe(true);
             expect(result.gatewayId).toBe('CAPTURE-XYZ');
             expect(result.orderId).toBe('ORDER-789');
             expect(result.captureId).toBe('CAPTURE-XYZ');
             // NEW-PAYPAL-7: omitted final_capture is not paid (same as GET / webhook).
             expect(result.status).toBe('partially_captured');
             expect(result.status).not.toBe('paid');
-            expect(result.amount).toBe(150);
+            expect(moneyToMajorNumber(result.amount!)).toBe(150);
             // PAYPAL-1: currency published with major-unit amount
             expect(result.currency).toBe('USD');
             expect((result.rawResponse as any).captureId).toBe('CAPTURE-XYZ');
@@ -3469,7 +3462,6 @@ describe.skip('PayPalGateway', () => {
                 idempotencyKey: 'test-idem',
             });
 
-            expect(result.success).toBe(true);
             expect(result.captureId).toBe('CAPTURE-OMITTED-FINAL');
             expect(result.gatewayId).toBe('CAPTURE-OMITTED-FINAL');
             expect(result.status).toBe('partially_captured');
@@ -3507,14 +3499,13 @@ describe.skip('PayPalGateway', () => {
                 idempotencyKey: 'test-idem',
             });
 
-            expect(result.success).toBe(true);
             expect(result.captureId).toBe('CAPTURE-FINAL');
             expect(result.status).toBe('paid');
             expect(result.outcome).toBe('succeeded');
             expect(isPaidOutcome(result)).toBe(true);
         });
 
-        it('should return success true with pending status for pending captures and warn', async () => {
+        it('should return pending with requires_action outcome for pending captures and warn', async () => {
             const warnings: string[] = [];
             const warnGateway = new PayPalGateway(
                 PAYPAL_TEST_CONFIG,
@@ -3548,7 +3539,6 @@ describe.skip('PayPalGateway', () => {
                 idempotencyKey: 'test-idem',
             });
 
-            expect(result.success).toBe(true);
             expect(result.status).toBe('pending');
             expect(result.captureId).toBe('CAPTURE-PENDING');
             expect(result.outcome).toBe('requires_action');
@@ -3558,7 +3548,7 @@ describe.skip('PayPalGateway', () => {
             )).toBe(true);
         });
 
-        it('should set success false when capture maps to failed', async () => {
+        it('should map capture DENIED to failed with declined outcome', async () => {
             globalThis.fetch = createMockFetch({
                 id: 'ORDER-FAILED-CAPTURE',
                 status: 'COMPLETED',
@@ -3585,14 +3575,13 @@ describe.skip('PayPalGateway', () => {
                 idempotencyKey: 'test-idem',
             });
 
-            expect(result.success).toBe(false);
             expect(result.status).toBe('failed');
             expect(result.captureId).toBe('CAPTURE-DENIED');
             expect(result.outcome).toBe('declined');
             expect(result.decline).toBeDefined();
         });
 
-        it('should reject successful order captures without capture details', async () => {
+        it('should return indeterminate when order capture omits capture details', async () => {
             globalThis.fetch = createMockFetch({
                 id: 'ORDER-NO-CAPTURE',
                 status: 'COMPLETED',
@@ -3611,7 +3600,6 @@ describe.skip('PayPalGateway', () => {
             });
             expect(result.outcome).toBe('indeterminate');
             expect(result.reconciliationRequired).toBe(true);
-            expect(result.success).toBe(false);
         });
 
         it('should include PayPal-Request-Id header when capturing orders', async () => {
@@ -3688,7 +3676,7 @@ describe.skip('PayPalGateway', () => {
 
             const result = await gateway.capturePayment({
                 gatewayPaymentId: 'AUTH-123',
-                amount: 20,
+                amount: money(20, "USD"),
                 currency: 'USD',
                 paypalCaptureType: 'authorization',
                 idempotencyKey: 'test-idem',
@@ -3708,7 +3696,7 @@ describe.skip('PayPalGateway', () => {
             expect(result.authorizationId).toBe('AUTH-123');
             // Non-final partial capture is not full settlement (PAYPAL-1)
             expect(result.status).toBe('partially_captured');
-            expect(result.amount).toBe(20);
+            expect(moneyToMajorNumber(result.amount!)).toBe(20);
             expect(result.outcome).toBe('requires_action');
             expect(result.outcome).not.toBe('succeeded');
             expect(isPaidOutcome(result)).toBe(false);
@@ -3741,7 +3729,7 @@ describe.skip('PayPalGateway', () => {
 
             await gateway.capturePayment({
                 gatewayPaymentId: 'AUTH-PARTIAL-DEFAULT',
-                amount: 10,
+                amount: money(10, "USD"),
                 currency: 'USD',
                 paypalCaptureType: 'authorization',
                 // paypalFinalCapture omitted
@@ -3785,7 +3773,7 @@ describe.skip('PayPalGateway', () => {
 
             const result = await gateway.capturePayment({
                 gatewayPaymentId: 'AUTH-PARTIAL-FINAL',
-                amount: 10,
+                amount: money(10, "USD"),
                 currency: 'USD',
                 paypalCaptureType: 'authorization',
                 paypalFinalCapture: true,
@@ -3813,7 +3801,7 @@ describe.skip('PayPalGateway', () => {
             await expect(
                 gateway.capturePayment({
                     gatewayPaymentId: 'ORDER-789',
-                    amount: 10,
+                    amount: money(10, "USD"),
                     currency: 'USD',
                     idempotencyKey: 'test-idem',
                 })
@@ -3886,7 +3874,7 @@ describe.skip('PayPalGateway', () => {
 
             const result = await gateway.capturePayment({
                 gatewayPaymentId: 'AUTH-789',
-                amount: 25,
+                amount: money(25, "USD"),
                 currency: 'USD',
                 paypalCaptureType: 'authorization',
                 paypalFinalCapture: false,
@@ -3944,7 +3932,7 @@ describe.skip('PayPalGateway', () => {
                 idempotencyKey: 'test-idem',
             });
 
-            expect(result.success).toBe(true);
+            expect(result.outcome).toBe('succeeded');
             expect(result.gatewayId).toBe('AUTH-XYZ');
             expect(result.orderId).toBe('ORDER-AUTH');
             expect(result.authorizationId).toBe('AUTH-XYZ');
@@ -3952,7 +3940,7 @@ describe.skip('PayPalGateway', () => {
             expect((result.rawResponse as any).authorizationId).toBe('AUTH-XYZ');
         });
 
-        it('should set success false when authorize maps to failed', async () => {
+        it('should map authorize DENIED to failed with declined outcome', async () => {
             globalThis.fetch = createMockFetch({
                 id: 'ORDER-AUTH-DENIED',
                 status: 'COMPLETED',
@@ -3980,11 +3968,11 @@ describe.skip('PayPalGateway', () => {
             });
 
             expect(result.status).toBe('failed');
-            expect(result.success).toBe(false);
+            expect(result.outcome).toBe('declined');
             expect(result.authorizationId).toBe('AUTH-DENIED');
         });
 
-        it('should reject successful authorize responses without authorization details', async () => {
+        it('should return indeterminate when authorize omits authorization details', async () => {
             globalThis.fetch = createMockFetch({
                 id: 'ORDER-AUTH-MISSING',
                 status: 'COMPLETED',
@@ -4003,7 +3991,6 @@ describe.skip('PayPalGateway', () => {
             });
             expect(result.outcome).toBe('indeterminate');
             expect(result.reconciliationRequired).toBe(true);
-            expect(result.success).toBe(false);
         });
 
         it('should reject capture-only fields on authorizePayment before calling PayPal', async () => {
@@ -4080,7 +4067,7 @@ describe.skip('PayPalGateway', () => {
             await expect(
                 gateway.refundPayment({
                     gatewayPaymentId: 'CAPTURE-123',
-                    amount: 50, // Partial refund without currency
+                    amount: money(50, "USD"), // Partial refund without currency
                     idempotencyKey: 'test-idem',
                 })
             ).rejects.toThrow('Currency is required for partial PayPal refunds');
@@ -4104,7 +4091,7 @@ describe.skip('PayPalGateway', () => {
             expect(fetchCount).toBe(0);
         });
 
-        it('should refund successfully with currency', async () => {
+        it('should refund with succeeded outcome and cumulative totalRefunded', async () => {
             let capturedHeaders: Record<string, string> | null = null;
 
             globalThis.fetch = mock(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -4148,18 +4135,17 @@ describe.skip('PayPalGateway', () => {
 
             const result = await gateway.refundPayment({
                 gatewayPaymentId: 'CAPTURE-123',
-                amount: 25.5,
+                amount: money(25.5, "USD"),
                 currency: 'USD',
                 reason: 'Customer request',
                 idempotencyKey: 'refund-idem-1',
             });
 
-            expect(result.success).toBe(true);
             expect(result.outcome).toBe('succeeded');
             expect(result.gatewayRefundId).toBe('REFUND-ABC');
             expect(result.status).toBe('completed');
             // PAYPAL-2: capture-wide cumulative (from capture GET), not this-op alone
-            expect(result.totalRefunded).toBe(25.5);
+            expect(moneyToMajorNumber(result.totalRefunded!)).toBe(25.5);
             expect(capturedHeaders!['PayPal-Request-Id']).toBe('refund-idem-1');
             expect(capturedHeaders!.Prefer).toBe('return=representation');
         });
@@ -4177,7 +4163,7 @@ describe.skip('PayPalGateway', () => {
 
             const result = await gateway.refundPayment({
                 gatewayPaymentId: 'CAPTURE-123',
-                amount: 12.34,
+                amount: money(12.34, "USD"),
                 currency: 'USD',
                 idempotencyKey: 'test-idem',
             });
@@ -4205,13 +4191,13 @@ describe.skip('PayPalGateway', () => {
 
             const result = await gateway.refundPayment({
                 gatewayPaymentId: 'CAPTURE-123',
-                amount: 10,
+                amount: money(10, "USD"),
                 currency: 'USD',
                 idempotencyKey: 'test-idem',
             });
 
             // Prior 20 + this op 10 = 30 (not this-op 10).
-            expect(result.totalRefunded).toBe(30);
+            expect(moneyToMajorNumber(result.totalRefunded!)).toBe(30);
             expect(result.status).toBe('completed');
         });
 
@@ -4255,12 +4241,12 @@ describe.skip('PayPalGateway', () => {
 
             const result = await gateway.refundPayment({
                 gatewayPaymentId: 'CAP-PRIOR',
-                amount: 15,
+                amount: money(15, "USD"),
                 currency: 'USD',
                 idempotencyKey: 'test-idem',
             });
 
-            expect(result.totalRefunded).toBe(45);
+            expect(moneyToMajorNumber(result.totalRefunded!)).toBe(45);
         });
 
         it('refund HTTP 200 missing id is indeterminate, not a clean API throw', async () => {
@@ -4274,7 +4260,6 @@ describe.skip('PayPalGateway', () => {
             });
             expect(result.outcome).toBe('indeterminate');
             expect(result.reconciliationRequired).toBe(true);
-            expect(result.success).toBe(false);
         });
 
         it('refund HTTP 200 empty body is indeterminate, not a clean API throw', async () => {
@@ -4286,7 +4271,6 @@ describe.skip('PayPalGateway', () => {
             });
             expect(result.outcome).toBe('indeterminate');
             expect(result.reconciliationRequired).toBe(true);
-            expect(result.success).toBe(false);
         });
 
         it('refund HTTP 200 empty or non-JSON body is indeterminate, not invented {} (S20-PAYPAL-JSON)', async () => {
@@ -4298,12 +4282,11 @@ describe.skip('PayPalGateway', () => {
                 });
                 expect(result.outcome).toBe('indeterminate');
                 expect(result.reconciliationRequired).toBe(true);
-                expect(result.success).toBe(false);
                 expect(result.status).not.toBe('failed');
             }
         });
 
-        it('should map failed refund statuses to failed with success false', async () => {
+        it('should map failed refund statuses to failed outcome', async () => {
             globalThis.fetch = createMockFetch({
                 id: 'REFUND-FAILED',
                 status: 'FAILED',
@@ -4316,7 +4299,6 @@ describe.skip('PayPalGateway', () => {
 
             expect(result.status).toBe('failed');
             expect(result.outcome).toBe('failed');
-            expect(result.success).toBe(false);
         });
 
         it('S20-PAYPAL-REFUND-UNKNOWN: HTTP 200 unknown refund status is pending, never failed', async () => {
@@ -4339,7 +4321,6 @@ describe.skip('PayPalGateway', () => {
 
             expect(result.status).toBe('pending');
             expect(result.outcome).toBe('pending');
-            expect(result.success).toBe(true);
             expect(result.status).not.toBe('failed');
             expect(result.outcome).not.toBe('failed');
             expect(result.totalRefunded).toBeUndefined();
@@ -4417,7 +4398,7 @@ describe.skip('PayPalGateway', () => {
             // Full refund should send an empty JSON payload per PayPal docs
             expect(capturedBody).toBe('{}');
             // Fully REFUNDED capture face is the capture-wide total.
-            expect(result.totalRefunded).toBe(100);
+            expect(moneyToMajorNumber(result.totalRefunded!)).toBe(100);
         });
 
         it('should allow longer Payments v2 idempotency keys for refunds', async () => {
@@ -4479,7 +4460,7 @@ describe.skip('PayPalGateway', () => {
             expect(fetchCalls).toBe(0);
         });
 
-        it('should void an authorized payment successfully (204 response)', async () => {
+        it('should void an authorized payment with succeeded outcome (204 response)', async () => {
             globalThis.fetch = mock(async (input: RequestInfo | URL) => {
                 const url = typeof input === 'string' ? input : (input as Request).url;
 
@@ -4515,7 +4496,7 @@ describe.skip('PayPalGateway', () => {
                 idempotencyKey: 'test-idem',
             });
 
-            expect(result.success).toBe(true);
+            expect(result.outcome).toBe('succeeded');
             expect(result.gatewayId).toBe('AUTH-123');
             expect(result.status).toBe('cancelled');
         });
@@ -4620,19 +4601,19 @@ describe.skip('PayPalGateway', () => {
 
             // Make multiple requests
             await freshGateway.createPayment({
-                amount: 10,
+                amount: money(10, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com',
             });
 
             await freshGateway.createPayment({
-                amount: 20,
+                amount: money(20, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com',
             });
 
             await freshGateway.createPayment({
-                amount: 30,
+                amount: money(30, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com',
             });
@@ -4680,7 +4661,7 @@ describe.skip('PayPalGateway', () => {
             const freshGateway = new PayPalGateway(PAYPAL_TEST_CONFIG, hooksManager);
 
             const result = await freshGateway.createPayment({
-                amount: 10,
+                amount: money(10, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com',
             });
@@ -4708,7 +4689,7 @@ describe.skip('PayPalGateway', () => {
 
             await expect(
                 gateway.createPayment({
-                    amount: 10,
+                    amount: money(10, "USD"),
                     currency: 'USD',
                     callbackUrl: 'https://example.com',
                 })
@@ -4751,12 +4732,12 @@ describe.skip('PayPalGateway', () => {
             );
 
             await clockGateway.createPayment({
-                amount: 10,
+                amount: money(10, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com',
             });
             await clockGateway.createPayment({
-                amount: 20,
+                amount: money(20, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com',
             });
@@ -4767,7 +4748,7 @@ describe.skip('PayPalGateway', () => {
             // expires_in 3600 → refresh 300s early → expiry at nowMs + 3_300_000
             nowMs = 1_000_000 + 3_300_001;
             await clockGateway.createPayment({
-                amount: 30,
+                amount: money(30, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com',
             });
@@ -4800,7 +4781,7 @@ describe.skip('PayPalGateway', () => {
             });
 
             await gatewayWithHooks.createPayment({
-                amount: 10,
+                amount: money(10, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com',
             });
@@ -4820,7 +4801,7 @@ describe.skip('PayPalGateway', () => {
 
             await expect(
                 gatewayWithAbort.createPayment({
-                    amount: 10,
+                    amount: money(10, "USD"),
                     currency: 'USD',
                     callbackUrl: 'https://example.com',
                 })
@@ -4909,15 +4890,14 @@ describe.skip('PayPalGateway', () => {
 
             const result = await gateway.getPayment({ gatewayPaymentId: 'ORDER-GET-123' });
 
-            expect(result.success).toBe(true);
             expect(result.gatewayId).toBe('ORDER-GET-123');
             expect(result.orderId).toBe('ORDER-GET-123');
             expect(result.captureId).toBe('CAP-001');
             expect(result.status).toBe('paid');
-            expect(result.amount).toBe(200);
+            expect(moneyToMajorNumber(result.amount!)).toBe(200);
             // PAYPAL-1: currency dual-written with major-unit amount
             expect(result.currency).toBe('USD');
-            expect(result.capturedAmount).toBe(200);
+            expect(moneyToMajorNumber(result.capturedAmount!)).toBe(200);
             expect(result.outcome).toBe('succeeded');
             expect(isPaidOutcome(result)).toBe(true);
         });
@@ -5113,8 +5093,8 @@ describe.skip('PayPalGateway', () => {
 
             // PAYPAL-1: do not dual-write full aggregate with only latest captureId
             expect(result.captureId).toBeUndefined();
-            expect(result.amount).toBe(100);
-            expect(result.capturedAmount).toBe(100);
+            expect(moneyToMajorNumber(result.amount!)).toBe(100);
+            expect(moneyToMajorNumber(result.capturedAmount!)).toBe(100);
             expect(result.status).toBe('paid');
             expect(isPaidOutcome(result)).toBe(true);
         });
@@ -5162,9 +5142,9 @@ describe.skip('PayPalGateway', () => {
             expect(result.status).not.toBe('paid');
             expect(isPaidOutcome(result)).toBe(false);
             // Held remaining only — not original 100 including REFUNDED face.
-            expect(result.amount).toBe(60);
-            expect(result.capturedAmount).toBe(60);
-            expect(result.amount).not.toBe(100);
+            expect(moneyToMajorNumber(result.amount!)).toBe(60);
+            expect(moneyToMajorNumber(result.capturedAmount!)).toBe(60);
+            expect(moneyToMajorNumber(result.amount!)).not.toBe(100);
             // Exactly one refundable capture remains → honest single captureId.
             expect(result.captureId).toBe('CAP-HELD');
         });
@@ -5298,8 +5278,8 @@ describe.skip('PayPalGateway', () => {
             expect(result.status).toBe('partially_captured');
             expect(result.captureId).toBe('CAP-SLICE');
             expect(result.authorizationId).toBe('AUTH-OPEN');
-            expect(result.amount).toBe(25);
-            expect(result.capturedAmount).toBe(25);
+            expect(moneyToMajorNumber(result.amount!)).toBe(25);
+            expect(moneyToMajorNumber(result.capturedAmount!)).toBe(25);
             expect(isPaidOutcome(result)).toBe(false);
         });
 
@@ -5369,7 +5349,7 @@ describe.skip('PayPalGateway', () => {
             });
 
             expect(result.status).toBe('partially_captured');
-            expect(result.amount).toBe(40);
+            expect(moneyToMajorNumber(result.amount!)).toBe(40);
             expect(isPaidOutcome(result)).toBe(false);
         });
 
@@ -5422,7 +5402,7 @@ describe.skip('PayPalGateway', () => {
             expect(result.orderId).toBe('ORDER-FOR-CAPTURE');
             expect(result.authorizationId).toBe('AUTH-FOR-CAPTURE');
             expect(result.status).toBe('paid');
-            expect(result.amount).toBe(44);
+            expect(moneyToMajorNumber(result.amount!)).toBe(44);
             expect(result.currency).toBe('USD');
             expect(requestedUrls.some((url) => url.includes('/v2/payments/captures/CAP-LOOKUP-123'))).toBe(true);
         });
@@ -5507,7 +5487,7 @@ describe.skip('PayPalGateway', () => {
             });
 
             expect(result.status).toBe('partially_refunded');
-            expect(result.amount).toBe(70);
+            expect(moneyToMajorNumber(result.amount!)).toBe(70);
             expect(result.currency).toBe('USD');
             expect(isPaidOutcome(result)).toBe(false);
         });
@@ -5553,7 +5533,7 @@ describe.skip('PayPalGateway', () => {
 
             expect(result.status).toBe('partially_refunded');
             // 103 - 42 = 61 cents → exact 0.61 major (not float residue).
-            expect(result.amount).toBe(0.61);
+            expect(moneyToMajorNumber(result.amount!)).toBe(0.61);
             expect(result.currency).toBe('USD');
             expect(isPaidOutcome(result)).toBe(false);
         });
@@ -5833,7 +5813,7 @@ describe.skip('PayPalGateway', () => {
             expect(result.orderId).toBe('ORDER-OPEN-AUTH');
             expect(result.authorizationId).toBe('AUTH-OPEN');
             expect(result.status).toBe('partially_captured');
-            expect(result.amount).toBe(20);
+            expect(moneyToMajorNumber(result.amount!)).toBe(20);
             expect(result.currency).toBe('USD');
             expect(result.outcome).toBe('requires_action');
             expect(result.outcome).not.toBe('succeeded');
@@ -5886,7 +5866,7 @@ describe.skip('PayPalGateway', () => {
             expect(result.authorizationId).toBe('AUTH-LOOKUP-123');
             expect(result.orderId).toBe('ORDER-FOR-AUTHORIZATION');
             expect(result.status).toBe('authorized');
-            expect(result.amount).toBe(55);
+            expect(moneyToMajorNumber(result.amount!)).toBe(55);
         });
 
         it('authorization GET omits related_ids.capture_id when siblings cannot be proven (NEW-PAYPAL-5)', async () => {
@@ -6073,7 +6053,7 @@ describe.skip('PayPalGateway', () => {
             }) as unknown as typeof fetch;
 
             const hungBody = await timeoutGateway.createPayment({
-                amount: 10,
+                amount: money(10, "USD"),
                 currency: 'USD',
                 callbackUrl: 'https://example.com',
             });
@@ -6107,7 +6087,7 @@ describe.skip('PayPalGateway', () => {
 
             await expect(
                 gateway.createPayment({
-                    amount: 10,
+                    amount: money(10, "USD"),
                     currency: 'USD',
                     callbackUrl: 'https://example.com',
                     signal: controller.signal,

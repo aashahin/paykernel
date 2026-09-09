@@ -10,7 +10,8 @@ import {
   hashWebhookPayload,
   toPersistedPaymentEventEnvelope,
 } from "../../types/payment-event";
-import { money } from "../../utils/money";
+import { money, moneyToMajorNumber } from "../../utils/money";
+import type { Money } from "../../utils/money";
 import { isHostedCheckoutRedirect } from "../../types/checkout.types";
 import {
   AuthenticationError,
@@ -70,7 +71,7 @@ function createStripeRefundList(
 // Test Suite
 // ═══════════════════════════════════════════════════════════════════════════════
 
-describe.skip("StripeGateway", () => {
+describe("StripeGateway", () => {
   let gateway: StripeGateway;
   let hooksManager: HooksManager;
   const originalFetch = globalThis.fetch;
@@ -252,7 +253,7 @@ describe.skip("StripeGateway", () => {
       expect(event.gateway).toBe("stripe");
       expect(event.type).toBe("payment_intent.succeeded");
       expect(event.status).toBe("paid");
-      expect(event.amount).toBe(10); // 1000 cents = 10.00
+      expect(moneyToMajorNumber(event.amount!)).toBe(10); // 1000 cents = 10.00
       expect(event.gatewayPaymentId).toBe("pi_123");
       expect(event.paymentId).toBe("internal_123");
       expect(event.livemode).toBe(false);
@@ -372,7 +373,7 @@ describe.skip("StripeGateway", () => {
 
       expect(event.gatewayPaymentId).toBe("pi_buffer");
       expect(event.status).toBe("paid");
-      expect(event.amount).toBe(10);
+      expect(moneyToMajorNumber(event.amount!)).toBe(10);
     });
 
     it("should parse checkout.session.completed event", () => {
@@ -443,7 +444,7 @@ describe.skip("StripeGateway", () => {
 
       expect(event.status).toBe("refunded");
       expect(event.status).not.toBe("paid");
-      expect(event.amount).toBe(100);
+      expect(moneyToMajorNumber(event.amount!)).toBe(100);
       expect(event.currency).toBe("USD");
       expect(event.stableType).toBe("refund.completed");
       expect(event.event?.type).toBe("refund.completed");
@@ -486,7 +487,7 @@ describe.skip("StripeGateway", () => {
 
       expect(event.status).toBe("partially_refunded");
       expect(event.status).not.toBe("paid");
-      expect(event.amount).toBe(25);
+      expect(moneyToMajorNumber(event.amount!)).toBe(25);
       expect(event.currency).toBe("USD");
       expect(event.stableType).toBe("refund.completed");
       expect(event.event?.type).toBe("refund.completed");
@@ -532,7 +533,7 @@ describe.skip("StripeGateway", () => {
 
       expect(event.status).toBe("refunded");
       expect(event.status).not.toBe("paid");
-      expect(event.amount).toBe(100);
+      expect(moneyToMajorNumber(event.amount!)).toBe(100);
       expect(event.currency).toBe("USD");
       expect(event.stableType).toBe("refund.completed");
       expect(event.event?.type).toBe("refund.completed");
@@ -573,8 +574,8 @@ describe.skip("StripeGateway", () => {
 
       expect(event.status).toBe("partially_captured");
       expect(event.status).not.toBe("paid");
-      expect(event.amount).toBe(60);
-      expect(event.amount).not.toBe(100);
+      expect(moneyToMajorNumber(event.amount!)).toBe(60);
+      expect(moneyToMajorNumber(event.amount!)).not.toBe(100);
       expect(event.currency).toBe("USD");
     });
 
@@ -673,7 +674,7 @@ describe.skip("StripeGateway", () => {
 
       expect(event.status).toBe("refunded");
       expect(event.status).not.toBe("paid");
-      expect(event.amount).toBe(80);
+      expect(moneyToMajorNumber(event.amount!)).toBe(80);
       expect(event.currency).toBe("USD");
       expect(event.stableType).toBe("refund.completed");
       expect(event.event?.type).toBe("refund.completed");
@@ -812,7 +813,7 @@ describe.skip("StripeGateway", () => {
       expect(event.status).not.toBe("setup_completed");
       expect(event.stableType).not.toBe("payment.succeeded");
       expect(event.event?.type).not.toBe("payment.succeeded");
-      expect(event.amount).toBe(20);
+      expect(moneyToMajorNumber(event.amount!)).toBe(20);
       expect(event.gatewayPaymentId).toBe("pi_npr_positive");
     });
 
@@ -898,7 +899,7 @@ describe.skip("StripeGateway", () => {
       expect(event.status).not.toBe("paid");
       expect(event.gatewayPaymentId).toBe("sub_123");
       expect(event.gatewayObjectId).toBe("cs_sub_done");
-      expect(event.amount).toBe(20);
+      expect(moneyToMajorNumber(event.amount!)).toBe(20);
     });
 
     it("should prefer Subscription ID over PaymentIntent when both are present on subscription checkout", () => {
@@ -949,7 +950,7 @@ describe.skip("StripeGateway", () => {
         livemode: false,
       });
 
-      expect(event.amount).toBe(500);
+      expect(moneyToMajorNumber(event.amount!)).toBe(500);
       expect(event.currency).toBe("JPY");
     });
 
@@ -976,8 +977,6 @@ describe.skip("StripeGateway", () => {
       expect(event.status).toBe("processing");
       expect(event.currency).toBeUndefined();
       expect(event.amount).toBeUndefined();
-      // Would have been 50.00 if wrongly defaulted to usd (2-decimal)
-      expect(event.amount).not.toBe(50);
     });
 
     it("STRIPE-2: omits amount on invoice when currency is missing (no usd default)", () => {
@@ -1003,7 +1002,6 @@ describe.skip("StripeGateway", () => {
       expect(event.status).toBe("paid");
       expect(event.currency).toBeUndefined();
       expect(event.amount).toBeUndefined();
-      expect(event.amount).not.toBe(100);
     });
 
     it("should use related PaymentIntent for charge refund events", () => {
@@ -1061,14 +1059,14 @@ describe.skip("StripeGateway", () => {
       expect(event.status).toBe("partially_refunded");
       expect(event.gatewayPaymentId).toBe("pi_partial_refund");
       // STRIPE-3: amount is cumulative amount_refunded, not payment/captured total
-      expect(event.amount).toBe(12);
-      expect(event.amount).not.toBe(25);
+      expect(moneyToMajorNumber(event.amount!)).toBe(12);
+      expect(moneyToMajorNumber(event.amount!)).not.toBe(25);
       // Proven partial dual-writes refund.completed
       expect(event.stableType).toBe("refund.completed");
       expect(event.event?.type).toBe("refund.completed");
       if (event.event?.type === "refund.completed") {
         // Dual-write Refund.amount must match amount_refunded (not charge total)
-        expect(event.event.refund.amount).toBe(12);
+        expect(moneyToMajorNumber(event.event.refund.amount!)).toBe(12);
       }
     });
 
@@ -1096,7 +1094,7 @@ describe.skip("StripeGateway", () => {
 
       expect(event.status).toBe("refunded");
       // STRIPE-3: amount from amount_refunded (equals captured on full refund of partial capture)
-      expect(event.amount).toBe(60);
+      expect(moneyToMajorNumber(event.amount!)).toBe(60);
       expect(event.gatewayPaymentId).toBe("pi_flag_full");
       expect(event.stableType).toBe("refund.completed");
     });
@@ -1158,8 +1156,8 @@ describe.skip("StripeGateway", () => {
 
       expect(event.status).toBe("partially_refunded");
       // STRIPE-3: amount is amount_refunded (30), not captured total (60)
-      expect(event.amount).toBe(30);
-      expect(event.amount).not.toBe(60);
+      expect(moneyToMajorNumber(event.amount!)).toBe(30);
+      expect(moneyToMajorNumber(event.amount!)).not.toBe(60);
     });
 
     it("should use related PaymentIntent for legacy refund update events", () => {
@@ -1184,7 +1182,7 @@ describe.skip("StripeGateway", () => {
       expect(event.status).toBe("refund_completed");
       expect(event.gatewayPaymentId).toBe("pi_from_refund");
       expect(event.gatewayObjectId).toBe("re_123");
-      expect(event.amount).toBe(12);
+      expect(moneyToMajorNumber(event.amount!)).toBe(12);
       // STRIPE-2: incomplete aggregate → dual-write refund.pending (not completed)
       expect(event.stableType).toBe("refund.pending");
       expect(event.event?.type).toBe("refund.pending");
@@ -1211,7 +1209,7 @@ describe.skip("StripeGateway", () => {
 
       expect(event.status).toBe("refund_completed");
       expect(event.gatewayPaymentId).toBe("pi_modern_refund");
-      expect(event.amount).toBe(12);
+      expect(moneyToMajorNumber(event.amount!)).toBe(12);
       // STRIPE-2: incomplete aggregate dual-write is pending, not completed
       expect(event.stableType).toBe("refund.pending");
       expect(event.event?.type).toBe("refund.pending");
@@ -1239,7 +1237,7 @@ describe.skip("StripeGateway", () => {
       expect(event.status).toBe("refund_completed");
       expect(event.gatewayPaymentId).toBe("pi_created_refund");
       expect(event.gatewayObjectId).toBe("re_created");
-      expect(event.amount).toBe(25);
+      expect(moneyToMajorNumber(event.amount!)).toBe(25);
       // STRIPE-2: incomplete aggregate dual-write is pending, not completed
       expect(event.stableType).toBe("refund.pending");
       expect(event.event?.type).toBe("refund.pending");
@@ -1271,7 +1269,7 @@ describe.skip("StripeGateway", () => {
 
       expect(event.status).toBe("refunded");
       expect(event.gatewayPaymentId).toBe("pi_full_refund");
-      expect(event.amount).toBe(25);
+      expect(moneyToMajorNumber(event.amount!)).toBe(25);
     });
 
     it("should use amount_captured as refund completeness base on expanded charge", () => {
@@ -1331,7 +1329,7 @@ describe.skip("StripeGateway", () => {
 
       expect(event.status).toBe("refunded");
       // STRIPE-3: when refunded:true and amount_refunded > 0, amount is cumulative
-      expect(event.amount).toBe(10);
+      expect(moneyToMajorNumber(event.amount!)).toBe(10);
     });
 
     it("STRIPE-1: refund.* with expanded charge amount_refunded===0 is fail-closed (not partially_refunded)", () => {
@@ -1366,7 +1364,7 @@ describe.skip("StripeGateway", () => {
       expect(event.stableType).toBe("refund.pending");
       expect(event.event?.type).toBe("refund.pending");
       // Incomplete aggregate keeps per-refund face amount (object.amount).
-      expect(event.amount).toBe(25);
+      expect(moneyToMajorNumber(event.amount!)).toBe(25);
     });
 
     it.each([
@@ -1468,10 +1466,10 @@ describe.skip("StripeGateway", () => {
 
       expect(event.status).toBe("partially_refunded");
       // Cumulative amount_refunded (35), not this refund's face (10).
-      expect(event.amount).toBe(35);
+      expect(moneyToMajorNumber(event.amount!)).toBe(35);
       expect(event.stableType).toBe("refund.completed");
       if (event.event?.type === "refund.completed") {
-        expect(event.event.refund.amount).toBe(35);
+        expect(moneyToMajorNumber(event.event.refund.amount!)).toBe(35);
       }
     });
 
@@ -1504,7 +1502,7 @@ describe.skip("StripeGateway", () => {
       expect(event.gatewayPaymentId).toBe("sub_invoice_123");
       expect(event.gatewayObjectId).toBe("in_123");
       expect(event.paymentId).toBe("internal_sub_123");
-      expect(event.amount).toBe(30);
+      expect(moneyToMajorNumber(event.amount!)).toBe(30);
     });
 
     it("should resolve invoice gatewayPaymentId from top-level subscription when payment_intent is absent", () => {
@@ -1621,7 +1619,7 @@ describe.skip("StripeGateway", () => {
 
       expect(event.status).toBe("processing");
       expect(event.status).not.toBe("paid");
-      expect(event.amount).toBe(30);
+      expect(moneyToMajorNumber(event.amount!)).toBe(30);
     });
 
     it("NEW-STRIPE-INV-1: invoice.paid amount does not use amount_due as collected", () => {
@@ -1645,7 +1643,6 @@ describe.skip("StripeGateway", () => {
       } as any);
 
       expect(event.amount).toBeUndefined();
-      expect(event.amount).not.toBe(99);
       expect(event.status).toBe("processing");
       expect(event.status).not.toBe("paid");
     });
@@ -1736,7 +1733,7 @@ describe.skip("StripeGateway", () => {
       });
 
       expect(event.status).toBe("paid");
-      expect(event.amount).toBe(100);
+      expect(moneyToMajorNumber(event.amount!)).toBe(100);
     });
 
     it("should mark payment_intent.succeeded partial captures as partially_captured", () => {
@@ -1759,7 +1756,7 @@ describe.skip("StripeGateway", () => {
       });
 
       expect(event.status).toBe("partially_captured");
-      expect(event.amount).toBe(60);
+      expect(moneyToMajorNumber(event.amount!)).toBe(60);
       // Phase 7 dual-write: partial ≠ payment.succeeded (Paymob parity)
       expect(event.type).toBe("payment_intent.succeeded");
       expect(event.stableType).toBe("payment.processing");
@@ -1791,7 +1788,7 @@ describe.skip("StripeGateway", () => {
       expect(event.status).toBe("processing");
       expect(event.status).not.toBe("paid");
       expect(event.status).not.toBe("partially_captured");
-      expect(event.amount).toBe(100); // authorized amount only (display)
+      expect(moneyToMajorNumber(event.amount!)).toBe(100); // authorized amount only (display)
       expect(event.type).toBe("payment_intent.succeeded");
       expect(event.stableType).toBe("payment.processing");
       expect(event.event?.type).toBe("payment.processing");
@@ -1824,7 +1821,7 @@ describe.skip("StripeGateway", () => {
       });
 
       expect(event.status).toBe("partially_captured");
-      expect(event.amount).toBe(60);
+      expect(moneyToMajorNumber(event.amount!)).toBe(60);
       expect(event.stableType).toBe("payment.processing");
     });
 
@@ -1853,7 +1850,7 @@ describe.skip("StripeGateway", () => {
       });
 
       expect(event.status).toBe("paid");
-      expect(event.amount).toBe(100);
+      expect(moneyToMajorNumber(event.amount!)).toBe(100);
       expect(event.stableType).toBe("payment.succeeded");
     });
 
@@ -1885,7 +1882,7 @@ describe.skip("StripeGateway", () => {
 
       expect(event.status).toBe("refunded");
       expect(event.status).not.toBe("paid");
-      expect(event.amount).toBe(100);
+      expect(moneyToMajorNumber(event.amount!)).toBe(100);
       expect(event.stableType).toBe("refund.completed");
       expect(event.event?.type).toBe("refund.completed");
       expect(event.stableType).not.toBe("payment.succeeded");
@@ -1919,7 +1916,7 @@ describe.skip("StripeGateway", () => {
 
       expect(event.status).toBe("partially_refunded");
       expect(event.status).not.toBe("paid");
-      expect(event.amount).toBe(25);
+      expect(moneyToMajorNumber(event.amount!)).toBe(25);
       expect(event.stableType).toBe("refund.completed");
       expect(event.event?.type).toBe("refund.completed");
       expect(event.stableType).not.toBe("payment.succeeded");
@@ -1961,7 +1958,7 @@ describe.skip("StripeGateway", () => {
         });
 
         expect(event.status).toBe("paid");
-        expect(event.amount).toBe(100);
+        expect(moneyToMajorNumber(event.amount!)).toBe(100);
         expect(event.stableType).toBe("payment.succeeded");
         expect(event.event?.type).toBe("payment.succeeded");
       },
@@ -2025,7 +2022,7 @@ describe.skip("StripeGateway", () => {
 
       expect(event.status).toBe("refunded");
       expect(event.status).not.toBe("paid");
-      expect(event.amount).toBe(100);
+      expect(moneyToMajorNumber(event.amount!)).toBe(100);
       expect(event.currency).toBe("USD");
       expect(event.stableType).toBe("refund.completed");
       expect(event.event?.type).toBe("refund.completed");
@@ -2066,7 +2063,7 @@ describe.skip("StripeGateway", () => {
 
       expect(event.status).toBe("partially_refunded");
       expect(event.status).not.toBe("paid");
-      expect(event.amount).toBe(40);
+      expect(moneyToMajorNumber(event.amount!)).toBe(40);
       expect(event.stableType).toBe("refund.completed");
       expect(event.stableType).not.toBe("payment.succeeded");
     });
@@ -2312,7 +2309,7 @@ describe.skip("StripeGateway", () => {
       expect(event.status).toBe("failed");
       expect(event.gatewayPaymentId).toBe("pi_invoice_failed");
       expect(event.gatewayObjectId).toBe("in_failed");
-      expect(event.amount).toBe(45);
+      expect(moneyToMajorNumber(event.amount!)).toBe(45);
     });
 
     it("should normalize subscription lifecycle events", () => {
@@ -2631,7 +2628,7 @@ describe.skip("StripeGateway", () => {
       }) as unknown as typeof fetch;
 
       const params: CreatePaymentParams = {
-        amount: 50,
+        amount: money(50, "USD"),
         currency: "USD",
         callbackUrl: "https://example.com",
         description: "Test Charge",
@@ -2639,9 +2636,8 @@ describe.skip("StripeGateway", () => {
 
       const result = await gateway.createPayment(params);
 
-      expect(result.success).toBe(true);
       expect(result.gatewayId).toBe("pi_321");
-      expect(result.amount).toBe(50);
+      expect(moneyToMajorNumber(result.amount!)).toBe(50);
       expect(result.status).toBe("pending");
       expect(result.clientSecret).toBe("pi_321_secret");
       expect(result.nextAction).toEqual({
@@ -2674,7 +2670,7 @@ describe.skip("StripeGateway", () => {
       }) as unknown as typeof fetch;
 
       const result = await gateway.createPayment({
-        amount: 5000,
+        amount: money(5000, "JPY"),
         currency: "JPY",
         callbackUrl: "https://example.com",
       });
@@ -2682,13 +2678,13 @@ describe.skip("StripeGateway", () => {
       const params = new URLSearchParams(capturedBody);
       expect(params.get("amount")).toBe("5000");
       expect(params.get("currency")).toBe("jpy");
-      expect(result.amount).toBe(5000);
+      expect(moneyToMajorNumber(result.amount!)).toBe(5000);
     });
 
     it("should reject unknown currency codes like JYP (not default exponent 2)", async () => {
       await expect(
         gateway.createPayment({
-          amount: 1000,
+          amount: { amount: "1000", currency: "JYP" } as Money,
           currency: "JYP",
           callbackUrl: "https://example.com",
         }),
@@ -2718,7 +2714,7 @@ describe.skip("StripeGateway", () => {
         }) as unknown as typeof fetch;
 
         await gateway.createPayment({
-          amount,
+          amount: money(amount, currency),
           currency,
           callbackUrl: "https://example.com",
         });
@@ -2745,7 +2741,7 @@ describe.skip("StripeGateway", () => {
 
       // Stripe three-decimal amounts must be divisible by 10 in minor units (1.230 → 1230).
       const result = await gateway.createPayment({
-        amount: 1.23,
+        amount: money(1.23, "KWD"),
         currency: "KWD",
         callbackUrl: "https://example.com",
       });
@@ -2753,13 +2749,13 @@ describe.skip("StripeGateway", () => {
       const params = new URLSearchParams(capturedBody);
       expect(params.get("amount")).toBe("1230");
       expect(params.get("currency")).toBe("kwd");
-      expect(result.amount).toBe(1.23);
+      expect(moneyToMajorNumber(result.amount!)).toBe(1.23);
     });
 
     it("should reject three-decimal currency amounts not divisible by 10 in minor units", async () => {
       await expect(
         gateway.createPayment({
-          amount: 1.234,
+          amount: money(1.234, "KWD"),
           currency: "KWD",
           callbackUrl: "https://example.com",
         }),
@@ -2781,7 +2777,7 @@ describe.skip("StripeGateway", () => {
       }) as unknown as typeof fetch;
 
       await gateway.createPayment({
-        amount: 20,
+        amount: money(20, "USD"),
         currency: "USD",
         callbackUrl: "http://cb",
         stripePaymentMethodId: "pm_card_visa",
@@ -2809,7 +2805,7 @@ describe.skip("StripeGateway", () => {
       }) as unknown as typeof fetch;
 
       await gateway.createPayment({
-        amount: 20,
+        amount: money(20, "USD"),
         currency: "USD",
         stripePaymentMethodId: "pm_card_visa",
       });
@@ -2835,7 +2831,7 @@ describe.skip("StripeGateway", () => {
       }) as unknown as typeof fetch;
 
       const result = await gateway.createPayment({
-        amount: 50,
+        amount: money(50, "USD"),
         currency: "USD",
         callbackUrl: "http://cb",
         capture: false,
@@ -2859,7 +2855,7 @@ describe.skip("StripeGateway", () => {
       }) as unknown as typeof fetch;
 
       await gateway.createPayment({
-        amount: 50,
+        amount: money(50, "USD"),
         currency: "USD",
         callbackUrl: "http://cb",
       });
@@ -2871,7 +2867,7 @@ describe.skip("StripeGateway", () => {
     it("should reject metadata objects because Stripe metadata is scalar strings", async () => {
       await expect(
         gateway.createPayment({
-          amount: 50,
+          amount: money(50, "USD"),
           currency: "USD",
           callbackUrl: "http://cb",
           metadata: { nested: { id: "x" } },
@@ -2884,7 +2880,7 @@ describe.skip("StripeGateway", () => {
     it("should reject amounts with too many decimals", async () => {
       await expect(
         gateway.createPayment({
-          amount: 10.999,
+          amount: { amount: "10.999", currency: "USD" } as Money,
           currency: "USD",
           callbackUrl: "http://cb",
         }),
@@ -2914,7 +2910,7 @@ describe.skip("StripeGateway", () => {
       });
 
       expect(new URLSearchParams(capturedBody).get("amount")).toBe("1050");
-      expect(result.amount).toBe(10.5);
+      expect(moneyToMajorNumber(result.amount!)).toBe(10.5);
     });
 
     it("should leave settlement-dependent minimum amount validation to Stripe", async () => {
@@ -2930,7 +2926,7 @@ describe.skip("StripeGateway", () => {
       }) as unknown as typeof fetch;
 
       await gateway.createPayment({
-        amount: 0.49,
+        amount: money(0.49, "USD"),
         currency: "USD",
         callbackUrl: "http://cb",
       });
@@ -2941,7 +2937,7 @@ describe.skip("StripeGateway", () => {
     it("should reject charges above the currency-specific Stripe maximum", async () => {
       await expect(
         gateway.createPayment({
-          amount: 1_000_000,
+          amount: money(1000000, "USD"),
           currency: "USD",
           callbackUrl: "http://cb",
         }),
@@ -2961,7 +2957,7 @@ describe.skip("StripeGateway", () => {
       }) as unknown as typeof fetch;
 
       await gateway.createPayment({
-        amount: 100000000,
+        amount: money(100000000, "JPY"),
         currency: "JPY",
         callbackUrl: "http://cb",
       });
@@ -2972,7 +2968,7 @@ describe.skip("StripeGateway", () => {
     it("should reject JPY charges above the 12-digit card maximum", async () => {
       await expect(
         gateway.createPayment({
-          amount: 1_000_000_000_000, // 13 digits in minor units (JPY is zero-decimal)
+          amount: money(1000000000000, "JPY"), // 13 digits in minor units (JPY is zero-decimal)
           currency: "JPY",
           callbackUrl: "http://cb",
         }),
@@ -2994,12 +2990,12 @@ describe.skip("StripeGateway", () => {
       }) as unknown as typeof fetch;
 
       const result = await gateway.createPayment({
-        amount: 1.29,
+        amount: money(1.29, "USD"),
         currency: "USD",
       });
 
       expect(new URLSearchParams(capturedBody).get("amount")).toBe("129");
-      expect(result.amount).toBe(1.29);
+      expect(moneyToMajorNumber(result.amount!)).toBe(1.29);
       // STRIPE-1: currency published with major-unit amount
       expect(result.currency).toBe("USD");
     });
@@ -3016,11 +3012,11 @@ describe.skip("StripeGateway", () => {
       ) as unknown as typeof fetch;
 
       const result = await gateway.createPayment({
-        amount: 50,
+        amount: money(50, "USD"),
         currency: "USD",
       });
 
-      expect(result.amount).toBe(50);
+      expect(moneyToMajorNumber(result.amount!)).toBe(50);
       expect(result.currency).toBe("USD");
     });
 
@@ -3037,7 +3033,7 @@ describe.skip("StripeGateway", () => {
       ) as unknown as typeof fetch;
 
       const result = await gateway.createPayment({
-        amount: 50,
+        amount: money(50, "USD"),
         currency: "USD",
         stripePaymentMethodId: "pm_card_visa",
       });
@@ -3046,7 +3042,7 @@ describe.skip("StripeGateway", () => {
       expect(result.status).toBe("processing");
       expect(result.status).not.toBe("paid");
       expect(result.outcome).not.toBe("succeeded");
-      expect(result.amount).toBe(50);
+      expect(moneyToMajorNumber(result.amount!)).toBe(50);
     });
 
     it("NEW-STRIPE-3: empty HTTP 200 on create is indeterminate, not failed/pending", async () => {
@@ -3055,7 +3051,7 @@ describe.skip("StripeGateway", () => {
       ) as unknown as typeof fetch;
 
       const result = await gateway.createPayment({
-        amount: 50,
+        amount: money(50, "USD"),
         currency: "USD",
       });
 
@@ -3063,7 +3059,6 @@ describe.skip("StripeGateway", () => {
       expect(result.reconciliationRequired).toBe(true);
       expect(result.status).not.toBe("failed");
       expect(result.status).not.toBe("pending");
-      expect(result.success).not.toBe(true);
     });
 
     it("NEW-STRIPE-3: HTTP 200 {} on create is indeterminate, not failed/pending", async () => {
@@ -3072,7 +3067,7 @@ describe.skip("StripeGateway", () => {
       ) as unknown as typeof fetch;
 
       const result = await gateway.createPayment({
-        amount: 50,
+        amount: money(50, "USD"),
         currency: "USD",
       });
 
@@ -3080,7 +3075,6 @@ describe.skip("StripeGateway", () => {
       expect(result.reconciliationRequired).toBe(true);
       expect(result.status).not.toBe("failed");
       expect(result.status).not.toBe("pending");
-      expect(result.success).not.toBe(true);
       expect(result.amount).toBeUndefined();
     });
 
@@ -3090,14 +3084,13 @@ describe.skip("StripeGateway", () => {
       ) as unknown as typeof fetch;
 
       const result = await gateway.createPayment({
-        amount: 50,
+        amount: money(50, "USD"),
         currency: "USD",
       });
 
       expect(result.outcome).toBe("indeterminate");
       expect(result.reconciliationRequired).toBe(true);
       expect(result.status).not.toBe("failed");
-      expect(result.success).not.toBe(true);
     });
 
     it("NEW-STRIPE-3: non-JSON HTTP 200 on create is indeterminate, not failed", async () => {
@@ -3106,14 +3099,13 @@ describe.skip("StripeGateway", () => {
       ) as unknown as typeof fetch;
 
       const result = await gateway.createPayment({
-        amount: 50,
+        amount: money(50, "USD"),
         currency: "USD",
       });
 
       expect(result.outcome).toBe("indeterminate");
       expect(result.reconciliationRequired).toBe(true);
       expect(result.status).not.toBe("failed");
-      expect(result.success).not.toBe(true);
     });
 
     it("should mark createPayment paid when succeeded with amount_received", async () => {
@@ -3130,7 +3122,7 @@ describe.skip("StripeGateway", () => {
       ) as unknown as typeof fetch;
 
       const result = await gateway.createPayment({
-        amount: 50,
+        amount: money(50, "USD"),
         currency: "USD",
         stripePaymentMethodId: "pm_card_visa",
       });
@@ -3142,7 +3134,7 @@ describe.skip("StripeGateway", () => {
     it("should reject Stripe metadata keys that exceed Stripe limits", async () => {
       await expect(
         gateway.createPayment({
-          amount: 50,
+          amount: money(50, "USD"),
           currency: "USD",
           metadata: { ["x".repeat(41)]: "value" },
         }),
@@ -3152,7 +3144,7 @@ describe.skip("StripeGateway", () => {
     it("should reject Stripe metadata keys with square brackets", async () => {
       await expect(
         gateway.createPayment({
-          amount: 50,
+          amount: money(50, "USD"),
           currency: "USD",
           metadata: { "bad[key]": "value" },
         }),
@@ -3175,7 +3167,7 @@ describe.skip("StripeGateway", () => {
 
       await expect(
         hookGateway.createPayment({
-          amount: 50,
+          amount: money(50, "USD"),
           currency: "USD",
           callbackUrl: "http://cb",
         }),
@@ -3206,12 +3198,11 @@ describe.skip("StripeGateway", () => {
         idempotencyKey: "idem_stripe_test_key",
       });
       expect(result.status).toBe("paid");
-      expect(result.amount).toBe(100);
+      expect(moneyToMajorNumber(result.amount!)).toBe(100);
       // STRIPE-1: currency accompanies amount
       expect(result.currency).toBe("USD");
       expect(new URLSearchParams(capturedBody).toString()).toBe("");
       expect(result.outcome).toBe("succeeded");
-      expect(result.success).toBe(true);
       expect(result.references?.providerObjectId).toBe("pi_cap");
       expect(result.references?.providerNativeStatus).toBe("succeeded");
     });
@@ -3230,13 +3221,13 @@ describe.skip("StripeGateway", () => {
 
       const result = await gateway.capturePayment({
         gatewayPaymentId: "pi_cap_partial",
-        amount: 60,
+        amount: money(60, "USD"),
         currency: "USD",
         idempotencyKey: "idem_stripe_test_key",
       });
 
       expect(result.status).toBe("partially_captured");
-      expect(result.amount).toBe(60);
+      expect(moneyToMajorNumber(result.amount!)).toBe(60);
       // STRIPE-2: open money is not outcome-succeeded (Paymob parity / isPaidOutcome).
       expect(result.outcome).toBe("requires_action");
       expect(result.outcome).not.toBe("succeeded");
@@ -3260,7 +3251,7 @@ describe.skip("StripeGateway", () => {
       // STRIPE-2: missing settled amount → not paid; amount uses auth (not 0).
       expect(result.status).toBe("processing");
       expect(result.status).not.toBe("paid");
-      expect(result.amount).toBe(100);
+      expect(moneyToMajorNumber(result.amount!)).toBe(100);
       expect(result.outcome).not.toBe("succeeded");
     });
 
@@ -3277,7 +3268,6 @@ describe.skip("StripeGateway", () => {
       expect(result.outcome).toBe("indeterminate");
       expect(result.reconciliationRequired).toBe(true);
       expect(result.status).not.toBe("failed");
-      expect(result.success).not.toBe(true);
     });
 
     it("should use amount_captured for capture status/amount when amount_received missing", async () => {
@@ -3297,13 +3287,13 @@ describe.skip("StripeGateway", () => {
 
       const result = await gateway.capturePayment({
         gatewayPaymentId: "pi_cap_via_charge",
-        amount: 60,
+        amount: money(60, "USD"),
         currency: "USD",
         idempotencyKey: "idem_stripe_test_key",
       });
 
       expect(result.status).toBe("partially_captured");
-      expect(result.amount).toBe(60);
+      expect(moneyToMajorNumber(result.amount!)).toBe(60);
     });
 
     it("should capture JPY partial amount without multiplying by 100", async () => {
@@ -3325,7 +3315,7 @@ describe.skip("StripeGateway", () => {
 
       const result = await gateway.capturePayment({
         gatewayPaymentId: "pi_cap_jpy",
-        amount: 750,
+        amount: money(750, "JPY"),
         currency: "JPY",
         idempotencyKey: "idem_stripe_test_key",
       });
@@ -3333,7 +3323,7 @@ describe.skip("StripeGateway", () => {
       expect(new URLSearchParams(capturedBody).get("amount_to_capture")).toBe(
         "750",
       );
-      expect(result.amount).toBe(750);
+      expect(moneyToMajorNumber(result.amount!)).toBe(750);
       expect(result.status).toBe("paid");
     });
 
@@ -3355,7 +3345,7 @@ describe.skip("StripeGateway", () => {
 
       await gateway.capturePayment({
         gatewayPaymentId: "pi_cap_large",
-        amount: 1_000_000,
+        amount: money(1000000, "USD"),
         currency: "USD",
         idempotencyKey: "idem_stripe_test_key",
       });
@@ -3369,7 +3359,7 @@ describe.skip("StripeGateway", () => {
       await expect(
         gateway.capturePayment({
           gatewayPaymentId: "pi_cap_missing_currency",
-          amount: 10,
+          amount: money(10, "USD"),
           idempotencyKey: "idem_stripe_test_key",
         }),
       ).rejects.toThrow(
@@ -3392,7 +3382,7 @@ describe.skip("StripeGateway", () => {
       await expect(
         gateway.capturePayment({
           gatewayPaymentId: "pi_cap_currency_mismatch",
-          amount: 50,
+          amount: money(50, "JPY"),
           currency: "JPY",
           idempotencyKey: "idem_stripe_test_key",
         }),
@@ -3430,7 +3420,7 @@ describe.skip("StripeGateway", () => {
 
       const result = await gateway.capturePayment({
         gatewayPaymentId: "pi_cap_usd_scale",
-        amount: 50,
+        amount: money(50, "USD"),
         currency: "USD",
         idempotencyKey: "idem_stripe_test_key",
       });
@@ -3440,7 +3430,7 @@ describe.skip("StripeGateway", () => {
         "5000",
       );
       expect(result.status).toBe("partially_captured");
-      expect(result.amount).toBe(50);
+      expect(moneyToMajorNumber(result.amount!)).toBe(50);
       expect(result.currency).toBe("USD");
     });
 
@@ -3491,7 +3481,7 @@ describe.skip("StripeGateway", () => {
         gatewayPaymentId: "pi_cancel",
         idempotencyKey: "idem_stripe_test_key",
       });
-      expect(result.success).toBe(true);
+      expect(result.outcome).toBe("succeeded");
       expect(result.status).toBe("cancelled");
     });
 
@@ -3516,7 +3506,6 @@ describe.skip("StripeGateway", () => {
       expect(result.outcome).not.toBe("succeeded");
       expect(result.status).not.toBe("failed");
       expect(result.status).not.toBe("cancelled");
-      expect(result.success).not.toBe(true);
     });
 
     it("S19-EPHEMERAL-KEY: voidPayment requires caller idempotencyKey before POST", async () => {
@@ -3557,7 +3546,7 @@ describe.skip("StripeGateway", () => {
       }) as unknown as typeof fetch;
 
       const result = await gateway.createCheckoutSession({
-        amount: 100,
+        amount: money(100, "USD"),
         currency: "USD",
         successUrl: "https://success",
         cancelUrl: "https://cancel",
@@ -3581,7 +3570,6 @@ describe.skip("StripeGateway", () => {
       expect(params.get("line_items[0][quantity]")).toBe("1");
       // No amount_total on the 200 body — do not invent major 0.
       expect(result.session.amount).toBeUndefined();
-      expect(result.session.amount).not.toBe(0);
     });
 
     it("P22-CKO-CREATE-AMOUNT: HTTP 200 with amount_total and currency publishes major amount", async () => {
@@ -3598,7 +3586,7 @@ describe.skip("StripeGateway", () => {
       ) as unknown as typeof fetch;
 
       const result = await gateway.createCheckoutSession({
-        amount: 100,
+        amount: money(100, "USD"),
         currency: "USD",
         successUrl: "https://success",
         cancelUrl: "https://cancel",
@@ -3609,7 +3597,7 @@ describe.skip("StripeGateway", () => {
       if (result.outcome !== "succeeded") {
         expect.unreachable("createCheckoutSession must succeed");
       }
-      expect(result.session.amount).toBe(100);
+      expect(moneyToMajorNumber(result.session.amount!)).toBe(100);
       expect(result.session.currency).toBe("USD");
     });
 
@@ -3626,7 +3614,7 @@ describe.skip("StripeGateway", () => {
       ) as unknown as typeof fetch;
 
       const asString = await gateway.createCheckoutSession({
-        amount: 100,
+        amount: money(100, "USD"),
         currency: "USD",
         successUrl: "https://success",
         cancelUrl: "https://cancel",
@@ -3653,7 +3641,7 @@ describe.skip("StripeGateway", () => {
       ) as unknown as typeof fetch;
 
       const asObject = await gateway.createCheckoutSession({
-        amount: 100,
+        amount: money(100, "USD"),
         currency: "USD",
         successUrl: "https://success",
         cancelUrl: "https://cancel",
@@ -3682,7 +3670,7 @@ describe.skip("StripeGateway", () => {
       ) as unknown as typeof fetch;
 
       const result = await gateway.createCheckoutSession({
-        amount: 100,
+        amount: money(100, "USD"),
         currency: "USD",
         successUrl: "https://success",
         cancelUrl: "https://cancel",
@@ -3695,7 +3683,6 @@ describe.skip("StripeGateway", () => {
       }
       expect(result.session.currency).toBeUndefined();
       expect(result.session.amount).toBeUndefined();
-      expect(result.session.amount).not.toBe(0);
     });
 
     it("NEW-STRIPE-CKO-200 / S19-CKO-TIMEOUT: empty HTTP 200 on createCheckoutSession is checkout-shaped indeterminate, not success:true", async () => {
@@ -3704,7 +3691,7 @@ describe.skip("StripeGateway", () => {
       ) as unknown as typeof fetch;
 
       const result = await gateway.createCheckoutSession({
-        amount: 100,
+        amount: money(100, "USD"),
         currency: "USD",
         successUrl: "https://success",
         cancelUrl: "https://cancel",
@@ -3734,7 +3721,7 @@ describe.skip("StripeGateway", () => {
       ) as unknown as typeof fetch;
 
       const result = await gateway.createCheckoutSession({
-        amount: 100,
+        amount: money(100, "USD"),
         currency: "USD",
         successUrl: "https://success",
         cancelUrl: "https://cancel",
@@ -3761,7 +3748,7 @@ describe.skip("StripeGateway", () => {
       ) as unknown as typeof fetch;
 
       const result = await gateway.createCheckoutSession({
-        amount: 100,
+        amount: money(100, "USD"),
         currency: "USD",
         successUrl: "https://success",
         cancelUrl: "https://cancel",
@@ -3789,7 +3776,7 @@ describe.skip("StripeGateway", () => {
       ) as unknown as typeof fetch;
 
       const result = await gateway.createCheckoutSession({
-        amount: 100,
+        amount: money(100, "USD"),
         currency: "USD",
         successUrl: "https://success",
         cancelUrl: "https://cancel",
@@ -3849,7 +3836,7 @@ describe.skip("StripeGateway", () => {
       }) as unknown as typeof fetch;
 
       await gateway.createCheckoutSession({
-        amount: 5000,
+        amount: money(5000, "JPY"),
         currency: "JPY",
         successUrl: "https://success",
         cancelUrl: "https://cancel",
@@ -3870,7 +3857,7 @@ describe.skip("StripeGateway", () => {
 
       await expect(
         gateway.createCheckoutSession({
-          amount: 20,
+          amount: money(20, "USD"),
           currency: "USD",
           successUrl: "https://success",
           idempotencyKey: "idem_stripe_test_key",
@@ -3911,7 +3898,7 @@ describe.skip("StripeGateway", () => {
     it("should reject checkout sessions that include both customerId and customerEmail", async () => {
       await expect(
         gateway.createCheckoutSession({
-          amount: 20,
+          amount: money(20, "USD"),
           currency: "USD",
           successUrl: "https://success",
           cancelUrl: "https://cancel",
@@ -3939,7 +3926,7 @@ describe.skip("StripeGateway", () => {
 
       await expect(
         gateway.createCheckoutSession({
-          amount: 20,
+          amount: money(20, "USD"),
           currency: "USD",
           successUrl: "https://success",
           cancelUrl: "https://cancel",
@@ -3951,7 +3938,7 @@ describe.skip("StripeGateway", () => {
     it("should reject whitespace-only idempotencyKey at validation", async () => {
       await expect(
         gateway.createCheckoutSession({
-          amount: 20,
+          amount: money(20, "USD"),
           currency: "USD",
           successUrl: "https://success",
           cancelUrl: "https://cancel",
@@ -3978,7 +3965,7 @@ describe.skip("StripeGateway", () => {
       }) as unknown as typeof fetch;
 
       const result = await timeoutGateway.createCheckoutSession({
-        amount: 10,
+        amount: money(10, "USD"),
         currency: "USD",
         successUrl: "https://success",
         cancelUrl: "https://cancel",
@@ -4073,7 +4060,7 @@ describe.skip("StripeGateway", () => {
           priceData: {
             currency: "USD",
             productData: { name: "Plan" },
-            amount: 20,
+            amount: money(20, "USD"),
           },
           quantity: 1,
         },
@@ -4148,7 +4135,7 @@ describe.skip("StripeGateway", () => {
               currency: "USD",
               productData: { name: "Huge" },
               // Above default non-card 8-digit max (99999999 minor = 999999.99 major)
-              amount: 1_000_000,
+              amount: money(1000000, "USD"),
             },
             quantity: 1,
           },
@@ -4170,7 +4157,7 @@ describe.skip("StripeGateway", () => {
     }) as unknown as typeof fetch;
 
     await gateway.createCheckoutSession({
-      amount: 20,
+      amount: money(20, "USD"),
       currency: "USD",
       successUrl: "https://success",
       cancelUrl: "https://cancel",
@@ -4197,7 +4184,7 @@ describe.skip("StripeGateway", () => {
     }) as unknown as typeof fetch;
 
     await gateway.createCheckoutSession({
-      amount: 20,
+      amount: money(20, "USD"),
       currency: "USD",
       successUrl: "https://success",
       cancelUrl: "https://cancel",
@@ -4271,7 +4258,7 @@ describe.skip("StripeGateway", () => {
   it("should reject empty checkout line items instead of sending an empty Stripe payload", async () => {
     await expect(
       gateway.createCheckoutSession({
-        amount: 20,
+        amount: money(20, "USD"),
         currency: "USD",
         successUrl: "https://success",
         cancelUrl: "https://cancel",
@@ -4284,7 +4271,7 @@ describe.skip("StripeGateway", () => {
   it("should reject checkout sessions that mix line items with amount fields", async () => {
     await expect(
       gateway.createCheckoutSession({
-        amount: 20,
+        amount: money(20, "USD"),
         currency: "USD",
         successUrl: "https://success",
         cancelUrl: "https://cancel",
@@ -4297,7 +4284,7 @@ describe.skip("StripeGateway", () => {
   it("should reject unsupported checkout passthrough fields instead of dropping them", async () => {
     await expect(
       gateway.createCheckoutSession({
-        amount: 20,
+        amount: money(20, "USD"),
         currency: "USD",
         successUrl: "https://success",
         cancelUrl: "https://cancel",
@@ -4366,7 +4353,7 @@ describe.skip("StripeGateway", () => {
             priceData: {
               currency: "USD",
               productData: { name: "Plan" },
-              amount: 20,
+              amount: money(20, "USD"),
             },
             quantity: 1,
           },
@@ -4396,7 +4383,7 @@ describe.skip("StripeGateway", () => {
           priceData: {
             currency: "USD",
             productData: { name: "Plan" },
-            amount: 20,
+            amount: money(20, "USD"),
             recurring: { interval: "month", intervalCount: 1 },
           },
           quantity: 1,
@@ -4433,7 +4420,7 @@ describe.skip("StripeGateway", () => {
           priceData: {
             currency: "USD",
             productData: { name: "Free setup" },
-            amount: 0,
+            amount: money(0, "USD", { allowZero: true }),
           },
           quantity: 1,
         },
@@ -4524,7 +4511,7 @@ describe.skip("StripeGateway", () => {
       priceData: {
         currency: "ISK",
         productData: { name: "Item" },
-        amount: 10.5,
+        amount: money(10.5, "ISK", { exponent: 2 }),
       },
       message: "Stripe ISK amounts must be whole currency units",
     },
@@ -4607,7 +4594,7 @@ describe.skip("StripeGateway", () => {
       }) as unknown as typeof fetch;
 
       await gateway.createPayment({
-        amount: 100,
+        amount: money(100, "USD"),
         currency: "USD",
         callbackUrl: "https://example.com",
         description: "Apple Pay Test",
@@ -4682,14 +4669,13 @@ describe.skip("StripeGateway", () => {
 
       const result = await gateway.refundPayment({
         gatewayPaymentId: "pi_ref",
-        amount: 5,
+        amount: money(5, "USD"),
         currency: "USD",
         idempotencyKey: "idem_stripe_test_key",
       });
-      expect(result.success).toBe(true);
       expect(result.outcome).toBe("succeeded");
       expect(result.status).toBe("completed");
-      expect(result.totalRefunded).toBe(7);
+      expect(moneyToMajorNumber(result.totalRefunded!)).toBe(7);
       expect(new URLSearchParams(capturedBody).get("amount")).toBe("500");
     });
 
@@ -4715,7 +4701,6 @@ describe.skip("StripeGateway", () => {
       expect(result.status).toBe("completed");
       expect(result.outcome).toBe("succeeded");
       expect(result.totalRefunded).toBeUndefined();
-      expect(result.totalRefunded).not.toBe(0);
     });
 
     it("NEW-STRIPE-REFUND-0: pending-only refund list does not publish totalRefunded 0", async () => {
@@ -4755,7 +4740,6 @@ describe.skip("StripeGateway", () => {
       expect(result.status).toBe("completed");
       expect(result.outcome).toBe("succeeded");
       expect(result.totalRefunded).toBeUndefined();
-      expect(result.totalRefunded).not.toBe(0);
     });
 
     it("NEW-STRIPE-REFUND-0: empty list falls back to charge.amount_refunded when proven > 0", async () => {
@@ -4783,8 +4767,7 @@ describe.skip("StripeGateway", () => {
       });
 
       expect(result.status).toBe("completed");
-      expect(result.totalRefunded).toBe(7);
-      expect(result.totalRefunded).not.toBe(0);
+      expect(moneyToMajorNumber(result.totalRefunded!)).toBe(7);
     });
 
     it("NEW-STRIPE-REFUND-0: list error + charge.amount_refunded 0 omits totalRefunded", async () => {
@@ -4817,7 +4800,6 @@ describe.skip("StripeGateway", () => {
 
       expect(result.status).toBe("completed");
       expect(result.totalRefunded).toBeUndefined();
-      expect(result.totalRefunded).not.toBe(0);
     });
 
     it("NEW-STRIPE-3: empty HTTP 200 on refund is indeterminate, not pending/success", async () => {
@@ -4833,7 +4815,7 @@ describe.skip("StripeGateway", () => {
       expect(result.outcome).toBe("indeterminate");
       expect(result.reconciliationRequired).toBe(true);
       expect(result.status).not.toBe("failed");
-      expect(result.success).not.toBe(true);
+      expect(result.outcome).not.toBe("succeeded");
     });
 
     it("NEW-STRIPE-3: HTTP 200 {} on refund is indeterminate, not pending/success", async () => {
@@ -4849,7 +4831,7 @@ describe.skip("StripeGateway", () => {
       expect(result.outcome).toBe("indeterminate");
       expect(result.reconciliationRequired).toBe(true);
       expect(result.status).not.toBe("failed");
-      expect(result.success).not.toBe(true);
+      expect(result.outcome).not.toBe("succeeded");
     });
 
     it("NEW-STRIPE-3: refund HTTP 200 with id but no status is indeterminate", async () => {
@@ -4865,14 +4847,14 @@ describe.skip("StripeGateway", () => {
       expect(result.outcome).toBe("indeterminate");
       expect(result.reconciliationRequired).toBe(true);
       expect(result.status).not.toBe("completed");
-      expect(result.success).not.toBe(true);
+      expect(result.outcome).not.toBe("succeeded");
     });
 
     it("should reject partial refund without currency", async () => {
       await expect(
         gateway.refundPayment({
           gatewayPaymentId: "pi_ref_missing_currency",
-          amount: 5,
+          amount: money(5, "USD"),
           idempotencyKey: "idem_stripe_test_key",
         }),
       ).rejects.toThrow(
@@ -4894,7 +4876,7 @@ describe.skip("StripeGateway", () => {
       await expect(
         gateway.refundPayment({
           gatewayPaymentId: "pi_ref_currency_mismatch",
-          amount: 50,
+          amount: money(50, "JPY"),
           currency: "JPY",
           idempotencyKey: "idem_stripe_test_key",
         }),
@@ -4942,13 +4924,13 @@ describe.skip("StripeGateway", () => {
 
       const result = await gateway.refundPayment({
         gatewayPaymentId: "pi_ref_usd_scale",
-        amount: 50,
+        amount: money(50, "USD"),
         currency: "USD",
         idempotencyKey: "idem_stripe_test_key",
       });
 
       expect(new URLSearchParams(capturedBody).get("amount")).toBe("5000");
-      expect(result.totalRefunded).toBe(50);
+      expect(moneyToMajorNumber(result.totalRefunded!)).toBe(50);
       expect(result.status).toBe("completed");
     });
 
@@ -4991,13 +4973,13 @@ describe.skip("StripeGateway", () => {
 
       const result = await gateway.refundPayment({
         gatewayPaymentId: "pi_ref_jpy",
-        amount: 500,
+        amount: money(500, "JPY"),
         currency: "JPY",
         idempotencyKey: "idem_stripe_test_key",
       });
 
       expect(new URLSearchParams(capturedBody).get("amount")).toBe("500");
-      expect(result.totalRefunded).toBe(500);
+      expect(moneyToMajorNumber(result.totalRefunded!)).toBe(500);
     });
 
     it("should leave refundable amount limits to Stripe for partial refunds", async () => {
@@ -5039,13 +5021,13 @@ describe.skip("StripeGateway", () => {
 
       const result = await gateway.refundPayment({
         gatewayPaymentId: "pi_ref_large",
-        amount: 1_000_000,
+        amount: money(1000000, "USD"),
         currency: "USD",
         idempotencyKey: "idem_stripe_test_key",
       });
 
       expect(new URLSearchParams(capturedBody).get("amount")).toBe("100000000");
-      expect(result.totalRefunded).toBe(1_000_000);
+      expect(moneyToMajorNumber(result.totalRefunded!)).toBe(1_000_000);
     });
 
     it("should send official Stripe refund reasons as reason", async () => {
@@ -5087,7 +5069,7 @@ describe.skip("StripeGateway", () => {
 
       await gateway.refundPayment({
         gatewayPaymentId: "pi_ref",
-        amount: 5,
+        amount: money(5, "USD"),
         currency: "USD",
         reason: "requested_by_customer",
         idempotencyKey: "idem_stripe_test_key",
@@ -5137,7 +5119,7 @@ describe.skip("StripeGateway", () => {
 
       await gateway.refundPayment({
         gatewayPaymentId: "pi_ref",
-        amount: 5,
+        amount: money(5, "USD"),
         currency: "USD",
         reason: "warehouse_return",
         idempotencyKey: "idem_stripe_test_key",
@@ -5187,7 +5169,7 @@ describe.skip("StripeGateway", () => {
 
       await gateway.refundPayment({
         gatewayPaymentId: "pi_ref",
-        amount: 5,
+        amount: money(5, "USD"),
         currency: "USD",
         metadata: {
           transactionId: "tx-1",
@@ -5253,7 +5235,7 @@ describe.skip("StripeGateway", () => {
         gatewayPaymentId: "pi_get_jpy",
       });
 
-      expect(result.amount).toBe(5000);
+      expect(moneyToMajorNumber(result.amount!)).toBe(5000);
       // STRIPE-1: currency with major-unit amount
       expect(result.currency).toBe("JPY");
       expect(result.status).toBe("paid");
@@ -5286,7 +5268,7 @@ describe.skip("StripeGateway", () => {
       });
 
       expect(requestedUrl).toContain("expand[]=latest_charge");
-      expect(result.refundedAmount).toBe(100);
+      expect(moneyToMajorNumber(result.refundedAmount!)).toBe(100);
       // STRIPE-1: currency accompanies refundedAmount / amount
       expect(result.currency).toBe("USD");
       expect(result.status).toBe("refunded");
@@ -5316,7 +5298,7 @@ describe.skip("StripeGateway", () => {
 
       expect(result.status).toBe("partially_refunded");
       expect(result.status).not.toBe("refunded");
-      expect(result.refundedAmount).toBe(100);
+      expect(moneyToMajorNumber(result.refundedAmount!)).toBe(100);
     });
 
     it("should mark fully refunded PaymentIntents as refunded", async () => {
@@ -5341,8 +5323,8 @@ describe.skip("StripeGateway", () => {
       });
 
       expect(result.status).toBe("refunded");
-      expect(result.amount).toBe(50);
-      expect(result.refundedAmount).toBe(50);
+      expect(moneyToMajorNumber(result.amount!)).toBe(50);
+      expect(moneyToMajorNumber(result.refundedAmount!)).toBe(50);
       expect(result.currency).toBe("USD");
     });
 
@@ -5368,8 +5350,8 @@ describe.skip("StripeGateway", () => {
       });
 
       expect(result.status).toBe("partially_refunded");
-      expect(result.amount).toBe(100);
-      expect(result.refundedAmount).toBe(25);
+      expect(moneyToMajorNumber(result.amount!)).toBe(100);
+      expect(moneyToMajorNumber(result.refundedAmount!)).toBe(25);
     });
 
     it("should prefer amount_received and mark partial captures as partially_captured", async () => {
@@ -5394,7 +5376,7 @@ describe.skip("StripeGateway", () => {
       });
 
       expect(result.status).toBe("partially_captured");
-      expect(result.amount).toBe(60);
+      expect(moneyToMajorNumber(result.amount!)).toBe(60);
     });
 
     it("should prefer refund status over partial capture when both apply", async () => {
@@ -5421,8 +5403,8 @@ describe.skip("StripeGateway", () => {
       // Full refund of captured base (amount_received=6000) overrides partially_captured.
       // amount=10000, amount_received=6000, amount_refunded=6000 => refunded
       expect(result.status).toBe("refunded");
-      expect(result.amount).toBe(60);
-      expect(result.refundedAmount).toBe(60);
+      expect(moneyToMajorNumber(result.amount!)).toBe(60);
+      expect(moneyToMajorNumber(result.refundedAmount!)).toBe(60);
     });
 
     it("should mark full refund of captured base using amount_captured when amount_received absent", async () => {
@@ -5447,7 +5429,7 @@ describe.skip("StripeGateway", () => {
       });
 
       expect(result.status).toBe("refunded");
-      expect(result.refundedAmount).toBe(60);
+      expect(moneyToMajorNumber(result.refundedAmount!)).toBe(60);
     });
 
     it("should mark partial capture via amount_captured when amount_received absent", async () => {
@@ -5472,7 +5454,7 @@ describe.skip("StripeGateway", () => {
       });
 
       expect(result.status).toBe("partially_captured");
-      expect(result.amount).toBe(60);
+      expect(moneyToMajorNumber(result.amount!)).toBe(60);
     });
 
     it("should fail closed on getPayment when succeeded but settled amount fields missing", async () => {
@@ -5497,7 +5479,7 @@ describe.skip("StripeGateway", () => {
 
       expect(result.status).toBe("processing");
       expect(result.status).not.toBe("paid");
-      expect(result.amount).toBe(100);
+      expect(moneyToMajorNumber(result.amount!)).toBe(100);
     });
 
     it("STRIPE-1: re-fetches unexpanded string latest_charge and maps full refund", async () => {
@@ -5537,8 +5519,8 @@ describe.skip("StripeGateway", () => {
       );
       expect(result.status).toBe("refunded");
       expect(result.status).not.toBe("paid");
-      expect(result.refundedAmount).toBe(100);
-      expect(result.amount).toBe(100);
+      expect(moneyToMajorNumber(result.refundedAmount!)).toBe(100);
+      expect(moneyToMajorNumber(result.amount!)).toBe(100);
       expect(result.references?.relatedIds?.chargeId).toBe("ch_unexpanded_full");
     });
 
@@ -5571,7 +5553,7 @@ describe.skip("StripeGateway", () => {
 
       expect(result.status).toBe("partially_refunded");
       expect(result.status).not.toBe("paid");
-      expect(result.refundedAmount).toBe(25);
+      expect(moneyToMajorNumber(result.refundedAmount!)).toBe(25);
     });
 
     it("STRIPE-1: fail-closed to processing when unexpanded charge re-fetch fails", async () => {
@@ -5634,7 +5616,7 @@ describe.skip("StripeGateway", () => {
 
       expect(result.status).toBe("refunded");
       expect(result.status).not.toBe("paid");
-      expect(result.refundedAmount).toBe(100);
+      expect(moneyToMajorNumber(result.refundedAmount!)).toBe(100);
       expect(result.currency).toBe("USD");
     });
 
@@ -5810,7 +5792,7 @@ describe.skip("StripeGateway", () => {
       expect(result.session.references.relatedIds?.paymentIntentId).toBe(
         "pi_from_session",
       );
-      expect(result.session.amount).toBe(10);
+      expect(moneyToMajorNumber(result.session.amount!)).toBe(10);
       expect(result.session.currency).toBe("USD");
       // Id-only expanded PI has no charge snapshot — fail-closed (S19-CKO-GET).
       expect(result.session.paymentStatus).toBe("processing");
@@ -5855,8 +5837,8 @@ describe.skip("StripeGateway", () => {
       expect(result.session.references.relatedIds?.paymentIntentId).toBe(
         "pi_expanded_received",
       );
-      expect(result.session.amount).toBe(60);
-      expect(result.session.amount).not.toBe(100);
+      expect(moneyToMajorNumber(result.session.amount!)).toBe(60);
+      expect(moneyToMajorNumber(result.session.amount!)).not.toBe(100);
       expect(result.session.currency).toBe("USD");
       expect(result.session.paymentStatus).toBe("partially_captured");
       expect(result.session.paymentStatus).not.toBe("paid");
@@ -5900,8 +5882,8 @@ describe.skip("StripeGateway", () => {
       }
       expect(result.session.paymentStatus).toBe("refunded");
       expect(result.session.paymentStatus).not.toBe("paid");
-      expect(result.session.amount).toBe(100);
-      expect(result.session.refundedAmount).toBe(100);
+      expect(moneyToMajorNumber(result.session.amount!)).toBe(100);
+      expect(moneyToMajorNumber(result.session.refundedAmount!)).toBe(100);
       expect(result.session.currency).toBe("USD");
     });
 
@@ -5934,8 +5916,7 @@ describe.skip("StripeGateway", () => {
       }
       expect(result.session.status).toBe("open");
       expect(result.session.paymentStatus).toBe("unpaid");
-      expect(result.session.amount).toBe(10);
-      expect(result.session.amount).not.toBe(0);
+      expect(moneyToMajorNumber(result.session.amount!)).toBe(10);
       expect(result.session.currency).toBe("USD");
     });
 
@@ -5985,7 +5966,6 @@ describe.skip("StripeGateway", () => {
       }
       expect(omitted.session.currency).toBe("USD");
       expect(omitted.session.amount).toBeUndefined();
-      expect(omitted.session.amount).not.toBe(0);
 
       globalThis.fetch = mock(async () =>
         createMockResponse({
@@ -6011,7 +5991,6 @@ describe.skip("StripeGateway", () => {
       }
       expect(nulled.session.currency).toBe("USD");
       expect(nulled.session.amount).toBeUndefined();
-      expect(nulled.session.amount).not.toBe(0);
     });
 
     it("getCheckoutSession 404 is a failed outcome, not a throw", async () => {
@@ -6086,7 +6065,7 @@ describe.skip("StripeGateway", () => {
       let caught: unknown;
       try {
         await gateway.createPayment({
-          amount: 10,
+          amount: money(10, "USD"),
           currency: "USD",
           callbackUrl: "https://example.com",
           stripePaymentMethodId: "pm_card_authenticationRequired",
@@ -6120,7 +6099,7 @@ describe.skip("StripeGateway", () => {
 
       await expect(
         gateway.createPayment({
-          amount: 10,
+          amount: money(10, "USD"),
           currency: "USD",
           callbackUrl: "https://example.com",
         }),
@@ -6143,7 +6122,7 @@ describe.skip("StripeGateway", () => {
       }) as unknown as typeof fetch;
 
       await gateway.createPayment({
-        amount: 10,
+        amount: money(10, "USD"),
         currency: "USD",
         callbackUrl: "https://example.com",
       });
@@ -6154,7 +6133,7 @@ describe.skip("StripeGateway", () => {
     it("should reject idempotency keys longer than Stripe allows", async () => {
       await expect(
         gateway.createPayment({
-          amount: 10,
+          amount: money(10, "USD"),
           currency: "USD",
           idempotencyKey: "x".repeat(256),
         }),
@@ -6181,7 +6160,7 @@ describe.skip("StripeGateway", () => {
       }) as unknown as typeof fetch;
 
       const timedOut = await timeoutGateway.createPayment({
-        amount: 10,
+        amount: money(10, "USD"),
         currency: "USD",
       });
       expect(timedOut.outcome).toBe("indeterminate");
@@ -6212,7 +6191,7 @@ describe.skip("StripeGateway", () => {
       }) as unknown as typeof fetch;
 
       const hungBody = await timeoutGateway.createPayment({
-        amount: 10,
+        amount: money(10, "USD"),
         currency: "USD",
       });
       expect(hungBody.outcome).toBe("indeterminate");
@@ -6238,7 +6217,7 @@ describe.skip("StripeGateway", () => {
       // NEW-CORE-1: caller abort after a mutating POST is indeterminate
       // (NetworkError afterProviderSubmit), not PaymentAbortedError.
       const aborted = await gateway.createPayment({
-        amount: 10,
+        amount: money(10, "USD"),
         currency: "USD",
         signal: controller.signal,
       });
@@ -6264,7 +6243,7 @@ describe.skip("StripeGateway", () => {
 
       // Post-submit abort is indeterminate, not a clean PaymentAbortedError.
       const aborted = await gateway.createPayment({
-        amount: 10,
+        amount: money(10, "USD"),
         currency: "USD",
         signal: controller.signal,
       });
@@ -6288,7 +6267,7 @@ describe.skip("StripeGateway", () => {
 
       const controller = new AbortController();
       await gateway.createPayment({
-        amount: 10,
+        amount: money(10, "USD"),
         currency: "USD",
         signal: controller.signal,
       });

@@ -7,11 +7,11 @@ import {
 } from "./sources";
 
 describe("Tap sources", () => {
-  it.skip("defaults to src_all", () => {
+  it("defaults to src_all", () => {
     expect(resolveTapSourceId(undefined)).toBe("src_all");
   });
 
-  it.skip("allows tokens, hosted lists, local methods, and authorize ids", () => {
+  it("allows tokens, hosted lists, local methods, and authorize ids", () => {
     expect(() => assertAllowedTapSourceId("tok_testToken01")).not.toThrow();
     expect(() => assertAllowedTapSourceId("src_all")).not.toThrow();
     expect(() => assertAllowedTapSourceId("src_card")).not.toThrow();
@@ -20,7 +20,7 @@ describe("Tap sources", () => {
     expect(() => assertAllowedTapSourceId("tok_1234567890123")).not.toThrow();
   });
 
-  it.skip("rejects PAN-shaped ids and PCI source.card", () => {
+  it("rejects PAN-shaped ids and PCI source.card", () => {
     expect(() => assertAllowedTapSourceId("4242424242424242")).toThrow(
       InvalidRequestError,
     );

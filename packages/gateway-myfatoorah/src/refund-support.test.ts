@@ -4,11 +4,11 @@ import { myFatoorahRemainingRefundMajor, nestedRefundFromInvoice } from "./refun
 import { partialRefundStatusData } from "./fixtures/webhooks";
 
 describe("myfatoorah refund support", () => {
-  it.skip("computes remaining from InvoiceValue minus non-canceled refunds", () => {
+  it("computes remaining from InvoiceValue minus non-canceled refunds", () => {
     const data = partialRefundStatusData();
     expect(myFatoorahRemainingRefundMajor(data.InvoiceAmount, data.Refunds, "KWD")).toBe(0.6); // 0.85 − 0.25
   });
-  it.skip("ignores canceled refunds in the sum", () => {
+  it("ignores canceled refunds in the sum", () => {
     const data = partialRefundStatusData();
     data.Refunds.push({
       RefundId: 22299,
@@ -22,7 +22,7 @@ describe("myfatoorah refund support", () => {
     expect(myFatoorahRemainingRefundMajor(data.InvoiceAmount, data.Refunds, "KWD")).toBe(0.6);
   });
 
-  it.skip("ignores FAILED, REJECTED and unknown statuses in remaining", () => {
+  it("ignores FAILED, REJECTED and unknown statuses in remaining", () => {
     const data = partialRefundStatusData();
     // Existing Refunded 0.25 => remaining 0.6. FAILED/REJECTED/unknown must not subtract.
     data.Refunds.push(
@@ -57,7 +57,7 @@ describe("myfatoorah refund support", () => {
     expect(myFatoorahRemainingRefundMajor(data.InvoiceAmount, data.Refunds, "KWD")).toBe(0.6);
   });
 
-  it.skip("counts only REFUNDED and PENDING, pending aliases included", () => {
+  it("counts only REFUNDED and PENDING, pending aliases included", () => {
     // Invoice 0.850, Refunded 0.25 + Pending 0.10 + Failed 0.50 => remaining 0.50 (0.85 - 0.35)
     const data = partialRefundStatusData();
     data.Refunds.push({
@@ -81,7 +81,7 @@ describe("myfatoorah refund support", () => {
     expect(myFatoorahRemainingRefundMajor(data.InvoiceAmount, data.Refunds, "KWD")).toBe(0.5);
   });
 
-  it.skip("parses thousand-separated amounts via comma stripping for remaining", () => {
+  it("parses thousand-separated amounts via comma stripping for remaining", () => {
     // Invoice "12,345.000" KWD, refund "2,345.000" => remaining 10000
     const refunds = [
       {
@@ -97,7 +97,7 @@ describe("myfatoorah refund support", () => {
     expect(myFatoorahRemainingRefundMajor("12,345.000", [{ ...refunds[0], Amount: "12,345.000", RefundStatus: "PENDING" }], "KWD")).toBe(0);
   });
 
-  it.skip("returns 0 when fully refunded", () => {
+  it("returns 0 when fully refunded", () => {
     const data = partialRefundStatusData();
     data.Refunds = [
       {
@@ -112,7 +112,7 @@ describe("myfatoorah refund support", () => {
     ];
     expect(myFatoorahRemainingRefundMajor(data.InvoiceAmount, data.Refunds, "KWD")).toBe(0);
   });
-  it.skip("throws when remaining is negative", () => {
+  it("throws when remaining is negative", () => {
     const data = partialRefundStatusData();
     data.Refunds = [
       {
@@ -130,7 +130,7 @@ describe("myfatoorah refund support", () => {
     );
   });
 
-  it.skip("throws when the invoice amount or refund list is unparseable", () => {
+  it("throws when the invoice amount or refund list is unparseable", () => {
     expect(() => myFatoorahRemainingRefundMajor(undefined, [], "KWD")).toThrow(InvalidRequestError);
     // No refunds yet — remaining is full invoice amount (does not throw)
     expect(myFatoorahRemainingRefundMajor(10.5, undefined, "KWD")).toBe(10.5);
@@ -148,14 +148,14 @@ describe("myfatoorah refund support", () => {
     );
   });
 
-  it.skip("matches a nested refund by ExternalIdentifier", () => {
+  it("matches a nested refund by ExternalIdentifier", () => {
     const data = partialRefundStatusData();
     expect(nestedRefundFromInvoice(data.Refunds, "refund-idem-1")).toMatchObject({
       RefundId: 22201,
     });
   });
 
-  it.skip("maps a single nested refund without an ExternalIdentifier", () => {
+  it("maps a single nested refund without an ExternalIdentifier", () => {
     const refunds = [
       {
         RefundId: 22201,
@@ -173,12 +173,12 @@ describe("myfatoorah refund support", () => {
     });
   });
 
-  it.skip("does not map a single nested refund with a different key", () => {
+  it("does not map a single nested refund with a different key", () => {
     const data = partialRefundStatusData();
     expect(nestedRefundFromInvoice(data.Refunds, "different-key")).toBeUndefined();
   });
 
-  it.skip("does not map multiple unmatched refunds", () => {
+  it("does not map multiple unmatched refunds", () => {
     const data = partialRefundStatusData();
     data.Refunds.push({
       RefundId: 22202,
@@ -192,7 +192,7 @@ describe("myfatoorah refund support", () => {
     expect(nestedRefundFromInvoice(data.Refunds, "other-key")).toBeUndefined();
   });
 
-  it.skip("returns undefined for empty / missing lists", () => {
+  it("returns undefined for empty / missing lists", () => {
     expect(nestedRefundFromInvoice([], "k")).toBeUndefined();
     expect(nestedRefundFromInvoice(undefined, "k")).toBeUndefined();
   });

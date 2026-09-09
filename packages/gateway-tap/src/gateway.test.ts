@@ -74,7 +74,7 @@ const createParams = {
 } as const;
 
 describe("TapGateway.createPayment", () => {
-  it.skip("posts a charge with ISO major amount, customer, src_all, and idempotent reference", async () => {
+  it("posts a charge with ISO major amount, customer, src_all, and idempotent reference", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway([jsonResponse(capturedCharge())], calls);
     const result = await gateway.createPayment({ ...createParams });
@@ -106,7 +106,7 @@ describe("TapGateway.createPayment", () => {
     );
   });
 
-  it.skip("maps INITIATED + transaction.url to requires_action", async () => {
+  it("maps INITIATED + transaction.url to requires_action", async () => {
     const gateway = createGateway([jsonResponse(initiatedCharge())], []);
     const result = await gateway.createPayment({ ...createParams });
     expect(result.outcome).toBe("requires_action");
@@ -115,7 +115,7 @@ describe("TapGateway.createPayment", () => {
     expect(isPaidOutcome(result)).toBe(false);
   });
 
-  it.skip("does not treat merchant redirect.url as checkout redirect on CAPTURED charges", async () => {
+  it("does not treat merchant redirect.url as checkout redirect on CAPTURED charges", async () => {
     const gateway = createGateway([jsonResponse(capturedCharge())], []);
     const result = await gateway.createPayment({ ...createParams });
     expect(isPaidOutcome(result)).toBe(true);
@@ -123,7 +123,7 @@ describe("TapGateway.createPayment", () => {
     expect(result.nextAction).toBeUndefined();
   });
 
-  it.skip("does not treat leftover transaction.url as nextAction on CAPTURED charges", async () => {
+  it("does not treat leftover transaction.url as nextAction on CAPTURED charges", async () => {
     const gateway = createGateway(
       [
         jsonResponse(
@@ -143,7 +143,7 @@ describe("TapGateway.createPayment", () => {
     expect(result.nextAction).toBeUndefined();
   });
 
-  it.skip("does not treat merchant redirect.url as checkout redirect on AUTHORIZED authorize", async () => {
+  it("does not treat merchant redirect.url as checkout redirect on AUTHORIZED authorize", async () => {
     const gateway = createGateway(
       [
         jsonResponse(
@@ -163,7 +163,7 @@ describe("TapGateway.createPayment", () => {
     expect(result.redirectUrl).toBeUndefined();
   });
 
-  it.skip("posts /authorize when capture is false", async () => {
+  it("posts /authorize when capture is false", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway([jsonResponse(authorizedObject())], calls);
     const result = await gateway.createPayment({ ...createParams, capture: false });
@@ -179,7 +179,7 @@ describe("TapGateway.createPayment", () => {
     expect(isPaidOutcome(result)).toBe(false);
   });
 
-  it.skip("sends auto VOID hours on authorize when autoVoidHours is set", async () => {
+  it("sends auto VOID hours on authorize when autoVoidHours is set", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway([jsonResponse(authorizedObject())], calls, {
       autoVoidHours: 24,
@@ -195,7 +195,7 @@ describe("TapGateway.createPayment", () => {
     expect(body.auto).toEqual({ type: "VOID", time: 24 });
   });
 
-  it.skip("rejects autoVoidHours on authorize when source is omitted (src_card)", async () => {
+  it("rejects autoVoidHours on authorize when source is omitted (src_card)", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway([], calls, { autoVoidHours: 24 });
     await expect(
@@ -204,7 +204,7 @@ describe("TapGateway.createPayment", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it.skip("does not send auto on charges even when autoVoidHours is set", async () => {
+  it("does not send auto on charges even when autoVoidHours is set", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway([jsonResponse(capturedCharge())], calls, {
       autoVoidHours: 24,
@@ -214,7 +214,7 @@ describe("TapGateway.createPayment", () => {
     expect(body.auto).toBeUndefined();
   });
 
-  it.skip("rejects auth_ tapSource on createPayment and does not fetch", async () => {
+  it("rejects auth_ tapSource on createPayment and does not fetch", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway([], calls);
     try {
@@ -230,7 +230,7 @@ describe("TapGateway.createPayment", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it.skip("rejects zero create amounts before fetch", async () => {
+  it("rejects zero create amounts before fetch", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway([], calls);
     await expect(
@@ -242,7 +242,7 @@ describe("TapGateway.createPayment", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it.skip("maps DECLINED to declined outcome", async () => {
+  it("maps DECLINED to declined outcome", async () => {
     const gateway = createGateway([jsonResponse(declinedCharge())], []);
     const result = await gateway.createPayment({ ...createParams });
     expect(result.outcome).toBe("declined");
@@ -281,7 +281,7 @@ describe("TapGateway.createPayment", () => {
     },
   );
 
-  it.skip("maps FAILED without a 501–516 response.code as failed with no decline extras", async () => {
+  it("maps FAILED without a 501–516 response.code as failed with no decline extras", async () => {
     const gateway = createGateway(
       [
         jsonResponse(
@@ -329,7 +329,7 @@ describe("TapGateway.createPayment", () => {
     },
   );
 
-  it.skip("trims createPayment idempotencyKey on reference.idempotent", async () => {
+  it("trims createPayment idempotencyKey on reference.idempotent", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway([jsonResponse(capturedCharge())], calls);
     await gateway.createPayment({
@@ -342,7 +342,7 @@ describe("TapGateway.createPayment", () => {
     expect(body.reference.idempotent).toBe("idem-create-1");
   });
 
-  it.skip("requires customer and callbackUrl", async () => {
+  it("requires customer and callbackUrl", async () => {
     const gateway = createGateway([], []);
     await expect(
       gateway.createPayment({
@@ -363,7 +363,7 @@ describe("TapGateway.createPayment", () => {
     ).rejects.toBeInstanceOf(InvalidRequestError);
   });
 
-  it.skip("requires idempotencyKey when the caller omits one", async () => {
+  it("requires idempotencyKey when the caller omits one", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway([], calls);
     const { idempotencyKey: _omit, ...rest } = createParams;
@@ -376,7 +376,7 @@ describe("TapGateway.createPayment", () => {
 });
 
 describe("TapGateway mutations", () => {
-  it.skip("requires idempotencyKey on capture / void / refund", async () => {
+  it("requires idempotencyKey on capture / void / refund", async () => {
     const gateway = createGateway([], []);
     await expect(
       gateway.capturePayment({ gatewayPaymentId: "auth_testAuthorize01" }),
@@ -389,7 +389,7 @@ describe("TapGateway mutations", () => {
     ).rejects.toBeInstanceOf(InvalidRequestError);
   });
 
-  it.skip("captures an authorize via POST /charges with source.id = auth id", async () => {
+  it("captures an authorize via POST /charges with source.id = auth id", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(authorizedObject()), jsonResponse(capturedCharge())],
@@ -432,7 +432,7 @@ describe("TapGateway mutations", () => {
     );
   });
 
-  it.skip("maps a partial capture as partially_captured not paid", async () => {
+  it("maps a partial capture as partially_captured not paid", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(authorizedObject()), jsonResponse(capturedCharge({ amount: 4 }))],
@@ -451,7 +451,33 @@ describe("TapGateway mutations", () => {
     expect(result.gatewayId).toBe("chg_testInitiated01");
   });
 
-  it.skip("rejects capture when the amount exceeds the authorized amount", async () => {
+  it("preserves decline detail on partial-amount declined capture", async () => {
+    const calls: FetchCall[] = [];
+    const gateway = createGateway(
+      [jsonResponse(authorizedObject()), jsonResponse(declinedCharge({ amount: 5 }))],
+      calls,
+    );
+    const result = await gateway.capturePayment({
+      gatewayPaymentId: "auth_testAuthorize01",
+      amount: money("5", "SAR"),
+      currency: "SAR",
+      idempotencyKey: "idem-cap-declined-partial",
+    });
+    expect(calls[1]?.url).toContain("/charges");
+    expect(calls[1]?.init?.method).toBe("POST");
+    expect(result.status).toBe("failed");
+    expect(result.status).not.toBe("partially_captured");
+    expect(result.outcome).toBe("declined");
+    expect(isPaidOutcome(result)).toBe(false);
+    expect(result.decline).toEqual({
+      code: "505",
+      message: "Declined, Insufficient Funds",
+      providerCode: "505",
+    });
+    expect(result.gatewayId).toBe("chg_testInitiated01");
+  });
+
+  it("rejects capture when the amount exceeds the authorized amount", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway([jsonResponse(authorizedObject())], calls);
     await expect(
@@ -465,7 +491,7 @@ describe("TapGateway mutations", () => {
     expect(calls.some((call) => call.url.includes("/charges"))).toBe(false);
   });
 
-  it.skip("prefers tapRedirectUrl over authorize.redirect.url on capture", async () => {
+  it("prefers tapRedirectUrl over authorize.redirect.url on capture", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(authorizedObject()), jsonResponse(capturedCharge())],
@@ -484,7 +510,7 @@ describe("TapGateway mutations", () => {
     expect(body.redirect?.url).toBe("https://merchant.example/capture-return");
   });
 
-  it.skip("rejects capture when authorize has no redirect.url and tapRedirectUrl is omitted", async () => {
+  it("rejects capture when authorize has no redirect.url and tapRedirectUrl is omitted", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(authorizedObject({ redirect: {} }))],
@@ -515,7 +541,7 @@ describe("TapGateway mutations", () => {
     },
   );
 
-  it.skip("rejects capture when the authorize status is VOID", async () => {
+  it("rejects capture when the authorize status is VOID", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(authorizedObject({ status: "VOID" }))],
@@ -536,7 +562,7 @@ describe("TapGateway mutations", () => {
     expect(calls.some((call) => call.url.includes("/charges"))).toBe(false);
   });
 
-  it.skip("maps GET CAPTURED authorize as paid without POST /charges", async () => {
+  it("maps GET CAPTURED authorize as paid without POST /charges", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(authorizedObject({ status: "CAPTURED" }))],
@@ -556,7 +582,7 @@ describe("TapGateway mutations", () => {
     expect(result.authorizationId).toBe("auth_testAuthorize01");
   });
 
-  it.skip("GETs the nested charge when CAPTURED authorize includes charge_id", async () => {
+  it("GETs the nested charge when CAPTURED authorize includes charge_id", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [
@@ -588,7 +614,7 @@ describe("TapGateway mutations", () => {
     expect(result.authorizationId).toBe("auth_testAuthorize01");
   });
 
-  it.skip("rejects capture when caller currency does not match authorize currency", async () => {
+  it("rejects capture when caller currency does not match authorize currency", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway([jsonResponse(authorizedObject())], calls);
     await expect(
@@ -602,7 +628,7 @@ describe("TapGateway mutations", () => {
     expect(calls.some((call) => call.url.includes("/charges"))).toBe(false);
   });
 
-  it.skip("rejects capture when the authorize status is INITIATED", async () => {
+  it("rejects capture when the authorize status is INITIATED", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(authorizedObject({ status: "INITIATED" }))],
@@ -623,7 +649,7 @@ describe("TapGateway mutations", () => {
     expect(calls.some((call) => call.url.includes("/charges"))).toBe(false);
   });
 
-  it.skip("rejects capture when the authorize object omits status", async () => {
+  it("rejects capture when the authorize object omits status", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(authorizedObject({ status: undefined }))],
@@ -639,7 +665,7 @@ describe("TapGateway mutations", () => {
     expect(calls.some((call) => call.url.includes("/charges"))).toBe(false);
   });
 
-  it.skip("voids an authorize", async () => {
+  it("voids an authorize", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [
@@ -658,10 +684,9 @@ describe("TapGateway mutations", () => {
     expect(calls[1]?.init?.method).toBe("POST");
     expect(result.status).toBe("cancelled");
     expect(result.outcome).toBe("succeeded");
-    expect(result.success).toBe(true);
   });
 
-  it.skip("returns an already-VOID authorize without posting void", async () => {
+  it("returns an already-VOID authorize without posting void", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(authorizedObject({ status: "VOID" }))],
@@ -676,10 +701,9 @@ describe("TapGateway mutations", () => {
     expect(calls.some((call) => call.url.includes("/void"))).toBe(false);
     expect(result.status).toBe("cancelled");
     expect(result.outcome).toBe("succeeded");
-    expect(result.success).toBe(true);
   });
 
-  it.skip("rejects void when the authorize status is INITIATED", async () => {
+  it("rejects void when the authorize status is INITIATED", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(authorizedObject({ status: "INITIATED" }))],
@@ -694,7 +718,7 @@ describe("TapGateway mutations", () => {
     expect(calls.some((call) => call.url.includes("/void"))).toBe(false);
   });
 
-  it.skip("posts remaining amount when refund amount is omitted", async () => {
+  it("posts remaining amount when refund amount is omitted", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [
@@ -712,7 +736,7 @@ describe("TapGateway mutations", () => {
     expect(body.amount).toBe(6.5);
   });
 
-  it.skip("rejects refund when the charge status is already REFUNDED", async () => {
+  it("rejects refund when the charge status is already REFUNDED", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(capturedCharge({ status: "REFUNDED" }))],
@@ -727,7 +751,7 @@ describe("TapGateway mutations", () => {
     expect(calls.some((call) => call.url.includes("/refunds"))).toBe(false);
   });
 
-  it.skip("rejects a caller amount refund when the charge is already REFUNDED", async () => {
+  it("rejects a caller amount refund when the charge is already REFUNDED", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(capturedCharge({ status: "REFUNDED" }))],
@@ -744,7 +768,7 @@ describe("TapGateway mutations", () => {
     expect(calls.some((call) => call.url.includes("/refunds"))).toBe(false);
   });
 
-  it.skip("maps an embedded refund on an already-REFUNDED charge without posting", async () => {
+  it("maps an embedded refund on an already-REFUNDED charge without posting", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [
@@ -768,7 +792,7 @@ describe("TapGateway mutations", () => {
     expect(calls.some((call) => call.url.includes("/refunds"))).toBe(false);
   });
 
-  it.skip("maps the nested refund whose reference.idempotent matches", async () => {
+  it("maps the nested refund whose reference.idempotent matches", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [
@@ -799,7 +823,7 @@ describe("TapGateway mutations", () => {
     expect(calls.some((call) => call.url.includes("/refunds"))).toBe(false);
   });
 
-  it.skip("rejects unmatched nested refunds on an already-REFUNDED charge without posting", async () => {
+  it("rejects unmatched nested refunds on an already-REFUNDED charge without posting", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [
@@ -824,7 +848,7 @@ describe("TapGateway mutations", () => {
     expect(calls.some((call) => call.url.includes("/refunds"))).toBe(false);
   });
 
-  it.skip("GETs a nested refund id on an already-REFUNDED charge", async () => {
+  it("GETs a nested refund id on an already-REFUNDED charge", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [
@@ -848,7 +872,7 @@ describe("TapGateway mutations", () => {
     expect(result.status).toBe("completed");
   });
 
-  it.skip("throws when omitted refund amount and remaining is 0 without posting", async () => {
+  it("throws when omitted refund amount and remaining is 0 without posting", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(capturedCharge({ amount: 10.5, amount_refunded: 10.5 }))],
@@ -863,7 +887,7 @@ describe("TapGateway mutations", () => {
     expect(calls.some((call) => call.url.includes("/refunds"))).toBe(false);
   });
 
-  it.skip("throws when remaining is 0 even if the caller passes amount", async () => {
+  it("throws when remaining is 0 even if the caller passes amount", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(capturedCharge({ amount: 10.5, amount_refunded: 10.5 }))],
@@ -880,7 +904,7 @@ describe("TapGateway mutations", () => {
     expect(calls.some((call) => call.url.includes("/refunds"))).toBe(false);
   });
 
-  it.skip("maps a nested refund when remaining is 0 without posting", async () => {
+  it("maps a nested refund when remaining is 0 without posting", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [
@@ -903,7 +927,7 @@ describe("TapGateway mutations", () => {
     expect(calls.some((call) => call.url.includes("/refunds"))).toBe(false);
   });
 
-  it.skip("rejects omitted refund amount when remaining is not exposed", async () => {
+  it("rejects omitted refund amount when remaining is not exposed", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway([jsonResponse(capturedCharge())], calls);
     await expect(
@@ -915,7 +939,7 @@ describe("TapGateway mutations", () => {
     expect(calls.some((call) => call.url.includes("/refunds"))).toBe(false);
   });
 
-  it.skip("rejects http tapPostUrl before fetch", async () => {
+  it("rejects http tapPostUrl before fetch", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway([], calls);
     await expect(
@@ -927,7 +951,7 @@ describe("TapGateway mutations", () => {
     expect(calls).toHaveLength(0);
   });
 
-  it.skip("rejects omitted refund amount when refunds list has no parseable amounts", async () => {
+  it("rejects omitted refund amount when refunds list has no parseable amounts", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(capturedCharge({ refunds: [{ id: "re_testRefund01" }] }))],
@@ -942,7 +966,7 @@ describe("TapGateway mutations", () => {
     expect(calls.some((call) => call.url.includes("/refunds"))).toBe(false);
   });
 
-  it.skip("rejects refund when caller currency does not match charge currency", async () => {
+  it("rejects refund when caller currency does not match charge currency", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway([jsonResponse(capturedCharge())], calls);
     await expect(
@@ -956,7 +980,7 @@ describe("TapGateway mutations", () => {
     expect(calls.some((call) => call.url.includes("/refunds"))).toBe(false);
   });
 
-  it.skip("refunds a charge", async () => {
+  it("refunds a charge", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(capturedCharge()), jsonResponse(refundedObject())],
@@ -982,7 +1006,7 @@ describe("TapGateway mutations", () => {
     expect(result.totalRefunded).toBeUndefined();
   });
 
-  it.skip("sends a free-text refund reason instead of requested_by_customer", async () => {
+  it("sends a free-text refund reason instead of requested_by_customer", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(capturedCharge()), jsonResponse(refundedObject())],
@@ -999,7 +1023,7 @@ describe("TapGateway mutations", () => {
     expect(body.reason).toBe("The product is out of stock");
   });
 
-  it.skip("maps known refund reasons case-insensitively with spaces to underscore", async () => {
+  it("maps known refund reasons case-insensitively with spaces to underscore", async () => {
     for (const [reason, expected] of [
       ["duplicate", "duplicate"],
       ["Fraudulent", "fraudulent"],
@@ -1022,7 +1046,7 @@ describe("TapGateway mutations", () => {
     }
   });
 
-  it.skip("rejects refund reasons longer than 249 characters", async () => {
+  it("rejects refund reasons longer than 249 characters", async () => {
     const gateway = createGateway([jsonResponse(capturedCharge())], []);
     await expect(
       gateway.refundPayment({
@@ -1035,7 +1059,7 @@ describe("TapGateway mutations", () => {
     ).rejects.toBeInstanceOf(InvalidRequestError);
   });
 
-  it.skip("does not retry void after a mutating 5xx", async () => {
+  it("does not retry void after a mutating 5xx", async () => {
     const calls: FetchCall[] = [];
     const boom = { errors: [{ code: "9999", description: "boom" }] };
     const gateway = createGateway(
@@ -1055,7 +1079,7 @@ describe("TapGateway mutations", () => {
     ).toHaveLength(1);
   });
 
-  it.skip("rejects capture of a charge id and refund of an authorize id", async () => {
+  it("rejects capture of a charge id and refund of an authorize id", async () => {
     const gateway = createGateway([], []);
     await expect(
       gateway.capturePayment({
@@ -1073,7 +1097,7 @@ describe("TapGateway mutations", () => {
 });
 
 describe("TapGateway.getPayment and errors", () => {
-  it.skip("dispatches chg_ vs auth_ and rejects unknown prefixes", async () => {
+  it("dispatches chg_ vs auth_ and rejects unknown prefixes", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(capturedCharge()), jsonResponse(authorizedObject())],
@@ -1091,7 +1115,7 @@ describe("TapGateway.getPayment and errors", () => {
     ).rejects.toBeInstanceOf(InvalidRequestError);
   });
 
-  it.skip("maps getPayment of a REFUNDED charge to refunded, not failed", async () => {
+  it("maps getPayment of a REFUNDED charge to refunded, not failed", async () => {
     const gateway = createGateway(
       [jsonResponse(capturedCharge({ status: "REFUNDED" }))],
       [],
@@ -1104,7 +1128,7 @@ describe("TapGateway.getPayment and errors", () => {
     expect(isPaidOutcome(result)).toBe(false);
   });
 
-  it.skip("GETs the nested charge on getPayment of CAPTURED authorize with charge_id", async () => {
+  it("GETs the nested charge on getPayment of CAPTURED authorize with charge_id", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [
@@ -1135,7 +1159,7 @@ describe("TapGateway.getPayment and errors", () => {
     expect(result.authorizationId).toBe("auth_testAuthorize01");
   });
 
-  it.skip("maps getPayment of CAPTURED authorize without charge_id as paid", async () => {
+  it("maps getPayment of CAPTURED authorize without charge_id as paid", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse(authorizedObject({ status: "CAPTURED" }))],
@@ -1154,7 +1178,7 @@ describe("TapGateway.getPayment and errors", () => {
     expect(result.amount).toBeUndefined();
   });
 
-  it.skip("maps getPayment of a VOID authorize to succeeded cancelled", async () => {
+  it("maps getPayment of a VOID authorize to succeeded cancelled", async () => {
     const gateway = createGateway(
       [jsonResponse(authorizedObject({ status: "VOID" }))],
       [],
@@ -1164,21 +1188,19 @@ describe("TapGateway.getPayment and errors", () => {
     });
     expect(result.outcome).toBe("succeeded");
     expect(result.status).toBe("cancelled");
-    expect(result.success).toBe(true);
   });
 
-  it.skip("maps getPayment of a VOID charge to failed cancelled", async () => {
+  it("maps getPayment of a VOID charge to failed cancelled", async () => {
     const result = await createGateway(
       [jsonResponse(capturedCharge({ status: "VOID" }))],
       [],
     ).getPayment({ gatewayPaymentId: "chg_testInitiated01" });
     expect(result.outcome).toBe("failed");
     expect(result.status).toBe("cancelled");
-    expect(result.success).toBe(false);
     expect(isPaidOutcome(result)).toBe(false);
   });
 
-  it.skip("maps ABANDONED createPayment and getPayment to failed", async () => {
+  it("maps ABANDONED createPayment and getPayment to failed", async () => {
     const createCalls: FetchCall[] = [];
     const created = await createGateway(
       [jsonResponse(authorizedObject({ status: "ABANDONED" }))],
@@ -1186,7 +1208,6 @@ describe("TapGateway.getPayment and errors", () => {
     ).createPayment({ ...createParams, capture: false });
     expect(created.outcome).toBe("failed");
     expect(created.status).toBe("cancelled");
-    expect(created.success).toBe(false);
 
     const got = await createGateway(
       [jsonResponse(authorizedObject({ status: "ABANDONED" }))],
@@ -1196,7 +1217,7 @@ describe("TapGateway.getPayment and errors", () => {
     expect(got.status).toBe("cancelled");
   });
 
-  it.skip("does not retry a mutating POST aborted by the caller", async () => {
+  it("does not retry a mutating POST aborted by the caller", async () => {
     const calls: FetchCall[] = [];
     const controller = new AbortController();
     controller.abort();
@@ -1225,7 +1246,7 @@ describe("TapGateway.getPayment and errors", () => {
     expect(calls).toHaveLength(1);
   });
 
-  it.skip("maps post-submit 5xx on create to indeterminate", async () => {
+  it("maps post-submit 5xx on create to indeterminate", async () => {
     const boom = { errors: [{ code: "9999", description: "boom" }] };
     const calls: FetchCall[] = [];
     const gateway = createGateway(
@@ -1238,14 +1259,14 @@ describe("TapGateway.getPayment and errors", () => {
     expect(calls).toHaveLength(3);
   });
 
-  it.skip("maps empty mutating 2xx to indeterminate, not InvalidRequestError", async () => {
+  it("maps empty mutating 2xx to indeterminate, not InvalidRequestError", async () => {
     const gateway = createGateway(queued(emptyResponse(), 3), []);
     const result = await gateway.createPayment({ ...createParams });
     expect(isIndeterminateOutcome(result)).toBe(true);
     expect(result.reconciliationRequired).toBe(true);
   });
 
-  it.skip("maps mutating HTML 5xx to indeterminate after retries", async () => {
+  it("maps mutating HTML 5xx to indeterminate after retries", async () => {
     const gateway = createGateway(
       queued(textResponse("<html>upstream</html>", 500), 3),
       [],
@@ -1255,7 +1276,7 @@ describe("TapGateway.getPayment and errors", () => {
     expect(result.reconciliationRequired).toBe(true);
   });
 
-  it.skip("GET empty 2xx is a thrown NetworkError, not afterProviderSubmit", async () => {
+  it("GET empty 2xx is a thrown NetworkError, not afterProviderSubmit", async () => {
     const gateway = createGateway(queued(emptyResponse(), 3), []);
     try {
       await gateway.getPayment({ gatewayPaymentId: "chg_testInitiated01" });
@@ -1266,7 +1287,7 @@ describe("TapGateway.getPayment and errors", () => {
     }
   });
 
-  it.skip("maps mutating 2xx charge without status to indeterminate", async () => {
+  it("maps mutating 2xx charge without status to indeterminate", async () => {
     const gateway = createGateway(
       queued(jsonResponse({ id: "chg_testInitiated01", object: "charge" }), 3),
       [],
@@ -1276,7 +1297,7 @@ describe("TapGateway.getPayment and errors", () => {
     expect(result.reconciliationRequired).toBe(true);
   });
 
-  it.skip("maps mutating 2xx refund without status to indeterminate", async () => {
+  it("maps mutating 2xx refund without status to indeterminate", async () => {
     const gateway = createGateway(
       [
         jsonResponse(capturedCharge()),
@@ -1294,7 +1315,7 @@ describe("TapGateway.getPayment and errors", () => {
     expect(result.reconciliationRequired).toBe(true);
   });
 
-  it.skip("GET charge without status throws InvalidRequestError without retry", async () => {
+  it("GET charge without status throws InvalidRequestError without retry", async () => {
     const calls: FetchCall[] = [];
     const gateway = createGateway(
       [jsonResponse({ id: "chg_testInitiated01", object: "charge" })],
@@ -1306,7 +1327,7 @@ describe("TapGateway.getPayment and errors", () => {
     expect(calls).toHaveLength(1);
   });
 
-  it.skip("maps 401 to AuthenticationError via getPayment (GET throws)", async () => {
+  it("maps 401 to AuthenticationError via getPayment (GET throws)", async () => {
     const gateway = createGateway(
       [jsonResponse({ errors: [{ code: "2104", description: "bad key" }] }, 401)],
       [],
@@ -1318,7 +1339,7 @@ describe("TapGateway.getPayment and errors", () => {
 });
 
 describe("TapGateway webhooks", () => {
-  it.skip("verifies hashstring and dual-writes a paid event", () => {
+  it("verifies hashstring and dual-writes a paid event", () => {
     const gateway = createGateway([], []);
     const payload = capturedCharge({ amount: 10.5 });
     const signature = computeTapHashstring(
@@ -1337,7 +1358,7 @@ describe("TapGateway webhooks", () => {
     );
   });
 
-  it.skip("parses 13-digit created values as milliseconds", () => {
+  it("parses 13-digit created values as milliseconds", () => {
     const gateway = createGateway([], []);
     const createdMs = 1_698_392_719_404;
     const event = gateway.parseWebhookEvent(
@@ -1346,7 +1367,7 @@ describe("TapGateway webhooks", () => {
     expect(event.timestamp.toISOString()).toBe(new Date(createdMs).toISOString());
   });
 
-  it.skip("rejects webhook payloads without a created timestamp", () => {
+  it("rejects webhook payloads without a created timestamp", () => {
     const gateway = createGateway([], []);
     expect(() =>
       gateway.parseWebhookEvent(
@@ -1355,7 +1376,7 @@ describe("TapGateway webhooks", () => {
     ).toThrow(InvalidRequestError);
   });
 
-  it.skip("does not treat charge source.id auth_ as gatewayPaymentId", () => {
+  it("does not treat charge source.id auth_ as gatewayPaymentId", () => {
     const gateway = createGateway([], []);
     const event = gateway.parseWebhookEvent(
       capturedCharge({
@@ -1373,18 +1394,19 @@ describe("TapGateway webhooks", () => {
     );
   });
 
-  it.skip("parses authorize and refund webhooks", () => {
+  it("parses authorize and refund webhooks", () => {
     const gateway = createGateway([], []);
     const auth = gateway.parseWebhookEvent(authorizedObject());
     expect(auth.status).toBe("authorized");
-    expect(auth.id).toBe("auth_testAuthorize01");
+    expect(auth.id).toMatch(/^auth_testAuthorize01:[0-9a-f]{64}$/);
     expect(auth.gatewayPaymentId).toBe("auth_testAuthorize01");
     const refund = gateway.parseWebhookEvent(refundedObject());
     expect(refund.status).toBe("refunded");
+    expect(refund.id).toMatch(/^re_testRefund01:[0-9a-f]{64}$/);
     expect(refund.gatewayPaymentId).toBe("chg_testCaptured01");
   });
 
-  it.skip("maps a charge object with status REFUNDED to refunded, not failed", () => {
+  it("maps a charge object with status REFUNDED to refunded, not failed", () => {
     const gateway = createGateway([], []);
     const event = gateway.parseWebhookEvent(
       capturedCharge({ status: "REFUNDED" }),
@@ -1394,14 +1416,14 @@ describe("TapGateway webhooks", () => {
     expect(event.gatewayPaymentId).toBe("chg_testInitiated01");
   });
 
-  it.skip("rejects invoice objects missing created timestamp", () => {
+  it("rejects invoice objects missing created timestamp", () => {
     const gateway = createGateway([], []);
     expect(() =>
       gateway.parseWebhookEvent({ object: "invoice", id: "inv_1", status: "PAID" }),
     ).toThrow(InvalidRequestError);
   });
 
-  it.skip("rejects invoice objects missing id", () => {
+  it("rejects invoice objects missing id", () => {
     const gateway = createGateway([], []);
     expect(() =>
       gateway.parseWebhookEvent({
@@ -1412,22 +1434,26 @@ describe("TapGateway webhooks", () => {
     ).toThrow(InvalidRequestError);
   });
 
-  it.skip("parses invoice webhook objects as cancelled, not paid", () => {
+  it("parses invoice webhook objects as native unmapped processing", () => {
     const gateway = createGateway([], []);
     const event = gateway.parseWebhookEvent({
       object: "invoice",
       id: "inv_1",
       status: "PAID",
       created: "1000000000",
+      updated: "1000000001",
       amount: 10.5,
       currency: "SAR",
     });
     expect(event.gateway).toBe("tap");
-    expect(event.id).toBe("inv_1");
+    expect(event.id).toMatch(/^inv_1:[0-9a-f]{64}$/);
     expect(event.type).toBe("invoice.PAID");
     expect(event.status).not.toBe("paid");
-    expect(event.status).toBe("cancelled");
+    expect(event.status).toBe("processing");
     expect(event.gatewayPaymentId).toBe("inv_1");
+    expect(event.stableType).toBeUndefined();
+    expect(event.provider?.eventType).toBe("invoice.PAID");
+    expect(event.event?.type).toBe("provider.unmapped");
     const payment =
       event.event !== undefined && "payment" in event.event
         ? event.event.payment
@@ -1435,7 +1461,7 @@ describe("TapGateway webhooks", () => {
     expect(payment?.status).not.toBe("paid");
   });
 
-  it.skip("attaches charge_id on CAPTURED authorize webhook relatedIds", () => {
+  it("attaches charge_id on CAPTURED authorize webhook relatedIds", () => {
     const gateway = createGateway([], []);
     const event = gateway.parseWebhookEvent(
       authorizedObject({
@@ -1443,7 +1469,7 @@ describe("TapGateway webhooks", () => {
         charge_id: "chg_testInitiated01",
       }),
     );
-    expect(event.id).toBe("auth_testAuthorize01");
+    expect(event.id).toMatch(/^auth_testAuthorize01:[0-9a-f]{64}$/);
     expect(event.gatewayPaymentId).toBe("chg_testInitiated01");
     const payment =
       event.event !== undefined && "payment" in event.event
@@ -1457,7 +1483,7 @@ describe("TapGateway webhooks", () => {
     );
   });
 
-  it.skip("does not treat metadata.udf1 as paymentId", () => {
+  it("does not treat metadata.udf1 as paymentId", () => {
     const gateway = createGateway([], []);
     const event = gateway.parseWebhookEvent(
       capturedCharge({
@@ -1469,7 +1495,7 @@ describe("TapGateway webhooks", () => {
     expect(event.paymentId).not.toBe("test_data_1");
   });
 
-  it.skip("prefers metadata.paymentId over orderId and reference.order", () => {
+  it("prefers metadata.paymentId over orderId and reference.order", () => {
     const gateway = createGateway([], []);
     const event = gateway.parseWebhookEvent(
       capturedCharge({

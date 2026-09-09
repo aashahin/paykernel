@@ -29,14 +29,14 @@ function envelope(overrides: Record<string, unknown> = {}) {
 }
 
 describe("myfatoorah HTTP mapping", () => {
-  it.skip("wraps array Data as RefundStatusResult so refund history is not dropped", () => {
+  it("wraps array Data as RefundStatusResult so refund history is not dropped", () => {
     expect(readMyFatoorahData({ Data: [{ RefundId: 1 }] })).toEqual({
       RefundStatusResult: [{ RefundId: 1 }],
     });
     expect(readMyFatoorahData({ Data: null })).toBeUndefined();
   });
 
-  it.skip("treats IsSuccess true as success (boolean and string forms)", () => {
+  it("treats IsSuccess true as success (boolean and string forms)", () => {
     expect(myFatoorahIsSuccess({ IsSuccess: true })).toBe(true);
     expect(myFatoorahIsSuccess({ IsSuccess: "true" })).toBe(true);
     expect(myFatoorahIsSuccess({ IsSuccess: "True" })).toBe(true);
@@ -45,7 +45,7 @@ describe("myfatoorah HTTP mapping", () => {
     expect(myFatoorahIsSuccess(null)).toBe(false);
   });
 
-  it.skip("classifies official inquiry not-found envelopes without treating every IsSuccess false as empty", () => {
+  it("classifies official inquiry not-found envelopes without treating every IsSuccess false as empty", () => {
     expect(
       isMyFatoorahInquiryNotFoundBody({
         IsSuccess: false,
@@ -86,7 +86,7 @@ describe("myfatoorah HTTP mapping", () => {
     expect(isMyFatoorahInquiryNotFoundBody({ IsSuccess: true, Data: null })).toBe(false);
   });
 
-  it.skip("maps inquiry 2xx IsSuccess false + official not-found Message to ResourceNotFoundError", () => {
+  it("maps inquiry 2xx IsSuccess false + official not-found Message to ResourceNotFoundError", () => {
     const body = {
       IsSuccess: false,
       Message: "No data matches this Key",
@@ -105,7 +105,7 @@ describe("myfatoorah HTTP mapping", () => {
     ).toThrow(ResourceNotFoundError);
   });
 
-  it.skip("includes envelope Message on 2xx IsSuccess false that is not a not-found", () => {
+  it("includes envelope Message on 2xx IsSuccess false that is not a not-found", () => {
     const body = envelope({
       IsSuccess: false,
       Message: "Amount is not valid",
@@ -123,7 +123,7 @@ describe("myfatoorah HTTP mapping", () => {
     ).toThrow(/Amount is not valid/);
   });
 
-  it.skip("does not retry RateLimitError before submit (unkeyed mutations)", () => {
+  it("does not retry RateLimitError before submit (unkeyed mutations)", () => {
     expect(isMyFatoorahRetryableBeforeSubmit(new RateLimitError("myfatoorah"))).toBe(false);
     expect(isMyFatoorahRetryableError(new RateLimitError("myfatoorah"))).toBe(true);
     expect(isMyFatoorahRetryableBeforeSubmit(new NetworkError("connect"))).toBe(true);
@@ -141,7 +141,7 @@ describe("myfatoorah HTTP mapping", () => {
     ).toBe(false);
   });
 
-  it.skip("maps 2xx IsSuccess false + ValidationErrors to InvalidRequestError", () => {
+  it("maps 2xx IsSuccess false + ValidationErrors to InvalidRequestError", () => {
     const body = envelope({
       IsSuccess: false,
       Message: "Validation failed",
@@ -161,7 +161,7 @@ describe("myfatoorah HTTP mapping", () => {
     ).toThrow(InvalidRequestError);
   });
 
-  it.skip("maps POST 500 to NetworkError with afterProviderSubmit", () => {
+  it("maps POST 500 to NetworkError with afterProviderSubmit", () => {
     const error = mapMyFatoorahHttpFailure({
       status: 500,
       body: { IsSuccess: false, Message: "boom" },
@@ -172,7 +172,7 @@ describe("myfatoorah HTTP mapping", () => {
     expect((error as NetworkError).afterProviderSubmit).toBe(true);
   });
 
-  it.skip("maps POST 500 without postSubmit flag to NetworkError without afterProviderSubmit (safe default)", () => {
+  it("maps POST 500 without postSubmit flag to NetworkError without afterProviderSubmit (safe default)", () => {
     const error = mapMyFatoorahHttpFailure({
       status: 500,
       body: { IsSuccess: false, Message: "boom" },
@@ -182,7 +182,7 @@ describe("myfatoorah HTTP mapping", () => {
     expect((error as NetworkError).afterProviderSubmit).toBe(false);
   });
 
-  it.skip("maps GET 500 to NetworkError without afterProviderSubmit", () => {
+  it("maps GET 500 to NetworkError without afterProviderSubmit", () => {
     const error = mapMyFatoorahHttpFailure({
       status: 503,
       body: {},
@@ -192,7 +192,7 @@ describe("myfatoorah HTTP mapping", () => {
     expect((error as NetworkError).afterProviderSubmit).toBe(false);
   });
 
-  it.skip("maps inquiry POST 500 to NetworkError without afterProviderSubmit", () => {
+  it("maps inquiry POST 500 to NetworkError without afterProviderSubmit", () => {
     const error = mapMyFatoorahHttpFailure({
       status: 500,
       body: {},
@@ -203,7 +203,7 @@ describe("myfatoorah HTTP mapping", () => {
     expect((error as NetworkError).afterProviderSubmit).toBe(false);
   });
 
-  it.skip("maps mutating POST 500 to NetworkError with afterProviderSubmit when flagged", () => {
+  it("maps mutating POST 500 to NetworkError with afterProviderSubmit when flagged", () => {
     const error = mapMyFatoorahHttpFailure({
       status: 500,
       body: {},
@@ -214,7 +214,7 @@ describe("myfatoorah HTTP mapping", () => {
     expect((error as NetworkError).afterProviderSubmit).toBe(true);
   });
 
-  it.skip("rejects inquiry POST unusable 2xx bodies without afterProviderSubmit", () => {
+  it("rejects inquiry POST unusable 2xx bodies without afterProviderSubmit", () => {
     expect(() =>
       assertMyFatoorahSuccessEnvelope({
         method: "POST",
@@ -241,7 +241,7 @@ describe("myfatoorah HTTP mapping", () => {
     }
   });
 
-  it.skip("maps 401 / 403 to AuthenticationError", () => {
+  it("maps 401 / 403 to AuthenticationError", () => {
     expect(mapMyFatoorahHttpFailure({ status: 401, body: {}, method: "POST" })).toBeInstanceOf(
       AuthenticationError,
     );
@@ -250,13 +250,13 @@ describe("myfatoorah HTTP mapping", () => {
     );
   });
 
-  it.skip("maps 404 to ResourceNotFoundError", () => {
+  it("maps 404 to ResourceNotFoundError", () => {
     expect(mapMyFatoorahHttpFailure({ status: 404, body: {}, method: "POST" })).toBeInstanceOf(
       ResourceNotFoundError,
     );
   });
 
-  it.skip("maps 429 to RateLimitError", () => {
+  it("maps 429 to RateLimitError", () => {
     expect(mapMyFatoorahHttpFailure({ status: 429, body: {}, method: "POST" })).toBeInstanceOf(
       RateLimitError,
     );
@@ -269,7 +269,7 @@ describe("myfatoorah HTTP mapping", () => {
     expect((error as RateLimitError).retryAfterSeconds).toBe(7);
   });
 
-  it.skip("maps IsSuccess false with ValidationErrors on non-2xx to InvalidRequestError", () => {
+  it("maps IsSuccess false with ValidationErrors on non-2xx to InvalidRequestError", () => {
     const error = mapMyFatoorahHttpFailure({
       status: 400,
       body: {
@@ -281,7 +281,7 @@ describe("myfatoorah HTTP mapping", () => {
     expect(error).toBeInstanceOf(InvalidRequestError);
   });
 
-  it.skip("maps unknown client failures to InvalidRequestError when IsSuccess false on 4xx", () => {
+  it("maps unknown client failures to InvalidRequestError when IsSuccess false on 4xx", () => {
     const error = mapMyFatoorahHttpFailure({
       status: 400,
       body: { IsSuccess: false, Message: "Something" },
@@ -290,7 +290,7 @@ describe("myfatoorah HTTP mapping", () => {
     expect(error).toBeInstanceOf(InvalidRequestError);
   });
 
-  it.skip("maps unknown client failures to GatewayApiError when IsSuccess true", () => {
+  it("maps unknown client failures to GatewayApiError when IsSuccess true", () => {
     const error = mapMyFatoorahHttpFailure({
       status: 400,
       body: { IsSuccess: true, Message: "Something" },
@@ -299,7 +299,7 @@ describe("myfatoorah HTTP mapping", () => {
     expect(error).toBeInstanceOf(GatewayApiError);
   });
 
-  it.skip("rejects unusable 2xx bodies as NetworkError", () => {
+  it("rejects unusable 2xx bodies as NetworkError", () => {
     expect(() =>
       assertMyFatoorahSuccessEnvelope({
         method: "POST",

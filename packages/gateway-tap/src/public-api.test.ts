@@ -2,7 +2,7 @@ import { describe, expect, it } from "bun:test";
 import * as tap from "./index";
 
 describe("public API runtime surface", () => {
-  it.skip("re-exports documented runtime symbols", () => {
+  it("re-exports documented runtime symbols", () => {
     expect(typeof tap.tapGateway).toBe("function");
     expect(typeof tap.TapGateway).toBe("function");
     expect(tap.TAP_ADAPTER_VERSION).toBe("0.1.0-next.0");

@@ -90,9 +90,9 @@ class TestCapabilityGateway extends BaseGateway {
   }
 }
 
-describe.skip("gateway capabilities foundation", () => {
-  describe.skip("GATEWAY_CAPABILITY_KEYS", () => {
-    it.skip("includes the stable Phase 3 key set", () => {
+describe("gateway capabilities foundation", () => {
+  describe("GATEWAY_CAPABILITY_KEYS", () => {
+    it("includes the stable Phase 3 key set", () => {
       const expected = [
         "payments",
         "immediateCapture",
@@ -115,8 +115,8 @@ describe.skip("gateway capabilities foundation", () => {
     });
   });
 
-  describe.skip("defineGatewayCapabilities", () => {
-    it.skip("merges partial claims; unspecified keys are false", () => {
+  describe("defineGatewayCapabilities", () => {
+    it("merges partial claims; unspecified keys are false", () => {
       const caps = defineGatewayCapabilities({
         payments: true,
         refunds: true,
@@ -136,7 +136,7 @@ describe.skip("gateway capabilities foundation", () => {
       }
     });
 
-    it.skip("returns all-false for empty partial", () => {
+    it("returns all-false for empty partial", () => {
       const caps = defineGatewayCapabilities({});
       for (const key of GATEWAY_CAPABILITY_KEYS) {
         expect(caps[key]).toBe(false);
@@ -144,7 +144,7 @@ describe.skip("gateway capabilities foundation", () => {
       expect(caps).toEqual({ ...DEFAULT_GATEWAY_CAPABILITIES });
     });
 
-    it.skip("coerces non-true values to false", () => {
+    it("coerces non-true values to false", () => {
       const caps = defineGatewayCapabilities({
         payments: true,
         // @ts-expect-error — runtime guard for non-boolean
@@ -155,22 +155,22 @@ describe.skip("gateway capabilities foundation", () => {
     });
   });
 
-  describe.skip("isGatewayCapabilityKey", () => {
-    it.skip("returns true for known keys", () => {
+  describe("isGatewayCapabilityKey", () => {
+    it("returns true for known keys", () => {
       expect(isGatewayCapabilityKey("payments")).toBe(true);
       expect(isGatewayCapabilityKey("providerRecurring")).toBe(true);
       expect(isGatewayCapabilityKey("hostedCheckout")).toBe(true);
     });
 
-    it.skip("returns false for unknown strings", () => {
+    it("returns false for unknown strings", () => {
       expect(isGatewayCapabilityKey("")).toBe(false);
       expect(isGatewayCapabilityKey("partial_refunds")).toBe(false);
       expect(isGatewayCapabilityKey("subscriptions")).toBe(false);
     });
   });
 
-  describe.skip("freezeCapabilities", () => {
-    it.skip("returns a frozen snapshot", () => {
+  describe("freezeCapabilities", () => {
+    it("returns a frozen snapshot", () => {
       const caps = defineGatewayCapabilities({ payments: true });
       const frozen = freezeCapabilities(caps);
       expect(Object.isFrozen(frozen)).toBe(true);
@@ -180,7 +180,7 @@ describe.skip("gateway capabilities foundation", () => {
       }).toThrow();
     });
 
-    it.skip("does not mutate the input object", () => {
+    it("does not mutate the input object", () => {
       const caps = defineGatewayCapabilities({ refunds: true });
       const frozen = freezeCapabilities(caps);
       expect(frozen).not.toBe(caps);
@@ -188,8 +188,8 @@ describe.skip("gateway capabilities foundation", () => {
     });
   });
 
-  describe.skip("CAPABILITY_OPERATION_MAP", () => {
-    it.skip("maps every client-gated capability to a method name; remaining extension keys stay unmapped", () => {
+  describe("CAPABILITY_OPERATION_MAP", () => {
+    it("maps every client-gated capability to a method name; remaining extension keys stay unmapped", () => {
       // Drift guard: claim-validation harness uses this map for method presence.
       const mapped: Partial<Record<GatewayCapabilityKey, string>> = {
         payments: "createPayment",
@@ -210,7 +210,7 @@ describe.skip("gateway capabilities foundation", () => {
       }
     });
 
-    it.skip("requiredCapabilitiesForOperation encodes create/refund/void/capture gates", () => {
+    it("requiredCapabilitiesForOperation encodes create/refund/void/capture gates", () => {
       expect(requiredCapabilitiesForOperation("createPayment", { capture: true }))
         .toEqual(["payments"]);
       expect(
@@ -269,8 +269,8 @@ describe.skip("gateway capabilities foundation", () => {
     });
   });
 
-  describe.skip("BaseGateway supports + capabilities", () => {
-    it.skip("defaults to all-false when no claims are passed", () => {
+  describe("BaseGateway supports + capabilities", () => {
+    it("defaults to all-false when no claims are passed", () => {
       const gw = new TestCapabilityGateway();
       expect(Object.isFrozen(gw.capabilities)).toBe(true);
       for (const key of GATEWAY_CAPABILITY_KEYS) {
@@ -279,7 +279,7 @@ describe.skip("gateway capabilities foundation", () => {
       }
     });
 
-    it.skip("returns expected supports() values for explicit claims", () => {
+    it("returns expected supports() values for explicit claims", () => {
       const gw = new TestCapabilityGateway({
         payments: true,
         refunds: true,
@@ -293,7 +293,7 @@ describe.skip("gateway capabilities foundation", () => {
       expect(gw.supports("hostedCheckout")).toBe(false);
     });
 
-    it.skip("assertCapability throws OperationNotSupportedError with metadata", () => {
+    it("assertCapability throws OperationNotSupportedError with metadata", () => {
       const gw = new TestCapabilityGateway({ payments: true });
       try {
         gw.tryAssert("voids", "voidPayment");
@@ -312,14 +312,14 @@ describe.skip("gateway capabilities foundation", () => {
       }
     });
 
-    it.skip("assertCapability is a no-op when capability is claimed", () => {
+    it("assertCapability is a no-op when capability is claimed", () => {
       const gw = new TestCapabilityGateway({ voids: true });
       expect(() => gw.tryAssert("voids", "voidPayment")).not.toThrow();
     });
   });
 
-  describe.skip("OperationNotSupportedError capability metadata", () => {
-    it.skip("two-arg form remains backward compatible", () => {
+  describe("OperationNotSupportedError capability metadata", () => {
+    it("two-arg form remains backward compatible", () => {
       const err = new OperationNotSupportedError("moyasar", "voidPayment");
       expect(err.gatewayName).toBe("moyasar");
       expect(err.operation).toBe("voidPayment");
@@ -332,7 +332,7 @@ describe.skip("gateway capabilities foundation", () => {
       expect(err.statusCode).toBe(400);
     });
 
-    it.skip("carries capability metadata when provided", () => {
+    it("carries capability metadata when provided", () => {
       const err = new OperationNotSupportedError("stripe", "createCheckoutSession", {
         capability: "hostedCheckout",
         claimedSupport: false,
@@ -343,7 +343,7 @@ describe.skip("gateway capabilities foundation", () => {
       expect(err.message).toContain("createCheckoutSession");
     });
 
-    it.skip("accepts a custom message override", () => {
+    it("accepts a custom message override", () => {
       const err = new OperationNotSupportedError("acme", "refundPayment", {
         capability: "refunds",
         claimedSupport: false,

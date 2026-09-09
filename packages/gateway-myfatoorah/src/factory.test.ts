@@ -12,13 +12,13 @@ import { MYFATOORAH_TEST_API_TOKEN, MYFATOORAH_TEST_WEBHOOK_SECRET } from "./fix
 import { MyFatoorahGateway } from "./gateway";
 
 describe("myfatoorahGateway", () => {
-  it.skip("rejects empty apiToken", () => {
+  it("rejects empty apiToken", () => {
     expect(() => myfatoorahGateway({ apiToken: "  ", country: "KWT" })).toThrow(
       InvalidRequestError,
     );
   });
 
-  it.skip("rejects unknown country", () => {
+  it("rejects unknown country", () => {
     expect(() =>
       myfatoorahGateway({
         apiToken: MYFATOORAH_TEST_API_TOKEN,
@@ -40,7 +40,7 @@ describe("myfatoorahGateway", () => {
     },
   );
 
-  it.skip("accepts HTTPS webhookUrl", () => {
+  it("accepts HTTPS webhookUrl", () => {
     expect(() =>
       myfatoorahGateway({
         apiToken: MYFATOORAH_TEST_API_TOKEN,
@@ -50,7 +50,7 @@ describe("myfatoorahGateway", () => {
     ).not.toThrow();
   });
 
-  it.skip("accepts a public hostname that starts with 10.", () => {
+  it("accepts a public hostname that starts with 10.", () => {
     expect(() =>
       myfatoorahGateway({
         apiToken: MYFATOORAH_TEST_API_TOKEN,
@@ -75,7 +75,7 @@ describe("myfatoorahGateway", () => {
     ).toThrow(InvalidRequestError);
   });
 
-  it.skip("trims apiToken and webhookSecret", () => {
+  it("trims apiToken and webhookSecret", () => {
     const copied = copyMyFatoorahConfig({
       apiToken: `  ${MYFATOORAH_TEST_API_TOKEN}  `,
       country: "KWT",
@@ -85,7 +85,7 @@ describe("myfatoorahGateway", () => {
     expect(copied.webhookSecret).toBe(MYFATOORAH_TEST_WEBHOOK_SECRET);
   });
 
-  it.skip("rejects non-string webhookSecret", () => {
+  it("rejects non-string webhookSecret", () => {
     expect(() =>
       copyMyFatoorahConfig({
         apiToken: MYFATOORAH_TEST_API_TOKEN,
@@ -109,7 +109,7 @@ describe("myfatoorahGateway", () => {
     ).toThrow(InvalidRequestError);
   });
 
-  it.skip("rejects non-positive timeoutMs on the factory and the gateway", () => {
+  it("rejects non-positive timeoutMs on the factory and the gateway", () => {
     expect(() =>
       myfatoorahGateway({
         apiToken: MYFATOORAH_TEST_API_TOKEN,
@@ -130,7 +130,7 @@ describe("myfatoorahGateway", () => {
     ).toThrow(InvalidRequestError);
   });
 
-  it.skip("resolves sandbox and live base URLs by country", () => {
+  it("resolves sandbox and live base URLs by country", () => {
     expect(
       resolveMyFatoorahBaseUrl({
         apiToken: MYFATOORAH_TEST_API_TOKEN,
@@ -153,7 +153,7 @@ describe("myfatoorahGateway", () => {
     ).toBe("https://api.myfatoorah.com");
   });
 
-  it.skip("closes over secrets and keeps them off the manifest", () => {
+  it("closes over secrets and keeps them off the manifest", () => {
     const adapter = myfatoorahGateway({
       apiToken: MYFATOORAH_TEST_API_TOKEN,
       country: "KWT",
@@ -174,7 +174,7 @@ describe("myfatoorahGateway", () => {
     expect(gateway.supports("hostedCheckout")).toBe(false);
   });
 
-  it.skip("composes with createPaymentClient without core factory edits", () => {
+  it("composes with createPaymentClient without core factory edits", () => {
     const client = createPaymentClient({
       gateways: {
         myfatoorah: myfatoorahGateway({

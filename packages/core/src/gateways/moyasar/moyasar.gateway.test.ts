@@ -18,7 +18,7 @@ import {
   hashWebhookPayload,
   toPersistedPaymentEventEnvelope,
 } from "../../types/payment-event";
-import { isPaidOutcome } from "../../types/operation-result";
+import { isPaidOutcome, mapGatewayResultToOperationResult } from "../../types/operation-result";
 import { MoyasarGateway } from "./moyasar.gateway";
 import { InMemoryIdempotencyStore } from "../../utils/idempotency";
 import { money, isMoney, type Money } from "../../utils/money";
@@ -561,7 +561,7 @@ describe("MoyasarGateway", () => {
       );
 
       const missing = await createGateway().createPayment({
-        amount: 100,
+        amount: money("100", "SAR"),
         currency: "SAR",
         moyasarSource: {
           type: "applepay",
@@ -600,7 +600,7 @@ describe("MoyasarGateway", () => {
       );
 
       const result = await createGateway().createPayment({
-        amount: 100,
+        amount: money("100", "SAR"),
         currency: "SAR",
         moyasarSource: {
           type: "applepay",
@@ -697,7 +697,7 @@ describe("MoyasarGateway", () => {
       mockFetchJson(paymentResponse());
 
       await createGateway().createPayment({
-        amount: 100,
+        amount: money("100", "SAR"),
         currency: "SAR",
         moyasarSource: {
           type: "applepay",
@@ -778,7 +778,7 @@ describe("MoyasarGateway", () => {
       mockFetchJson(paymentResponse());
 
       await createGateway().createPayment({
-        amount: 100,
+        amount: money("100", "SAR"),
         currency: "sar",
         moyasarSource: {
           type: "applepay",
@@ -793,7 +793,7 @@ describe("MoyasarGateway", () => {
       mockFetchJson(paymentResponse());
 
       await createGateway().createPayment({
-        amount: 100,
+        amount: money("100", "SAR"),
         currency: "SAR",
         idempotencyKey: "a1168bd1-47a4-4b97-8a50-dd5caaccacf2",
         moyasarSource: {
@@ -802,7 +802,7 @@ describe("MoyasarGateway", () => {
         },
         splits: [
           {
-            amount: 50, // major units → 5000 halalas
+            amount: money("50", "SAR"), // major units → 5000 halalas
             recipient_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
             reference: "split_1",
             fee_source: true,
@@ -846,7 +846,7 @@ describe("MoyasarGateway", () => {
       mockFetchJson(paymentResponse());
 
       await createGateway().createPayment({
-        amount: 100,
+        amount: money("100", "SAR"),
         currency: "SAR",
         moyasarSource: {
           type: "applepay",
@@ -854,11 +854,11 @@ describe("MoyasarGateway", () => {
         },
         splits: [
           {
-            amount: 120,
+            amount: money("120", "SAR"),
             recipient_id: "3fa85f64-5717-4562-b3fc-2c963f66afa6",
           },
           {
-            amount: -20,
+            amount: money("-20", "SAR", { allowNegative: true }),
             recipient_id: "4fa85f64-5717-4562-b3fc-2c963f66afa6",
           },
         ],
@@ -874,7 +874,7 @@ describe("MoyasarGateway", () => {
       mockFetchJson(paymentResponse());
 
       await createGateway().createPayment({
-        amount: 100,
+        amount: money("100", "SAR"),
         currency: "SAR",
         orderId: "order_123",
         moyasarSource: {
@@ -897,7 +897,7 @@ describe("MoyasarGateway", () => {
       mockFetchJson(paymentResponse());
 
       await createGateway().createPayment({
-        amount: 100,
+        amount: money("100", "SAR"),
         currency: "SAR",
         orderId: "order_123",
         moyasarSource: {
@@ -948,7 +948,7 @@ describe("MoyasarGateway", () => {
     it("rejects amounts below one minor unit", async () => {
       await expect(
         createGateway().createPayment({
-          amount: money("0.001", "SAR"),
+          amount: { amount: "0.001", currency: "SAR" } as unknown as Money,
           currency: "SAR",
           moyasarSource: {
             type: "applepay",
@@ -963,7 +963,7 @@ describe("MoyasarGateway", () => {
     it("rejects amounts with unsupported currency precision", async () => {
       await expect(
         createGateway().createPayment({
-          amount: money("1.235", "SAR"),
+          amount: { amount: "1.235", currency: "SAR" } as unknown as Money,
           currency: "SAR",
           moyasarSource: {
             type: "applepay",
@@ -1024,6 +1024,85 @@ describe("MoyasarGateway", () => {
       // given_id is the only handle callers can reconcile with
       expect(result.gatewayId).toBe(DEFAULT_MUTATION_IDEMPOTENCY_KEY);
     });
+
+    it("forwards minimal AFT recipient and sender without account or country_code", async () => {
+      mockFetchJson(paymentResponse());
+
+      const recipient = {
+        first_name: "Saleh",
+        last_name: "Ali",
+        address: "Riyadh",
+      };
+      const sender = {
+        first_name: "Sara",
+        last_name: "Ali",
+        address: "Riyadh",
+        id_type: "NTID" as const,
+        id: "1234567890",
+        phone_number: "0512345678",
+      };
+
+      const result = await createGateway().createPayment({
+        amount: money("100", "SAR"),
+        currency: "SAR",
+        callbackUrl: "https://example.com/callback",
+        moyasarSource: {
+          type: "token",
+          token: "token_test_123",
+        },
+        recipient,
+        sender,
+      });
+
+      const body = lastRequestBody();
+      expect(body.recipient).toEqual(recipient);
+      expect(body.sender).toEqual(sender);
+      expect(body.sender).not.toHaveProperty("account");
+      expect(body.sender).not.toHaveProperty("country_code");
+      expect(result.status).toBe("paid");
+      expect(result.outcome).toBe("succeeded");
+      expect(isPaidOutcome(result)).toBe(true);
+    });
+
+    it("maps initiated creditcard transaction_url to redirect nextAction and operation action", async () => {
+      const transactionUrl = "https://api.moyasar.com/3ds/challenge";
+      mockFetchJson(
+        paymentResponse({
+          status: "initiated",
+          captured: 0,
+          source: {
+            type: "creditcard",
+            transaction_url: transactionUrl,
+          },
+        }),
+      );
+
+      const result = await createGateway().createPayment({
+        amount: money("100", "SAR"),
+        currency: "SAR",
+        callbackUrl: "https://example.com/callback",
+        moyasarSource: {
+          type: "token",
+          token: "token_test_123",
+        },
+      });
+
+      expect(result.nextAction).toEqual({
+        type: "redirect",
+        url: transactionUrl,
+      });
+      expect(result.redirectUrl).toBe(transactionUrl);
+      const operation = mapGatewayResultToOperationResult(result, {
+        gateway: "moyasar",
+      });
+      expect(operation.outcome).toBe("requires_action");
+      if (operation.outcome === "requires_action") {
+        expect(operation.action).toMatchObject({
+          type: "redirect",
+          url: transactionUrl,
+        });
+      }
+    });
   });
 
   describe("capturePayment and refundPayment", () => {
@@ -1032,7 +1111,7 @@ describe("MoyasarGateway", () => {
 
       await createGateway().capturePayment({
         gatewayPaymentId: PAYMENT_ID,
-        amount: 1.234,
+        amount: money("1.234", "KWD"),
         currency: "KWD",
         idempotencyKey: DEFAULT_MUTATION_IDEMPOTENCY_KEY,
       });
@@ -1053,7 +1132,7 @@ describe("MoyasarGateway", () => {
       await expect(
         createGateway().capturePayment({
           gatewayPaymentId: PAYMENT_ID,
-          amount: 50,
+          amount: money("50", "JPY"),
           currency: "JPY",
           idempotencyKey: DEFAULT_MUTATION_IDEMPOTENCY_KEY,
         }),
