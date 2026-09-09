@@ -704,7 +704,7 @@ describe("CreateCheckoutSession image URL schemes (CORE-3)", () => {
 describe("CreateCheckoutSessionParamsSchema cancelUrl (P22R3-CANCEL-URL)", () => {
   const paymentBase = {
     successUrl: "https://example.com/ok",
-    amount: 10,
+    amount: money("10.00", "USD"),
     currency: "USD",
   };
   const subscriptionBase = {
@@ -813,7 +813,7 @@ describe("InMemoryIdempotencyStore clone fail-closed (MONEY-4)", () => {
 describe("idempotencyKey validation (CORE-2)", () => {
   it("rejects empty and whitespace-only idempotency keys", () => {
     const base = {
-      amount: 10,
+      amount: money("10.00", "USD"),
       currency: "USD",
       callbackUrl: "https://example.com/callback",
     };
@@ -849,7 +849,7 @@ describe("idempotencyKey validation (CORE-2)", () => {
 
   it("accepts non-empty keys including those with internal spaces", () => {
     const parsed = CreatePaymentParamsSchema.safeParse({
-      amount: 10,
+      amount: money("10.00", "USD"),
       currency: "USD",
       callbackUrl: "https://example.com/callback",
       idempotencyKey: "order-123 retry",

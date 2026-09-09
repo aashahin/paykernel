@@ -34,7 +34,7 @@ import {
 } from "../index";
 
 const baseCreate = {
-  amount: 10,
+  amount: money("10.00", "USD"),
   currency: "USD" as const,
   callbackUrl: "https://ex.test/cb",
 };
@@ -60,7 +60,6 @@ describe("paymentStatusToOperationOutcome", () => {
       gatewayId: "pay_x",
       status: "refund_failed" as const,
       outcome: paymentStatusToOperationOutcome("refund_failed"),
-      success: false as const,
     };
     expect(snapshot.outcome).toBe("failed");
     expect(isPaidOutcome(snapshot)).toBe(false);
@@ -73,20 +72,20 @@ describe("mockGateway", () => {
       createPayment: [{ outcome: "requires_action" }, { outcome: "succeeded" }],
     });
     const a = await g.createPayment({
-      amount: 10,
+      amount: money("10.00", "SAR"),
       currency: "SAR",
       callbackUrl: "https://ex.test/cb",
     });
     expect(a.status).toBe("pending");
     expect(a.redirectUrl).toBeTruthy();
     expect(a.outcome).toBe("requires_action");
-    expect(a.success).toBe(true); // deprecated dual-write; not paid
+    expect("success" in a).toBe(false); // 1.0: success removed; not paid
     expect(isRequiresActionOutcome(a)).toBe(true);
     expect(isPaidOutcome(a)).toBe(false);
     expect(a.references?.providerObjectId).toBe(a.gatewayId);
     expect(a.references?.gateway).toBe("mock");
     const b = await g.createPayment({
-      amount: 10,
+      amount: money("10.00", "SAR"),
       currency: "SAR",
       callbackUrl: "https://ex.test/cb",
     });
@@ -155,9 +154,8 @@ describe("mockGateway", () => {
       NetworkError,
     );
     const side = g.getLastProviderSideSuccess();
-    expect(side?.success).toBe(true);
-    expect(side?.status).toBe("paid");
     expect(side?.outcome).toBe("succeeded");
+    expect(side?.status).toBe("paid");
     expect(side?.references?.providerObjectId).toBe(side?.gatewayId);
     // Provider-side payment exists for reconciliation
     expect(g.getPaymentState(side!.gatewayId)?.status).toBe("paid");
@@ -170,7 +168,6 @@ describe("mockGateway", () => {
     await expect(g.createPayment(baseCreate)).rejects.toBeInstanceOf(
       NetworkError,
     );
-    expect(g.getLastProviderSideSuccess()?.success).toBe(true);
     expect(g.getLastProviderSideSuccess()?.outcome).toBe("succeeded");
   });
 
@@ -180,7 +177,7 @@ describe("mockGateway", () => {
     });
     const r = await g.createPayment(baseCreate);
     expect(r.outcome).toBe("indeterminate");
-    expect(r.success).toBe(false); // dual-write — do not treat as decline
+    expect("success" in r).toBe(false); // 1.0: success removed — do not treat as decline
     expect(r.status).toBe("processing");
     expect(r.reconciliationRequired).toBe(true);
     expect(isIndeterminateOutcome(r)).toBe(true);
@@ -194,12 +191,11 @@ describe("mockGateway", () => {
     expect(raw.error?.code).toBe("INDETERMINATE");
   });
 
-  it("failed outcome is definitive success:false status failed", async () => {
+  it("failed outcome is definitive failed status failed", async () => {
     const g = mockGateway({
       createPayment: [{ outcome: "failed" }],
     });
     const r = await g.createPayment(baseCreate);
-    expect(r.success).toBe(false);
     expect(r.outcome).toBe("failed");
     expect(r.status).toBe("failed");
     expect(isPaidOutcome(r)).toBe(false);
@@ -216,7 +212,7 @@ describe("mockGateway", () => {
   it("default/succeeded createPayment still writes paid ledger", async () => {
     const gDefault = mockGateway();
     const d = await gDefault.createPayment(baseCreate);
-    expect(d.success).toBe(true);
+    expect(d.outcome).toBe("succeeded");
     expect(d.status).toBe("paid");
     const dState = gDefault.getPaymentState(d.gatewayId);
     expect(dState?.status).toBe("paid");
@@ -227,7 +223,7 @@ describe("mockGateway", () => {
       createPayment: [{ outcome: "succeeded" }],
     });
     const s = await gScripted.createPayment(baseCreate);
-    expect(s.success).toBe(true);
+    expect(s.outcome).toBe("succeeded");
     expect(s.status).toBe("paid");
     const sState = gScripted.getPaymentState(s.gatewayId);
     expect(sState?.status).toBe("paid");
@@ -255,7 +251,6 @@ describe("mockGateway", () => {
     });
     const start = clock.nowMs();
     const r = await g.createPayment(baseCreate);
-    expect(r.success).toBe(true);
     expect(r.outcome).toBe("succeeded");
     expect(isPaidOutcome(r)).toBe(true);
     expect(clock.nowMs() - start).toBe(250);
@@ -315,7 +310,7 @@ describe("mockGateway", () => {
       }),
     });
     const pay = await g.createPayment({
-      amount: 100,
+      amount: money("100.00", "USD"),
       currency: "USD",
       callbackUrl: "https://ex.test/cb",
       capture: false,
@@ -323,29 +318,29 @@ describe("mockGateway", () => {
     expect(pay.status).toBe("authorized");
     const cap = await g.capturePayment({
       gatewayPaymentId: pay.gatewayId,
-      amount: 40,
+      amount: money("40.00", "USD"),
       currency: "USD",
     });
     expect(cap.status).toBe("partially_captured");
     const full = await g.capturePayment({
       gatewayPaymentId: pay.gatewayId,
-      amount: 60,
+      amount: money("60.00", "USD"),
       currency: "USD",
     });
     expect(full.status).toBe("paid");
     const ref = await g.refundPayment({
       gatewayPaymentId: pay.gatewayId,
-      amount: 10,
+      amount: money("10.00", "USD"),
       currency: "USD",
     });
-    expect(ref.success).toBe(true);
+    expect(ref.outcome).toBe("succeeded");
     expect(g.getPaymentState(pay.gatewayId)?.status).toBe("partially_refunded");
   });
 
   it("rejects over-capture and over-refund", async () => {
     const g = mockGateway();
     const pay = await g.createPayment({
-      amount: 50,
+      amount: money("50.00", "USD"),
       currency: "USD",
       callbackUrl: "https://ex.test/cb",
       capture: false,
@@ -353,13 +348,13 @@ describe("mockGateway", () => {
     await expect(
       g.capturePayment({
         gatewayPaymentId: pay.gatewayId,
-        amount: 51,
+        amount: money("51.00", "USD"),
         currency: "USD",
       }),
     ).rejects.toBeInstanceOf(InvalidRequestError);
 
     const paid = await g.createPayment({
-      amount: 20,
+      amount: money("20.00", "USD"),
       currency: "USD",
       callbackUrl: "https://ex.test/cb",
       capture: true,
@@ -367,7 +362,7 @@ describe("mockGateway", () => {
     await expect(
       g.refundPayment({
         gatewayPaymentId: paid.gatewayId,
-        amount: 21,
+        amount: money("21.00", "USD"),
         currency: "USD",
       }),
     ).rejects.toBeInstanceOf(InvalidRequestError);
@@ -387,7 +382,7 @@ describe("mockGateway", () => {
       }),
     });
     const pay = await g.createPayment({
-      amount: 100,
+      amount: money("100.00", "USD"),
       currency: "USD",
       callbackUrl: "https://ex.test/cb",
       capture: false,
@@ -396,12 +391,12 @@ describe("mockGateway", () => {
     const results = await Promise.allSettled([
       g.capturePayment({
         gatewayPaymentId: pay.gatewayId,
-        amount: 100,
+        amount: money("100.00", "USD"),
         currency: "USD",
       }),
       g.capturePayment({
         gatewayPaymentId: pay.gatewayId,
-        amount: 100,
+        amount: money("100.00", "USD"),
         currency: "USD",
       }),
     ]);
@@ -431,7 +426,7 @@ describe("mockGateway", () => {
       }),
     });
     const pay = await g.createPayment({
-      amount: 100,
+      amount: money("100.00", "USD"),
       currency: "USD",
       callbackUrl: "https://ex.test/cb",
       capture: false,
@@ -439,17 +434,17 @@ describe("mockGateway", () => {
     const [a, b] = await Promise.all([
       g.capturePayment({
         gatewayPaymentId: pay.gatewayId,
-        amount: 40,
+        amount: money("40.00", "USD"),
         currency: "USD",
       }),
       g.capturePayment({
         gatewayPaymentId: pay.gatewayId,
-        amount: 60,
+        amount: money("60.00", "USD"),
         currency: "USD",
       }),
     ]);
-    expect(a.success).toBe(true);
-    expect(b.success).toBe(true);
+    expect(a.outcome).toBe("requires_action");
+    expect(b.outcome).toBe("succeeded");
     const state = g.getPaymentState(pay.gatewayId)!;
     expect(state.capturedAmount).toBe(100);
     expect(state.status).toBe("paid");
@@ -469,7 +464,7 @@ describe("mockGateway", () => {
       }),
     });
     const paid = await g.createPayment({
-      amount: 50,
+      amount: money("50.00", "USD"),
       currency: "USD",
       callbackUrl: "https://ex.test/cb",
       capture: true,
@@ -477,12 +472,12 @@ describe("mockGateway", () => {
     const results = await Promise.allSettled([
       g.refundPayment({
         gatewayPaymentId: paid.gatewayId,
-        amount: 50,
+        amount: money("50.00", "USD"),
         currency: "USD",
       }),
       g.refundPayment({
         gatewayPaymentId: paid.gatewayId,
-        amount: 50,
+        amount: money("50.00", "USD"),
         currency: "USD",
       }),
     ]);
@@ -513,7 +508,7 @@ describe("mockGateway", () => {
     });
     await expect(
       g.createPayment({
-        amount: 30,
+        amount: money("30.00", "USD"),
         currency: "USD",
         callbackUrl: "https://ex.test/cb",
         capture: false,
@@ -532,7 +527,7 @@ describe("mockGateway", () => {
   it("amount conversion minor units in rawResponse", async () => {
     const g = mockGateway();
     const r = await g.createPayment({
-      amount: 10.5,
+      amount: money("10.50", "SAR"),
       currency: "SAR",
       callbackUrl: "https://ex.test/cb",
     });
@@ -563,10 +558,9 @@ describe("mockGateway", () => {
       currency: "SAR",
       callbackUrl: "https://ex.test/cb",
     });
-    expect(r.success).toBe(true);
     expect(r.outcome).toBe("succeeded");
     expect(isPaidOutcome(r)).toBe(true);
-    expect(r.amount).toBe(10.5);
+    expect(r.amount).toEqual(money("10.50", "SAR"));
     expect(r.references?.gateway).toBe("mock");
     const raw = r.rawResponse as { amountMinor: number };
     expect(raw.amountMinor).toBe(1050);
@@ -596,7 +590,7 @@ describe("mockGateway", () => {
       currency: "USD",
     });
     expect(cap.status).toBe("partially_captured");
-    expect(cap.capturedAmount).toBe(4.25);
+    expect(cap.capturedAmount).toEqual(money("4.25", "USD"));
     const state = g.getPaymentState(pay.gatewayId);
     expect(state?.amount).toBe(10.5);
     expect(state?.capturedAmount).toBe(4.25);
@@ -621,7 +615,6 @@ describe("mockGateway", () => {
       {
         operation: "createPayment",
         result: {
-          success: true,
           status: "paid",
           outcome: "succeeded",
         },
@@ -938,10 +931,9 @@ describe("mockGateway", () => {
     });
     const c = new AbortController();
     const p = g.createPayment({
-      amount: 1,
+      amount: money("1.00", "USD"),
       currency: "USD",
       callbackUrl: "https://ex.test/cb",
-      // @ts-expect-error signal is testkit extension
       signal: c.signal,
     });
     c.abort();
@@ -956,10 +948,9 @@ describe("mockGateway", () => {
     });
     const c = new AbortController();
     const p = g.createPayment({
-      amount: 1,
+      amount: money("1.00", "USD"),
       currency: "USD",
       callbackUrl: "https://ex.test/cb",
-      // @ts-expect-error signal is testkit extension
       signal: c.signal,
     });
     c.abort();
@@ -981,10 +972,9 @@ describe("mockGateway", () => {
     });
     await expect(
       g.createPayment({
-        amount: 1,
+        amount: money("1.00", "USD"),
         currency: "USD",
         callbackUrl: "https://ex.test/cb",
-        // @ts-expect-error signal is testkit extension
         signal: c.signal,
       }),
     ).rejects.toBeInstanceOf(NetworkError);
@@ -996,7 +986,7 @@ describe("mockGateway", () => {
     const g = mockGateway();
     const pay = await g.createPayment({
       ...baseCreate,
-      amount: 30,
+      amount: money("30.00", "USD"),
       capture: false,
     });
     const voided = await g.voidPayment!({ gatewayPaymentId: pay.gatewayId });
@@ -1011,7 +1001,7 @@ describe("mockGateway", () => {
         const g = mockGateway();
         const auth = await g.createPayment({
           ...baseCreate,
-          amount: 30,
+          amount: money("30.00", "USD"),
           capture: false,
         });
         await g.voidPayment!({ gatewayPaymentId: auth.gatewayId });
@@ -1060,7 +1050,7 @@ describe("mockGateway", () => {
       }),
     });
     const pay = await g.createPayment({
-      amount: 10,
+      amount: money("10.00", "USD"),
       currency: "USD",
       callbackUrl: "https://ex.test/cb",
       capture: false,
@@ -1069,7 +1059,7 @@ describe("mockGateway", () => {
     await expect(
       g.capturePayment({
         gatewayPaymentId: pay.gatewayId,
-        amount: 1,
+        amount: money("1", "JPY"),
         currency: "JPY",
       }),
     ).rejects.toBeInstanceOf(InvalidRequestError);
@@ -1077,23 +1067,24 @@ describe("mockGateway", () => {
 
     const cap = await g.capturePayment({
       gatewayPaymentId: pay.gatewayId,
-      amount: 1,
+      amount: money("1.00", "USD"),
       currency: "USD",
     });
     expect(cap.status).toBe("partially_captured");
-    expect(cap.capturedAmount).toBe(1);
+    expect(cap.outcome).toBe("requires_action");
+    expect(cap.capturedAmount).toEqual(money("1.00", "USD"));
     expect(cap.currency).toBe("USD");
     expect(g.getPaymentState(pay.gatewayId)?.capturedAmount).toBe(1);
 
     const paid = await g.createPayment({
-      amount: 20,
+      amount: money("20.00", "USD"),
       currency: "USD",
       callbackUrl: "https://ex.test/cb",
     });
     await expect(
       g.refundPayment({
         gatewayPaymentId: paid.gatewayId,
-        amount: 1,
+        amount: money("1", "JPY"),
         currency: "JPY",
       }),
     ).rejects.toBeInstanceOf(InvalidRequestError);
@@ -1101,10 +1092,11 @@ describe("mockGateway", () => {
 
     const refunded = await g.refundPayment({
       gatewayPaymentId: paid.gatewayId,
-      amount: 1,
+      amount: money("1.00", "USD"),
       currency: "USD",
     });
-    expect(refunded.success).toBe(true);
+    expect(refunded.outcome).toBe("succeeded");
+    expect(refunded.totalRefunded).toEqual(money("1.00", "USD"));
     expect(g.getPaymentState(paid.gatewayId)?.refundedAmount).toBe(1);
   });
 
@@ -1135,7 +1127,7 @@ describe("mockGateway", () => {
     const r = await g.createPayment(baseCreate);
     expect(r.outcome).toBe("succeeded");
     expect(r.status).toBe("paid");
-    expect(r.success).toBe(true);
+    expect("success" in r).toBe(false); // 1.0: success removed; paid via outcome
     expect(isPaidOutcome(r)).toBe(true);
     expect(r.references).toMatchObject({
       providerObjectId: r.gatewayId,
@@ -1149,8 +1141,7 @@ describe("mockGateway", () => {
       createPayment: [{ outcome: "requires_action" }],
     });
     const r = await g.createPayment(baseCreate);
-    // Both historically had success:true — Phase 6 separates them
-    expect(r.success).toBe(true);
+    expect("success" in r).toBe(false); // 1.0: success removed
     expect(r.outcome).toBe("requires_action");
     expect(isRequiresActionOutcome(r)).toBe(true);
     expect(isPaidOutcome(r)).toBe(false);
@@ -1163,7 +1154,7 @@ describe("mockGateway", () => {
     const r3ds = await g3ds.createPayment(baseCreate);
     expect(r3ds.status).toBe("pending");
     expect(r3ds.outcome).toBe("requires_action");
-    expect(r3ds.success).toBe(true); // API ok — not money settled
+    expect("success" in r3ds).toBe(false); // API ok — not money settled
     const s3ds = g3ds.getPaymentState(r3ds.gatewayId);
     expect(s3ds).toBeDefined();
     expect(s3ds!.status).toBe("pending");
@@ -1190,7 +1181,7 @@ describe("mockGateway", () => {
     const g = mockGateway();
     const pay = await g.createPayment({
       ...baseCreate,
-      amount: 50,
+      amount: money("50.00", "USD"),
       capture: false,
     });
     expect(g.getPaymentState(pay.gatewayId)?.capturedAmount).toBe(0);
@@ -1216,6 +1207,8 @@ describe("mockGateway", () => {
     g.enqueue("capturePayment", { outcome: "succeeded" });
     const ok = await g.capturePayment({ gatewayPaymentId: pay.gatewayId });
     expect(ok.status).toBe("paid");
+    expect(ok.outcome).toBe("succeeded");
+    expect(ok.capturedAmount).toEqual(money("50.00", "USD"));
     expect(g.getPaymentState(pay.gatewayId)?.capturedAmount).toBe(50);
   });
 
@@ -1229,7 +1222,7 @@ describe("mockGateway", () => {
     });
     const pay = await g.createPayment({
       ...baseCreate,
-      amount: 20,
+      amount: money("20.00", "USD"),
       capture: false,
     });
     expect(g.getPaymentState(pay.gatewayId)?.status).toBe("authorized");
@@ -1256,23 +1249,22 @@ describe("mockGateway", () => {
           result: {
             gatewayRefundId: "ref_forged",
             status: "failed",
-            totalRefunded: 0,
-            success: false,
+            totalRefunded: money("0.00", "USD", { allowZero: true }),
           },
         },
       ],
     });
-    const pay = await g.createPayment({ ...baseCreate, amount: 40 });
+    const pay = await g.createPayment({ ...baseCreate, amount: money("40.00", "USD") });
     expect(g.getPaymentState(pay.gatewayId)?.capturedAmount).toBe(40);
 
     const refunded = await g.refundPayment({
       gatewayPaymentId: pay.gatewayId,
-      amount: 15,
+      amount: money("15.00", "USD"),
     });
     // Ledger advanced by 15 — reported result must agree (not forged totals)
     expect(refunded.status).toBe("completed");
-    expect(refunded.totalRefunded).toBe(15);
-    expect(refunded.success).toBe(true);
+    expect(refunded.totalRefunded).toEqual(money("15.00", "USD"));
+    expect(refunded.outcome).toBe("succeeded");
     expect(refunded.gatewayRefundId).toBe("ref_forged"); // metadata override OK
     const st = g.getPaymentState(pay.gatewayId)!;
     expect(st.refundedAmount).toBe(15);
@@ -1288,7 +1280,7 @@ describe("mockGateway", () => {
         refundPayment: [{ outcome }],
       });
       const paid = await g.createPayment({
-        amount: 20,
+        amount: money("20.00", "USD"),
         currency: "USD",
         callbackUrl: "https://ex.test/cb",
         capture: true,
@@ -1296,7 +1288,7 @@ describe("mockGateway", () => {
       await expect(
         g.refundPayment({
           gatewayPaymentId: paid.gatewayId,
-          amount: 20,
+          amount: money("20.00", "USD"),
           currency: "USD",
         }),
       ).rejects.toBeInstanceOf(NetworkError);
@@ -1354,7 +1346,7 @@ describe("mockGateway", () => {
       defaultLatencyMs: 1,
     });
     const params = {
-      amount: 25,
+      amount: money("25.00", "USD"),
       currency: "USD" as const,
       callbackUrl: "https://ex.test/cb",
       idempotencyKey: "race-key",
@@ -1364,7 +1356,8 @@ describe("mockGateway", () => {
       g.createPayment(params),
     ]);
     expect(a.gatewayId).toBe(b.gatewayId);
-    expect(a.success).toBe(true);
+    expect(a.outcome).toBe("succeeded");
+    expect(isPaidOutcome(a)).toBe(true);
     // Only one payment id on the ledger
     const ids = new Set(
       g
@@ -1383,7 +1376,7 @@ describe("mockGateway", () => {
       ],
     });
     const params = {
-      amount: 10,
+      amount: money("10.00", "USD"),
       currency: "USD" as const,
       callbackUrl: "https://ex.test/cb",
       idempotencyKey: "dual-timeout-key",
@@ -1394,7 +1387,8 @@ describe("mockGateway", () => {
     // Retry must return the provider-side payment, not create pay_mock_2
     const retry = await g.createPayment(params);
     expect(retry.gatewayId).toBe(side!.gatewayId);
-    expect(retry.success).toBe(true);
+    expect(retry.outcome).toBe("succeeded");
+    expect(isPaidOutcome(retry)).toBe(true);
     expect(g.remainingOutcomes().createPayment).toBe(1); // second script unused
   });
 
@@ -1425,12 +1419,12 @@ describe("mockGateway", () => {
     });
     const params = {
       ...baseCreate,
-      amount: 12,
+      amount: money("12.00", "USD"),
       idempotencyKey: "indeterminate-key",
     };
     const first = await g.createPayment(params);
     expect(first.outcome).toBe("indeterminate");
-    expect(first.success).toBe(false);
+    expect(isPaidOutcome(first)).toBe(false);
     expect(first.reconciliationRequired).toBe(true);
     // Same-key retry must not mint a second gatewayId / consume next script
     const retry = await g.createPayment(params);
@@ -1440,7 +1434,7 @@ describe("mockGateway", () => {
     // Different key still drains the next scripted outcome
     const other = await g.createPayment({
       ...baseCreate,
-      amount: 12,
+      amount: money("12.00", "USD"),
       idempotencyKey: "other-key",
     });
     expect(other.outcome).toBe("succeeded");
@@ -1451,28 +1445,28 @@ describe("mockGateway", () => {
     const g = mockGateway();
     const a = await g.createPayment({
       ...baseCreate,
-      amount: 10,
+      amount: money("10.00", "USD"),
       idempotencyKey: "fp-key",
     });
     expect(a.gatewayId).toBeTruthy();
     await expect(
       g.createPayment({
         ...baseCreate,
-        amount: 99,
+        amount: money("99.00", "USD"),
         idempotencyKey: "fp-key",
       }),
     ).rejects.toBeInstanceOf(InvalidRequestError);
     await expect(
       g.createPayment({
         ...baseCreate,
-        amount: 99,
+        amount: money("99.00", "USD"),
         idempotencyKey: "fp-key",
       }),
     ).rejects.toThrow(/fingerprint_conflict/);
     // Same amount + key still replays
     const replay = await g.createPayment({
       ...baseCreate,
-      amount: 10,
+      amount: money("10.00", "USD"),
       idempotencyKey: "fp-key",
     });
     expect(replay.gatewayId).toBe(a.gatewayId);
@@ -1480,7 +1474,7 @@ describe("mockGateway", () => {
     await expect(
       g.createPayment({
         ...baseCreate,
-        amount: 10,
+        amount: money("10.00", "USD"),
         capture: false,
         idempotencyKey: "fp-key",
       }),
@@ -1494,8 +1488,8 @@ describe("mockGateway", () => {
           outcome: "succeeded",
           result: {
             // Forged money — must not win over ledger-derived capture total
-            capturedAmount: 999,
-            amount: 999,
+            capturedAmount: money("999.00", "USD"),
+            amount: money("999.00", "USD"),
             status: "paid",
           },
         },
@@ -1503,20 +1497,21 @@ describe("mockGateway", () => {
     });
     const pay = await g.createPayment({
       ...baseCreate,
-      amount: 40,
+      amount: money("40.00", "USD"),
       capture: false,
     });
     expect(g.getPaymentState(pay.gatewayId)?.capturedAmount).toBe(0);
 
     const cap = await g.capturePayment({
       gatewayPaymentId: pay.gatewayId,
-      amount: 15,
+      amount: money("15.00", "USD"),
       currency: "USD",
     });
     // Ledger remaining math settled 15; reported result must match
     expect(cap.status).toBe("partially_captured");
-    expect(cap.capturedAmount).toBe(15);
-    expect(cap.amount).toBe(40);
+    expect(cap.outcome).toBe("requires_action");
+    expect(cap.capturedAmount).toEqual(money("15.00", "USD"));
+    expect(cap.amount).toEqual(money("40.00", "USD"));
     expect(cap.currency).toBe("USD");
     expect(isPaidOutcome(cap)).toBe(false);
     const state = g.getPaymentState(pay.gatewayId)!;
@@ -1536,7 +1531,7 @@ describe("mockGateway", () => {
     });
     const pay = await g.createPayment({
       ...baseCreate,
-      amount: 25,
+      amount: money("25.00", "USD"),
       capture: false,
     });
     const cap = await g.capturePayment({ gatewayPaymentId: pay.gatewayId });
@@ -1553,10 +1548,10 @@ describe("mockGateway", () => {
         {
           outcome: "succeeded",
           result: {
-            amount: 10,
+            amount: money("10.00", "USD"),
             currency: "USD",
-            capturedAmount: 500,
-            refundedAmount: 400,
+            capturedAmount: money("500.00", "USD"),
+            refundedAmount: money("400.00", "USD"),
             status: "paid",
           },
         },
@@ -1576,7 +1571,7 @@ describe("mockGateway", () => {
       createPayment: [{ outcome: "provider_ok_client_timeout", latencyMs: 5 }],
     });
     const params = {
-      amount: 12,
+      amount: money("12.00", "USD"),
       currency: "USD" as const,
       callbackUrl: "https://ex.test/cb",
       idempotencyKey: "dual-join-key",
@@ -1598,18 +1593,18 @@ describe("mockGateway", () => {
     expect(isPaidOutcome(retry)).toBe(true);
   });
 
-  it("economically equivalent Money vs number amount shares fingerprint (TESTKIT-1)", async () => {
+  it("economically equivalent noncanonical vs canonical Money shares fingerprint (TESTKIT-1)", async () => {
     const g = mockGateway();
     const a = await g.createPayment({
       ...baseCreate,
-      amount: 10.5,
-      currency: "USD",
+      amount: { amount: "10.5", currency: "SAR" },
+      currency: "SAR",
       idempotencyKey: "money-fp",
     });
     const b = await g.createPayment({
       ...baseCreate,
-      amount: money("10.50", "USD"),
-      currency: "USD",
+      amount: money("10.50", "SAR"),
+      currency: "SAR",
       idempotencyKey: "money-fp",
     });
     expect(b.gatewayId).toBe(a.gatewayId);
@@ -1680,23 +1675,24 @@ describe("mockGateway", () => {
     });
     const pay = await g.createPayment({
       ...baseCreate,
-      amount: 100,
+      amount: money("100.00", "USD"),
       capture: false,
     });
     const first = await g.capturePayment({
       gatewayPaymentId: pay.gatewayId,
-      amount: 40,
+      amount: money("40.00", "USD"),
       currency: "USD",
     });
     expect(first.status).toBe("partially_captured");
-    expect(first.capturedAmount).toBe(40);
+    expect(first.outcome).toBe("requires_action");
+    expect(first.capturedAmount).toEqual(money("40.00", "USD"));
     const refunded = await g.refundPayment({
       gatewayPaymentId: pay.gatewayId,
-      amount: 10,
+      amount: money("10.00", "USD"),
       currency: "USD",
     });
-    expect(refunded.success).toBe(true);
-    expect(refunded.totalRefunded).toBe(10);
+    expect(refunded.outcome).toBe("succeeded");
+    expect(refunded.totalRefunded).toEqual(money("10.00", "USD"));
     const mid = g.getPaymentState(pay.gatewayId)!;
     expect(mid.status).toBe("partially_refunded");
     expect(mid.capturedAmount).toBe(40);
@@ -1704,10 +1700,11 @@ describe("mockGateway", () => {
     // Remaining 60 of the 100 hold must still capture — refund must not freeze it.
     const rest = await g.capturePayment({
       gatewayPaymentId: pay.gatewayId,
-      amount: 60,
+      amount: money("60.00", "USD"),
       currency: "USD",
     });
-    expect(rest.capturedAmount).toBe(100);
+    expect(rest.outcome).toBe("succeeded");
+    expect(rest.capturedAmount).toEqual(money("100.00", "USD"));
     expect(rest.currency).toBe("USD");
     const after = g.getPaymentState(pay.gatewayId)!;
     expect(after.capturedAmount).toBe(100);
@@ -1721,7 +1718,7 @@ describe("mockGateway", () => {
     });
     const pay = await g.createPayment({
       ...baseCreate,
-      amount: 50,
+      amount: money("50.00", "USD"),
       capture: false,
     });
     expect(pay.status).toBe("authorized");
@@ -1731,25 +1728,30 @@ describe("mockGateway", () => {
     const got = await g.getPayment({ gatewayPaymentId: pay.gatewayId });
     expect(got.status).toBe("authorized");
     expect(got.outcome).toBe("succeeded");
-    expect(got.amount).toBe(50);
+    expect(got.amount).toEqual(money("50.00", "USD"));
     expect(got.currency).toBe("USD");
-    expect(got.capturedAmount).toBe(0);
-    expect(got.refundedAmount).toBe(0);
+    expect(got.capturedAmount).toEqual(
+      money("0.00", "USD", { allowZero: true }),
+    );
+    expect(got.refundedAmount).toEqual(
+      money("0.00", "USD", { allowZero: true }),
+    );
     expect(isPaidOutcome(got)).toBe(false);
     expect(g.getPaymentState(pay.gatewayId)?.status).toBe("authorized");
     expect(g.getPaymentState(pay.gatewayId)?.capturedAmount).toBe(0);
 
     await g.capturePayment({
       gatewayPaymentId: pay.gatewayId,
-      amount: 20,
+      amount: money("20.00", "USD"),
       currency: "USD",
     });
     const afterPartial = await g.getPayment({
       gatewayPaymentId: pay.gatewayId,
     });
     expect(afterPartial.status).toBe("partially_captured");
-    expect(afterPartial.capturedAmount).toBe(20);
-    expect(afterPartial.amount).toBe(50);
+    expect(afterPartial.outcome).toBe("requires_action");
+    expect(afterPartial.capturedAmount).toEqual(money("20.00", "USD"));
+    expect(afterPartial.amount).toEqual(money("50.00", "USD"));
     expect(isPaidOutcome(afterPartial)).toBe(false);
     expect(g.getPaymentState(pay.gatewayId)?.status).toBe("partially_captured");
   });
@@ -1794,7 +1796,9 @@ describe("mockGateway", () => {
     expect(s.status).toBe("authorized");
     expect(s.status).not.toBe("paid");
     expect(s.outcome).toBe("succeeded");
-    expect(s.capturedAmount).toBe(0);
+    expect(s.capturedAmount).toEqual(
+      money("0.00", "USD", { allowZero: true }),
+    );
     expect(s.currency).toBe("USD");
     expect(isPaidOutcome(s)).toBe(false);
     const sState = scripted.getPaymentState(s.gatewayId)!;
@@ -1810,7 +1814,9 @@ describe("mockGateway", () => {
       capture: false,
     });
     expect(d.status).toBe("authorized");
-    expect(d.capturedAmount).toBe(0);
+    expect(d.capturedAmount).toEqual(
+      money("0.00", "USD", { allowZero: true }),
+    );
     expect(d.currency).toBe("USD");
     const dState = def.getPaymentState(d.gatewayId)!;
     expect(dState.status).toBe("authorized");

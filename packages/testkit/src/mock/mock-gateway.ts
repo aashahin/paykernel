@@ -125,7 +125,7 @@ const CONVERSION_OPTS = {
  * rejected (same default as `@paykernel/core` money model).
  */
 export function majorToMinor(amount: number | Money, currency: string): number {
-  const m = isMoney(amount) ? amount : money(String(amount), currency);
+  const m = isMoney(amount) ? amount : money(String(amount), currency, CONVERSION_OPTS);
   const normalized = normalizeAmountInput(m, m.currency, CONVERSION_OPTS);
   return minorAmountToNumber(toMinorUnits(normalized, CONVERSION_OPTS));
 }
@@ -1191,7 +1191,7 @@ export function mockGateway(options: MockGatewayOptions = {}): MockGateway {
         const succeeded: GatewayPaymentResult = { ...fb };
         if (succeeded.status === "authorized" && succeeded.capturedAmount === undefined) {
           const cur = (succeeded.amount as Money | undefined)?.currency ?? (fb.amount as Money | undefined)?.currency ?? "USD";
-          succeeded.capturedAmount = money("0", cur);
+          succeeded.capturedAmount = money("0", cur, CONVERSION_OPTS);
           if ((succeeded as unknown as Record<string, unknown>).currency === undefined && (fb as unknown as Record<string, unknown>).currency !== undefined) {
             (succeeded as unknown as Record<string, unknown>).currency = (fb as unknown as Record<string, unknown>).currency;
           }
@@ -1490,7 +1490,9 @@ export function mockGateway(options: MockGatewayOptions = {}): MockGateway {
                 const base = defaultPaymentResult(id, status, major, name, currencyCode);
                 return {
                   ...base,
-                  ...(status === "authorized" ? { capturedAmount: money("0", currencyCode) } : {}),
+                  ...(status === "authorized"
+                    ? { capturedAmount: money("0", currencyCode, CONVERSION_OPTS) }
+                    : {}),
                   rawResponse: {
                     mock: true,
                     amountMinor: minor,
@@ -1559,13 +1561,20 @@ export function mockGateway(options: MockGatewayOptions = {}): MockGateway {
               finalResult.capturedAmount === undefined
                 ? {
                     ...finalResult,
-                    capturedAmount: money("0", (finalResult.amount as Money | undefined)?.currency ?? currencyCode),
+                    capturedAmount: money(
+                      "0",
+                      finalResult.amount?.currency ?? currencyCode,
+                      CONVERSION_OPTS,
+                    ),
                     ...(finalResult.currency === undefined ? { currency: currencyCode } : {}),
                   }
                 : finalResult;
 
-            if (settledResult.outcome === "succeeded" || settledResult.status === "processing") {
-              // Non-success terminal (e.g. failed): honest ledger — never leave paid hanging
+            if (isLedgerSettlingResult(settledResult)) {
+              ensurePaymentLedger(id, params, settledResult, resolved);
+            } else {
+              // Honest ledger for non-settling outcomes — record amount/status
+              // with zero money movement (never leave paid hanging, never claim capture).
               const key = finalResult.gatewayId || id;
               payments.set(key, {
                 amountMinor: minor,
@@ -1717,17 +1726,25 @@ export function mockGateway(options: MockGatewayOptions = {}): MockGateway {
             // TESTKIT-1: ledger is source of truth after successful capture.
             // Scripted result overrides must not desync reported money/status
             // from the settled ledger (dual-write honesty).
-            const publicState = toPublicPaymentState(state!);
+            const settledState = state!;
             return withPhase6Outcome(
               {
                 ...result,
-                status: publicState.status,
-                amount: money(String(publicState.amount), publicState.currency),
-                currency: publicState.currency,
-                capturedAmount: money(String(publicState.capturedAmount), publicState.currency),
-                refundedAmount: money(String(publicState.refundedAmount), publicState.currency),
+                status: settledState.status,
+                amount: fromMinorUnits(settledState.amountMinor, settledState.currency, CONVERSION_OPTS),
+                currency: settledState.currency,
+                capturedAmount: fromMinorUnits(
+                  settledState.capturedAmountMinor,
+                  settledState.currency,
+                  CONVERSION_OPTS,
+                ),
+                refundedAmount: fromMinorUnits(
+                  settledState.refundedAmountMinor,
+                  settledState.currency,
+                  CONVERSION_OPTS,
+                ),
               },
-              paymentStatusToOperationOutcome(publicState.status),
+              paymentStatusToOperationOutcome(settledState.status),
               result.reconciliationRequired === true ? { reconciliationRequired: true } : undefined,
             );
           }
@@ -1844,7 +1861,7 @@ export function mockGateway(options: MockGatewayOptions = {}): MockGateway {
           const base = defaultRefundResult(
             refundId,
             "completed",
-            minorToMajor(state.refundedAmountMinor, state.currency),
+            fromMinorUnits(state.refundedAmountMinor, state.currency, CONVERSION_OPTS),
           );
           const result =
             outcome?.outcome === "partial_refund" || outcome?.result
@@ -1951,18 +1968,25 @@ export function mockGateway(options: MockGatewayOptions = {}): MockGateway {
           if (!state) {
             throw new GatewayApiError(`Payment ${params.gatewayPaymentId} not found (mock)`, name);
           }
-          const publicState = toPublicPaymentState(state);
           return {
             ...defaultPaymentResult(
               params.gatewayPaymentId,
-              publicState.status,
-              publicState.amount,
+              state.status,
+              fromMinorUnits(state.amountMinor, state.currency, CONVERSION_OPTS),
               name,
-              publicState.currency,
+              state.currency,
             ),
-            currency: publicState.currency,
-            capturedAmount: money(String(publicState.capturedAmount), publicState.currency),
-            refundedAmount: money(String(publicState.refundedAmount), publicState.currency),
+            currency: state.currency,
+            capturedAmount: fromMinorUnits(
+              state.capturedAmountMinor,
+              state.currency,
+              CONVERSION_OPTS,
+            ),
+            refundedAmount: fromMinorUnits(
+              state.refundedAmountMinor,
+              state.currency,
+              CONVERSION_OPTS,
+            ),
           };
         };
 

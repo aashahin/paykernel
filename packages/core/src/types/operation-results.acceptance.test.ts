@@ -21,10 +21,11 @@ import {
   mapGatewayRefundToOperationResult,
   applyOutcomeToGatewayResult,
   inferOperationOutcome,
+  inferRefundOperationOutcome,
   isPaidOutcome,
   isRequiresActionOutcome,
   isIndeterminateOutcome,
-  
+  InvalidRequestError,
   buildProviderReferences,
   money,
   toMinorUnits,
@@ -37,7 +38,7 @@ function basePayment(
   overrides: Partial<GatewayPaymentResult> = {},
 ): GatewayPaymentResult {
   return {
-    success: true,
+    outcome: "succeeded",
     gatewayId: "pay_1",
     status: "paid",
     redirectUrl: undefined,
@@ -135,7 +136,6 @@ describe("AC6: cross-gateway outcome consistency on create shapes", () => {
       gateway: "stripe",
       name: "paid PaymentIntent",
       result: basePayment({
-        success: true,
         status: "paid",
         gatewayId: "pi_stripe_paid",
         clientSecret: "pi_stripe_paid_secret",
@@ -147,7 +147,6 @@ describe("AC6: cross-gateway outcome consistency on create shapes", () => {
       gateway: "stripe",
       name: "requires_action via clientSecret pending",
       result: basePayment({
-        success: true,
         status: "pending",
         gatewayId: "pi_stripe_3ds",
         clientSecret: "pi_stripe_3ds_secret",
@@ -159,7 +158,6 @@ describe("AC6: cross-gateway outcome consistency on create shapes", () => {
       gateway: "moyasar",
       name: "3DS redirect initiated",
       result: basePayment({
-        success: true,
         status: "pending",
         gatewayId: "pay_moyasar_3ds",
         redirectUrl: "https://moyasar.test/3ds",
@@ -175,7 +173,6 @@ describe("AC6: cross-gateway outcome consistency on create shapes", () => {
       gateway: "moyasar",
       name: "STC Pay OTP",
       result: basePayment({
-        success: true,
         status: "pending",
         gatewayId: "pay_moyasar_stc",
         nextAction: {
@@ -192,7 +189,6 @@ describe("AC6: cross-gateway outcome consistency on create shapes", () => {
       gateway: "paypal",
       name: "order created pending approval",
       result: basePayment({
-        success: true,
         status: "pending",
         gatewayId: "ORDER-1",
         orderId: "ORDER-1",
@@ -209,7 +205,6 @@ describe("AC6: cross-gateway outcome consistency on create shapes", () => {
       gateway: "paypal",
       name: "captured order paid",
       result: basePayment({
-        success: true,
         status: "paid",
         gatewayId: "ORDER-2",
         orderId: "ORDER-2",
@@ -222,7 +217,6 @@ describe("AC6: cross-gateway outcome consistency on create shapes", () => {
       gateway: "paymob",
       name: "Intention create pending",
       result: basePayment({
-        success: true,
         status: "pending",
         gatewayId: "int_paymob_1",
       }),
@@ -233,7 +227,6 @@ describe("AC6: cross-gateway outcome consistency on create shapes", () => {
       gateway: "paymob",
       name: "paid transaction",
       result: basePayment({
-        success: true,
         status: "paid",
         gatewayId: "txn_paymob_1",
       }),
@@ -244,7 +237,6 @@ describe("AC6: cross-gateway outcome consistency on create shapes", () => {
       gateway: "paymob",
       name: "bare partial capture is open money",
       result: basePayment({
-        success: true,
         status: "partially_captured",
         gatewayId: "txn_paymob_partial",
       }),
@@ -253,11 +245,12 @@ describe("AC6: cross-gateway outcome consistency on create shapes", () => {
     },
     {
       gateway: "stripe",
-      name: "success:false pending is not a failed decline",
+      name: "indeterminate pending is not a failed decline",
       result: basePayment({
-        success: false,
+        outcome: "indeterminate",
         status: "pending",
         gatewayId: "pi_stripe_unk",
+        reconciliationRequired: true,
       }),
       expectedOutcome: "indeterminate",
       paid: false,
@@ -273,7 +266,8 @@ describe("AC6: cross-gateway outcome consistency on create shapes", () => {
       expect(isPaidOutcome(c.result)).toBe(c.paid);
       expect(isPaidOutcome(op)).toBe(c.paid);
       if (c.expectedOutcome === "requires_action") {
-        expect(c.result.success).toBe(true);
+        expect(c.result.outcome).not.toBe("failed");
+        expect(c.result.outcome).not.toBe("declined");
         expect(isPaidOutcome(c.result)).toBe(false);
       }
       if (op.outcome === "succeeded" || op.outcome === "requires_action") {
@@ -287,7 +281,6 @@ describe("AC6: cross-gateway outcome consistency on create shapes", () => {
 describe("P610-INF: infer fail-closed money / no dual-write lie", () => {
   it("bare partially_captured infers requires_action; settled-success statuses stay succeeded", () => {
     const bare = basePayment({
-      success: true,
       status: "partially_captured",
       gatewayId: "cap_partial",
     });
@@ -296,42 +289,42 @@ describe("P610-INF: infer fail-closed money / no dual-write lie", () => {
     expect(isPaidOutcome(bare)).toBe(false);
 
     expect(
-      inferOperationOutcome(basePayment({ success: true, status: "paid" })),
+      inferOperationOutcome(basePayment({ status: "paid" })),
     ).toBe("succeeded");
     expect(
       inferOperationOutcome(
-        basePayment({ success: true, status: "authorized" }),
+        basePayment({ status: "authorized" }),
       ),
     ).toBe("succeeded");
     expect(
       inferOperationOutcome(
-        basePayment({ success: true, status: "refunded" }),
+        basePayment({ status: "refunded" }),
       ),
     ).toBe("succeeded");
     expect(
       inferOperationOutcome(
-        basePayment({ success: true, status: "partially_refunded" }),
+        basePayment({ status: "partially_refunded" }),
       ),
     ).toBe("succeeded");
     expect(
       inferOperationOutcome(
-        basePayment({ success: true, status: "setup_completed" }),
+        basePayment({ status: "setup_completed" }),
       ),
     ).toBe("succeeded");
     expect(
-      isPaidOutcome(basePayment({ success: true, status: "setup_completed" })),
+      isPaidOutcome(basePayment({ status: "setup_completed" })),
     ).toBe(false);
     expect(
-      isPaidOutcome(basePayment({ success: true, status: "authorized" })),
+      isPaidOutcome(basePayment({ status: "authorized" })),
     ).toBe(false);
   });
 
   it("S20-FAILED-DECLINED: bare status failed without decline is failed", () => {
     const rows: Array<[Partial<GatewayPaymentResult>, "failed" | "declined"]> = [
-      [{ success: false, status: "failed", gatewayId: "pi_bare_fail" }, "failed"],
+      [{ outcome: "failed", status: "failed", gatewayId: "pi_bare_fail" }, "failed"],
       [
         {
-          success: false,
+          outcome: "failed",
           status: "failed",
           gatewayId: "pi_declined",
           decline: { code: "card_declined", message: "nope" },
@@ -343,7 +336,7 @@ describe("P610-INF: infer fail-closed money / no dual-write lie", () => {
       expect(inferOperationOutcome(basePayment(patch))).toBe(outcome);
     }
     const bare = basePayment({
-      success: false,
+      outcome: "failed",
       status: "failed",
       gatewayId: "pi_bare_fail",
     });
@@ -351,12 +344,13 @@ describe("P610-INF: infer fail-closed money / no dual-write lie", () => {
     expect(isPaidOutcome(bare)).toBe(false);
   });
 
-  it("success:false + pending/processing/approved infers indeterminate", () => {
+  it("post-submit uncertainty (outcome indeterminate + reconciliationRequired) stays indeterminate, never failed", () => {
     for (const status of ["pending", "processing", "approved"] as const) {
       const result = basePayment({
-        success: false,
+        outcome: "indeterminate",
         status,
         gatewayId: `unk_${status}`,
+        reconciliationRequired: true,
       });
       expect(inferOperationOutcome(result)).toBe("indeterminate");
       const op = mapGatewayResultToOperationResult(result);
@@ -416,10 +410,10 @@ describe("P610-INF: infer fail-closed money / no dual-write lie", () => {
 describe("AC7: RefundOperationResult parallel mapping", () => {
   it("maps completed refund to succeeded", () => {
     const refund: GatewayRefundResult = {
-      success: true,
+      outcome: "succeeded",
       gatewayRefundId: "ref_1",
       status: "completed",
-      totalRefunded: 10,
+      totalRefunded: money("10.00", "USD"),
       rawResponse: {},
     };
     const op = mapGatewayRefundToOperationResult(refund);
@@ -427,25 +421,26 @@ describe("AC7: RefundOperationResult parallel mapping", () => {
     if (op.outcome !== "succeeded") throw new Error("expected succeeded");
     expect(op.refundId).toBe("ref_1");
     expect(op.status).toBe("completed");
-    expect(op.totalRefunded).toBe(10);
-    expect(successFromRefundOutcome("succeeded")).toBe(true);
+    expect(op.totalRefunded).toEqual(money("10.00", "USD"));
+    expect(inferRefundOperationOutcome(refund)).toBe("succeeded");
   });
 
   it("maps pending refund without treating as terminal failure", () => {
     const refund: GatewayRefundResult = {
-      success: true,
+      outcome: "pending",
       gatewayRefundId: "ref_pending",
       status: "pending",
       rawResponse: {},
     };
     const op = mapGatewayRefundToOperationResult(refund);
     expect(op.outcome).toBe("pending");
-    expect(successFromRefundOutcome("pending")).toBe(true);
+    expect(op.outcome).not.toBe("failed");
+    expect(inferRefundOperationOutcome(refund)).toBe("pending");
   });
 
   it("maps indeterminate with reconciliationRequired: true literally", () => {
     const refund: GatewayRefundResult = {
-      success: false,
+      outcome: "indeterminate",
       gatewayRefundId: "ref_unk",
       status: "pending",
       reconciliationRequired: true,
@@ -462,12 +457,12 @@ describe("AC7: RefundOperationResult parallel mapping", () => {
     const literal: true = op.reconciliationRequired;
     expect(literal).toBe(true);
     expect(op.providerRequestId).toBe("req_ref");
-    expect(successFromRefundOutcome("indeterminate")).toBe(false);
+    expect(inferRefundOperationOutcome(refund)).toBe("indeterminate");
   });
 
   it("maps failed refund", () => {
     const refund: GatewayRefundResult = {
-      success: false,
+      outcome: "failed",
       gatewayRefundId: "ref_fail",
       status: "failed",
       rawResponse: {},
@@ -480,22 +475,20 @@ describe("AC7: RefundOperationResult parallel mapping", () => {
 
   it("uses dual-written outcome when present (map prefers explicit outcome)", () => {
     const dualWritten: GatewayRefundResult = {
-      success: true,
       outcome: "succeeded",
       gatewayRefundId: "ref_dual",
       status: "completed",
-      totalRefunded: 5,
+      totalRefunded: money("5.00", "USD"),
       rawResponse: {},
     };
     const op = mapGatewayRefundToOperationResult(dualWritten);
     expect(op.outcome).toBe("succeeded");
-    expect(successFromRefundOutcome(dualWritten.outcome!)).toBe(
-      dualWritten.success,
-    );
+    if (op.outcome !== "succeeded") throw new Error("expected succeeded");
+    expect(op.totalRefunded).toEqual(money("5.00", "USD"));
+    expect(inferRefundOperationOutcome(dualWritten)).toBe("succeeded");
 
     // Explicit pending outcome wins even if status would otherwise map differently
     const pendingDual: GatewayRefundResult = {
-      success: true,
       outcome: "pending",
       gatewayRefundId: "ref_pd",
       status: "pending",
@@ -514,13 +507,13 @@ describe("AC8: Money/AmountInput regression (no float money math)", () => {
     expect(fromMinorUnits(1050n, "SAR").amount).toBe("10.50");
   });
 
-  it("AmountInput accepts number | Money via normalizeAmountInput", () => {
-    const asNumber: AmountInput = 10.5;
+  it("AmountInput is Money only; normalizeAmountInput rejects plain numbers", () => {
     const asMoney: AmountInput = money("10.50", "SAR");
-    const n = normalizeAmountInput(asNumber, "SAR");
     const m = normalizeAmountInput(asMoney, "SAR");
-    expect(toMinorUnits(n)).toBe(1050n);
     expect(toMinorUnits(m)).toBe(1050n);
+    expect(() =>
+      normalizeAmountInput(10.5 as unknown as AmountInput, "SAR"),
+    ).toThrow(InvalidRequestError);
   });
 
   it("CommonPaymentInput.amount accepts Money without float * 100", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { defineGatewayCapabilities } from "@paykernel/core";
+import { defineGatewayCapabilities, money } from "@paykernel/core";
 import {
   GATEWAY_CONFORMANCE_CASES,
   mockGateway,
@@ -178,7 +178,7 @@ describe("runGatewayConformanceSuite", () => {
     expect(fail?.error).toMatch(/inject logger|sink|PAN|apiSecret/i);
   });
 
-  it("network_failure fails when result is success:true (P05-CONF-1)", async () => {
+  it("network_failure fails when result is outcome:succeeded paid (P05-CONF-1)", async () => {
     const report = await runGatewayConformanceSuite({
       name: "network-success-true",
       mode: "full",
@@ -189,10 +189,13 @@ describe("runGatewayConformanceSuite", () => {
           capabilities: fullCaps,
         });
         g.createPayment = async () => ({
-          success: true,
-          status: "pending",
+          outcome: "succeeded" as const,
+          status: "paid" as const,
           gatewayId: "pay_network_lie",
-          outcome: "requires_action",
+          amount: money("1.00", "USD"),
+          currency: "USD",
+          redirectUrl: undefined,
+          rawResponse: { lie: "silent-paid-during-network-failure" },
         });
         return g;
       },
@@ -201,7 +204,7 @@ describe("runGatewayConformanceSuite", () => {
     expect(report.ok).toBe(false);
     const fail = report.failed.find((f) => f.case === "network_failure");
     expect(fail).toBeDefined();
-    expect(fail?.error).toMatch(/success:true/i);
+    expect(fail?.error).toMatch(/network_error should surface NetworkError/i);
   });
 
   it("indeterminate_outcomes fails when indeterminate is remapped to paid (P05-CONF-1)", async () => {

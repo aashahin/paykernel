@@ -2,6 +2,7 @@
  * Phase 7 — PaymentEvent model, mapping tables, envelope + hash helpers.
  */
 import { describe, it, expect } from "bun:test";
+import { money, type Money } from "../utils/money";
 import type {
   PaymentEvent,
   PersistedPaymentEventEnvelope,
@@ -191,7 +192,7 @@ describe("webhookEventToPaymentEvent", () => {
       baseWebhook({
         type: "payment_paid",
         status: "paid",
-        amount: 10.5,
+        amount: money("10.50", "SAR"),
         currency: "SAR",
         livemode: false,
       }),
@@ -201,7 +202,7 @@ describe("webhookEventToPaymentEvent", () => {
     expect(event.schemaVersion).toBe("1");
     expect(event.type).toBe("payment.succeeded");
     if (event.type !== "payment.succeeded") throw new Error("narrow");
-    expect(event.payment.amount).toBe(10.5);
+    expect(event.payment.amount).toEqual(money("10.50", "SAR"));
     expect(event.payment.currency).toBe("SAR");
     expect(event.payment.references.providerObjectId).toBe("pay_1");
     expect(event.payment.references.gateway).toBe("moyasar");
@@ -248,15 +249,15 @@ describe("webhookEventToPaymentEvent", () => {
 
   it("omits amount without currency on paymentFromWebhookEvent (CORE-3)", () => {
     const incomplete = paymentFromWebhookEvent(
-      baseWebhook({ amount: 12.5, currency: undefined }),
+      baseWebhook({ amount: money("12.50", "USD"), currency: undefined }),
     );
     expect(incomplete.amount).toBeUndefined();
     expect(incomplete.currency).toBeUndefined();
 
     const complete = paymentFromWebhookEvent(
-      baseWebhook({ amount: 12.5, currency: "usd" }),
+      baseWebhook({ amount: money("12.50", "USD"), currency: "usd" }),
     );
-    expect(complete.amount).toBe(12.5);
+    expect(complete.amount).toEqual(money("12.50", "USD"));
     expect(complete.currency).toBe("USD");
 
     const currencyOnly = paymentFromWebhookEvent(
@@ -268,19 +269,28 @@ describe("webhookEventToPaymentEvent", () => {
 
   it("NEW-MONEY-3: omit non-finite amount even when currency is set", () => {
     const nanAmount = paymentFromWebhookEvent(
-      baseWebhook({ amount: Number.NaN, currency: "usd" }),
+      baseWebhook({
+        amount: Number.NaN as unknown as Money,
+        currency: "usd",
+      }),
     );
     expect(nanAmount.currency).toBe("USD");
     expect(nanAmount.amount).toBeUndefined();
 
     const infAmount = paymentFromWebhookEvent(
-      baseWebhook({ amount: Number.POSITIVE_INFINITY, currency: "SAR" }),
+      baseWebhook({
+        amount: Number.POSITIVE_INFINITY as unknown as Money,
+        currency: "SAR",
+      }),
     );
     expect(infAmount.currency).toBe("SAR");
     expect(infAmount.amount).toBeUndefined();
 
     const negInf = paymentFromWebhookEvent(
-      baseWebhook({ amount: Number.NEGATIVE_INFINITY, currency: "EGP" }),
+      baseWebhook({
+        amount: Number.NEGATIVE_INFINITY as unknown as Money,
+        currency: "EGP",
+      }),
     );
     expect(negInf.currency).toBe("EGP");
     expect(negInf.amount).toBeUndefined();
@@ -289,7 +299,7 @@ describe("webhookEventToPaymentEvent", () => {
       baseWebhook({
         type: "payment_paid",
         status: "paid",
-        amount: Number.NaN,
+        amount: Number.NaN as unknown as Money,
         currency: "usd",
       }),
     );
@@ -307,7 +317,7 @@ describe("webhookEventToPaymentEvent", () => {
         type: "TRANSACTION",
         gateway: "paymob",
         status: "partially_captured",
-        amount: 5,
+        amount: money("5.00", "EGP"),
         currency: "EGP",
       }),
       {
@@ -320,7 +330,7 @@ describe("webhookEventToPaymentEvent", () => {
     expect(paymobPartial.type).toBe("payment.processing");
     if (paymobPartial.type !== "payment.processing") throw new Error("narrow");
     expect(paymobPartial.payment.status).toBe("partially_captured");
-    expect(paymobPartial.payment.amount).toBe(5);
+    expect(paymobPartial.payment.amount).toEqual(money("5.00", "EGP"));
     expect(paymobPartial.payment.currency).toBe("EGP");
 
     // NEW-CORE-8: Moyasar payment_captured + open-money status rematches
@@ -331,14 +341,14 @@ describe("webhookEventToPaymentEvent", () => {
         type: "payment_captured",
         gateway: "moyasar",
         status: "partially_captured",
-        amount: 5,
+        amount: money("5.00", "EGP"),
         currency: "EGP",
       }),
     );
     expect(capturePartial.type).toBe("payment.processing");
     if (capturePartial.type !== "payment.processing") throw new Error("narrow");
     expect(capturePartial.payment.status).toBe("partially_captured");
-    expect(capturePartial.payment.amount).toBe(5);
+    expect(capturePartial.payment.amount).toEqual(money("5.00", "EGP"));
     expect(capturePartial.payment.currency).toBe("EGP");
 
     const full = webhookEventToPaymentEvent(
@@ -346,7 +356,7 @@ describe("webhookEventToPaymentEvent", () => {
         type: "payment_captured",
         gateway: "moyasar",
         status: "paid",
-        amount: 10,
+        amount: money("10.00", "USD"),
         currency: "USD",
       }),
     );

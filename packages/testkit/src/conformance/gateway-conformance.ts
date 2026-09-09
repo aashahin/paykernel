@@ -1006,7 +1006,10 @@ export async function runGatewayConformanceSuite(
         // TESTKIT-1: partial money must be proven. Full capture / paid status /
         // omitted capturedAmount must not green-pass (fail-closed incomplete snapshot).
         // Exact partially_captured + capturedAmount=40 implies not full paid/100.
-        assert(cap.outcome === "succeeded", "partial capture must report outcome succeeded");
+        assert(
+          cap.outcome === "requires_action",
+          "partial capture must report outcome requires_action",
+        );
         assert(isPaidOutcome(cap) === false, "partial capture must not be paid outcome");
         assert(
           cap.status === "partially_captured",
