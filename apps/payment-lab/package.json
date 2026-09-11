@@ -9,7 +9,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "deploy": "vite build && wrangler deploy",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "bun run types && tsc --noEmit",
     "db:migrate:local": "wrangler d1 migrations apply paykernel-lab --local --config wrangler.jsonc",
     "db:migrate:remote": "wrangler d1 migrations apply paykernel-lab --remote --config wrangler.jsonc",
     "provision:seller": "bun ./scripts/provision-seller.ts",
