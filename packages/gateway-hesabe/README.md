@@ -2,7 +2,7 @@
 
 Hesabe adapter for `@paykernel/core`, supporting KWD hosted payments, transaction enquiry, confirmed callbacks, enquiry-verified webhooks, and full/partial refunds. Register it as an external adapter; it does not extend core's built-in gateway names.
 
-This adapter is published as `0.1.0`. Live sandbox interoperability has not been validated — complete the [sandbox acceptance checklist](./docs/sandbox-acceptance.md) before production use.
+This adapter is published as `0.1.1`. Live sandbox interoperability has not been validated — complete the [sandbox acceptance checklist](./docs/sandbox-acceptance.md) before production use.
 
 ## Setup
 

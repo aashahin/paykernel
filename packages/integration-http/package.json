@@ -1,6 +1,6 @@
 {
   "name": "@paykernel/integration-http",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Portable HTTP mapping and webhook request helpers for @paykernel/webhooks (no framework imports).",
   "type": "module",
   "main": "./dist/index.js",

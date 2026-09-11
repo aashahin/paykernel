@@ -1,6 +1,6 @@
 {
   "name": "@paykernel/gateway-myfatoorah",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Portable MyFatoorah gateway adapter for @paykernel/core: V3 hosted payments, refunds, and Webhook V2 signatures.",
   "type": "module",
   "main": "./dist/index.js",

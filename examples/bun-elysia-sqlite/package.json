@@ -1,6 +1,6 @@
 {
   "name": "@paykernel/example-bun-elysia-sqlite",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "private": true,
   "description": "Thin Bun + Elysia checkout example over @paykernel/example-checkout-kernel (single-host SQLite).",
   "type": "module",

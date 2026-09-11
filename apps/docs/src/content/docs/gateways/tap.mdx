@@ -5,7 +5,7 @@ sidebar:
   order: 6
 ---
 
-`@paykernel/gateway-tap` is a portable extra adapter (`GatewayAdapter<"tap", TapGateway>`) you pass into [`createPaymentClient`](/packages/core). It is **not** a `BuiltInGatewayName` (`"moyasar" | "paypal" | "paymob" | "stripe"`). Core does not import this package. Current version is `1.0.1` (`TAP_ADAPTER_VERSION`). Published on npm as `@paykernel/gateway-tap`. Core does not import this package.
+`@paykernel/gateway-tap` is a portable extra adapter (`GatewayAdapter<"tap", TapGateway>`) you pass into [`createPaymentClient`](/packages/core). It is **not** a `BuiltInGatewayName` (`"moyasar" | "paypal" | "paymob" | "stripe"`). Core does not import this package. Current version is `1.0.2` (`TAP_ADAPTER_VERSION`). Published on npm as `@paykernel/gateway-tap`. Core does not import this package.
 
 Runtime dependency is `@paykernel/core` only. Manifest `apiVersion` is `"V2"`. API base is `https://api.tap.company/v2`. Test vs live is the key prefix (`sk_test_` / `sk_live_`), not a sandbox flag. Secrets stay closed over by `tapGateway` — they are never copied onto the gateway context or manifest.
 
@@ -15,7 +15,7 @@ Do not `import { tapGateway } from "@paykernel/core"`. Register the adapter your
 
 ## Install
 
-Package name `@paykernel/gateway-tap`, export `"."` only (`./dist/index.js`). Version `1.0.1`. Published on npm — `bun add @paykernel/gateway-tap @paykernel/core` works.
+Package name `@paykernel/gateway-tap`, export `"."` only (`./dist/index.js`). Version `1.0.2`. Published on npm — `bun add @paykernel/gateway-tap @paykernel/core` works.
 
 ```bash
 bun add @paykernel/gateway-tap @paykernel/core
@@ -29,7 +29,7 @@ From `@paykernel/gateway-tap` (`packages/gateway-tap/src/index.ts`):
 | --- | --- |
 | `tapGateway` | factory → `GatewayAdapter<"tap", TapGateway>` |
 | `TapGateway` | class (`name: "tap"`) |
-| `TAP_ADAPTER_VERSION` | `"1.0.1"` |
+| `TAP_ADAPTER_VERSION` | `"1.0.2"` |
 | `TAP_CAPABILITIES` | frozen capability map |
 | `TapConfig` | config type |
 | `TapCreatePaymentParams` | create payload (`tap*` fields) |

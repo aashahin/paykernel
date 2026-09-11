@@ -1,13 +1,13 @@
 ---
 title: Packages
-description: Map of every publishable PayKernel package (core 1.0.0, gateways/testkit 1.0.1, others 0.1.0/0.1.1) with npm names and exports.
+description: Map of every publishable PayKernel package (core 1.0.0, gateways 1.0.2/0.1.1, testkit 1.0.2, others 0.1.x) with npm names and exports.
 sidebar:
   order: 1
 ---
 
 PayKernel is a **composition** of packages, not a single SDK. `@paykernel/core` creates payments, maps money, and **verifies** webhooks. Claim, lease, HTTP status, stores, routing, and OpenTelemetry live in other packages you wire at the application layer.
 
-Published versions: `core` **1.0.0**, `gateway-tap`/`gateway-myfatoorah` **1.0.1**, `testkit` **1.0.2**, `gateway-hesabe` **0.1.0**, `webhooks`/`reconciliation`/`routing`/`opentelemetry`/`stores`/`integrations` **0.1.1**, `store-d1` **0.1.2**, `store-contracts`/`sql-foundation` **0.1.0**. All packages below are **published** to the public registry. Install with `bun add @paykernel/<name>`.
+Published versions: `core` **1.0.0**, `gateway-tap`/`gateway-myfatoorah` **1.0.2**, `testkit` **1.0.2**, `gateway-hesabe` **0.1.1**, `integration-http` **0.1.2**, `webhooks`/`reconciliation`/`routing`/`opentelemetry`/`stores`/framework integrations **0.1.1**, `store-d1` **0.1.2**, `store-contracts`/`sql-foundation` **0.1.0**. All packages below are **published** to the public registry. Install with `bun add @paykernel/<name>`.
 
 :::caution
 The folder `packages/observability` publishes as **`@paykernel/opentelemetry`**. Never import or install `@paykernel/observability`.

@@ -1,5 +1,11 @@
 # @paykernel/example-bun-hono-postgres
 
+## 0.1.4
+
+### Patch Changes
+
+- @paykernel/example-checkout-kernel@0.1.4
+
 ## 0.1.3
 
 ### Patch Changes

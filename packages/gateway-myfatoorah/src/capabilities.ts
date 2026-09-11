@@ -5,7 +5,7 @@ import {
 } from "@paykernel/core";
 
 /** Adapter package version — must match `packages/gateway-myfatoorah/package.json`. */
-export const MYFATOORAH_ADAPTER_VERSION = "1.0.1";
+export const MYFATOORAH_ADAPTER_VERSION = "1.0.2";
 
 /**
  * Conservative MyFatoorah claims for this adapter surface.

@@ -5,7 +5,7 @@ sidebar:
   order: 7
 ---
 
-`@paykernel/gateway-myfatoorah` is a portable extra adapter (`GatewayAdapter<"myfatoorah", MyFatoorahGateway>`) you pass into [`createPaymentClient`](/packages/core). It is **not** a `BuiltInGatewayName` (`"moyasar" | "paypal" | "paymob" | "stripe"`). Core does not import this package. Current version is `1.0.1` (`MYFATOORAH_ADAPTER_VERSION`). Published on npm as `@paykernel/gateway-myfatoorah`. Core does not import this package.
+`@paykernel/gateway-myfatoorah` is a portable extra adapter (`GatewayAdapter<"myfatoorah", MyFatoorahGateway>`) you pass into [`createPaymentClient`](/packages/core). It is **not** a `BuiltInGatewayName` (`"moyasar" | "paypal" | "paymob" | "stripe"`). Core does not import this package. Current version is `1.0.2` (`MYFATOORAH_ADAPTER_VERSION`). Published on npm as `@paykernel/gateway-myfatoorah`. Core does not import this package.
 
 Runtime dependency is `@paykernel/core` only. Manifest `apiVersion` is `"V3"`. Surface: V3 hosted payments (`POST /v3/payments`), V2 inquiry/refund (`GetPaymentStatus`, `MakeRefund`, `GetRefundStatus`), Webhook V2 signatures. `gatewayId` is the **InvoiceId**. PaymentId (when present) rides `references.relatedIds.paymentId`. Secrets stay closed over by `myfatoorahGateway` — they are never copied onto the gateway context or manifest.
 
@@ -15,7 +15,7 @@ Do not `import { myfatoorahGateway } from "@paykernel/core"`. Register the adapt
 
 ## Install
 
-Package name `@paykernel/gateway-myfatoorah`, export `"."` only (`./dist/index.js`). Version `1.0.1`. Published on npm — `bun add @paykernel/gateway-tap @paykernel/core` works.
+Package name `@paykernel/gateway-myfatoorah`, export `"."` only (`./dist/index.js`). Version `1.0.2`. Published on npm — `bun add @paykernel/gateway-tap @paykernel/core` works.
 
 ```bash
 bun add @paykernel/gateway-myfatoorah @paykernel/core
@@ -29,7 +29,7 @@ From `@paykernel/gateway-myfatoorah` (`packages/gateway-myfatoorah/src/index.ts`
 | --- | --- |
 | `myfatoorahGateway` | factory → `GatewayAdapter<"myfatoorah", MyFatoorahGateway>` |
 | `MyFatoorahGateway` | class (`name: "myfatoorah"`) |
-| `MYFATOORAH_ADAPTER_VERSION` | `"1.0.1"` |
+| `MYFATOORAH_ADAPTER_VERSION` | `"1.0.2"` |
 | `MYFATOORAH_CAPABILITIES` | frozen capability map |
 | `MyFatoorahConfig` | config type |
 | `MyFatoorahCountry` | `"KWT" \| "SAU" \| "ARE" \| "QAT" \| "BHR" \| "OMN" \| "JOR" \| "EGY"` |

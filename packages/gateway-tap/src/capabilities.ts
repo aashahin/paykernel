@@ -5,7 +5,7 @@ import {
 } from "@paykernel/core";
 
 /** Adapter package version — must match `packages/gateway-tap/package.json`. */
-export const TAP_ADAPTER_VERSION = "1.0.1";
+export const TAP_ADAPTER_VERSION = "1.0.2";
 
 /**
  * Conservative Tap Payments claims for this adapter surface.

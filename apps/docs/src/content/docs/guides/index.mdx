@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-Compose `@paykernel/core` at the application layer. Webhooks, stores, reconciliation, routing, and OpenTelemetry are **separate packages** — all published (`core` 1.0.0, others 0.1.1/0.1.0).
+Compose `@paykernel/core` at the application layer. Webhooks, stores, reconciliation, routing, and OpenTelemetry are **separate packages** — all published (`core` 1.0.0, others 0.1.x).
 
 :::caution
 Never fulfill an order in `onWebhookVerified` or from `handleWebhook` alone. Claim the inbox first, then fulfill only when the rematched event is `payment.succeeded` or `capture.completed` **and** `payment.status === "paid"`, bound to `gatewayPaymentId`. `success: true` is not the fulfillment signal — use `isPaidOutcome` / `outcome`.
@@ -29,7 +29,7 @@ Never fulfill an order in `onWebhookVerified` or from `handleWebhook` alone. Cla
 
 | Fact | Implication |
 | --- | --- |
-| Packages are published (`core` 1.0.0, others 0.1.1/0.1.0) | `bun add @paykernel/core` works |
+| Packages are published (`core` 1.0.0, others 0.1.x) | `bun add @paykernel/core` works |
 | Folder `packages/observability` publishes as **`@paykernel/opentelemetry`** | Do not use the folder name as the npm specifier |
 | `@paykernel/internal-sql-store` is **private** | Do not install it. It is a BC shim over `@paykernel/sql-foundation` |
 | Redis is **optional** | Core and the inbox engine do not require it |

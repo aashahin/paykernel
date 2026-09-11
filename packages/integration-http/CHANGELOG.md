@@ -1,5 +1,14 @@
 # @paykernel/integration-http
 
+## 0.1.2
+
+### Patch Changes
+
+- Remove a `try`/`catch` in `processWebhookHttp` whose only statement was `throw err`.
+
+  The engine still classifies `InvalidWebhookError` (forgery → 400, parse/missing → 500) exactly as
+  before; the wrapper added no behavior.
+
 ## 0.1.1
 
 ### Patch Changes

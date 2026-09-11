@@ -5,7 +5,7 @@ sidebar:
   order: 8
 ---
 
-`@paykernel/gateway-hesabe` is a portable extra adapter (`GatewayAdapter<"hesabe", HesabeGateway>`) you pass into [`createPaymentClient`](/packages/core). It is **not** a `BuiltInGatewayName` (`"moyasar" | "paypal" | "paymob" | "stripe"`). Core does not import this package. Package version is `0.1.0`, published on npm as `@paykernel/gateway-hesabe`.
+`@paykernel/gateway-hesabe` is a portable extra adapter (`GatewayAdapter<"hesabe", HesabeGateway>`) you pass into [`createPaymentClient`](/packages/core). It is **not** a `BuiltInGatewayName` (`"moyasar" | "paypal" | "paymob" | "stripe"`). Core does not import this package. Package version is `0.1.1`, published on npm as `@paykernel/gateway-hesabe`.
 
 Runtime dependency is `@paykernel/core` only. Manifest `apiVersion` is `"2.0"`. Surface: encrypted KWD hosted checkout, transaction enquiry, encrypted callback resolution, enquiry-verified notifications, and merchant refunds. Secrets stay closed over by `hesabeGateway` — they are never copied onto the gateway context or manifest.
 
@@ -17,7 +17,7 @@ Do not `import { hesabeGateway } from "@paykernel/core"`. Register the adapter y
 
 ## Install
 
-Package name `@paykernel/gateway-hesabe`, export `"."` only (`./dist/index.js`). Version `0.1.0`. Published on npm — `bun add @paykernel/gateway-hesabe @paykernel/core` works.
+Package name `@paykernel/gateway-hesabe`, export `"."` only (`./dist/index.js`). Version `0.1.1`. Published on npm — `bun add @paykernel/gateway-hesabe @paykernel/core` works.
 
 ```bash
 bun add @paykernel/gateway-hesabe @paykernel/core
@@ -31,7 +31,7 @@ From `@paykernel/gateway-hesabe` (`packages/gateway-hesabe/src/index.ts`):
 | --- | --- |
 | `hesabeGateway` | factory → `GatewayAdapter<"hesabe", HesabeGateway>` |
 | `HesabeGateway` | class (`name: "hesabe"`) |
-| `HESABE_ADAPTER_VERSION` | `"0.1.0"` — `manifest.version`, matches `package.json` |
+| `HESABE_ADAPTER_VERSION` | `"0.1.1"` — `manifest.version`, matches `package.json` |
 | `HESABE_CAPABILITIES` | frozen capability map |
 | `HesabeConfig` | config type |
 | `HesabeCreatePaymentParams` | create payload (`hesabe*` fields) |
