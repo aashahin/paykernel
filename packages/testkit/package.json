@@ -1,6 +1,6 @@
 {
   "name": "@paykernel/testkit",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Test kit for @paykernel/core: mock gateway, conformance suites, fixture safety, NON-PRODUCTION in-memory stores; re-exports lease-aware store contracts from @paykernel/store-contracts.",
   "type": "module",
   "main": "./dist/index.js",

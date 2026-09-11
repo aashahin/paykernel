@@ -42,7 +42,7 @@
     },
     "apps/payment-lab": {
       "name": "@paykernel/payment-lab",
-      "version": "0.1.0",
+      "version": "0.1.1",
       "dependencies": {
         "@paykernel/core": "workspace:*",
         "@paykernel/gateway-hesabe": "workspace:*",
@@ -91,7 +91,7 @@
     },
     "examples/bun-elysia-sqlite": {
       "name": "@paykernel/example-bun-elysia-sqlite",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "dependencies": {
         "@paykernel/example-checkout-kernel": "workspace:*",
         "@paykernel/integration-elysia": "workspace:*",
@@ -104,7 +104,7 @@
     },
     "examples/bun-hono-postgres": {
       "name": "@paykernel/example-bun-hono-postgres",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "dependencies": {
         "@paykernel/example-checkout-kernel": "workspace:*",
         "@paykernel/integration-hono": "workspace:*",
@@ -119,7 +119,7 @@
     },
     "examples/bun-hono-sqlite": {
       "name": "@paykernel/example-bun-hono-sqlite",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "dependencies": {
         "@paykernel/example-checkout-kernel": "workspace:*",
         "@paykernel/integration-hono": "workspace:*",
@@ -132,7 +132,7 @@
     },
     "examples/checkout-kernel": {
       "name": "@paykernel/example-checkout-kernel",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "dependencies": {
         "@paykernel/core": "workspace:*",
         "@paykernel/integration-http": "workspace:*",
@@ -148,7 +148,7 @@
     },
     "examples/cloudflare-workers-fetch": {
       "name": "@paykernel/example-cloudflare-workers-fetch",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "dependencies": {
         "@paykernel/example-checkout-kernel": "workspace:*",
         "@paykernel/integration-cloudflare-workers": "workspace:*",
@@ -160,7 +160,7 @@
     },
     "examples/express-sqlite": {
       "name": "@paykernel/example-express-sqlite",
-      "version": "0.1.2",
+      "version": "0.1.3",
       "dependencies": {
         "@paykernel/example-checkout-kernel": "workspace:*",
         "@paykernel/integration-express": "workspace:*",
@@ -198,7 +198,7 @@
     },
     "packages/gateway-hesabe": {
       "name": "@paykernel/gateway-hesabe",
-      "version": "0.1.0-next.0",
+      "version": "0.1.0",
       "dependencies": {
         "@paykernel/core": "^1.0.0",
       },
@@ -375,7 +375,7 @@
     },
     "packages/store-d1": {
       "name": "@paykernel/store-d1",
-      "version": "0.1.1",
+      "version": "0.1.2",
       "dependencies": {
         "@paykernel/sql-foundation": "^0.1.0",
         "@paykernel/store-contracts": "^0.1.0",
@@ -508,7 +508,7 @@
     },
     "packages/testkit": {
       "name": "@paykernel/testkit",
-      "version": "1.0.1",
+      "version": "1.0.2",
       "dependencies": {
         "@paykernel/core": "^1.0.0",
         "@paykernel/reconciliation": "^0.1.1",

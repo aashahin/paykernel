@@ -1,5 +1,12 @@
 # @paykernel/example-checkout-kernel
 
+## 0.1.3
+
+### Patch Changes
+
+- Updated dependencies [0cf6baa]
+  - @paykernel/testkit@1.0.2
+
 ## 0.1.2
 
 ### Patch Changes

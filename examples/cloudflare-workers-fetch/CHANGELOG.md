@@ -1,5 +1,11 @@
 # @paykernel/example-cloudflare-workers-fetch
 
+## 0.1.3
+
+### Patch Changes
+
+- @paykernel/example-checkout-kernel@0.1.3
+
 ## 0.1.2
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@paykernel/store-d1",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Cloudflare D1 stores for PayKernel lease-aware idempotency, webhook inbox, and reconciliation (Workers-native shared SQLite via D1 binding).",
   "type": "module",
   "main": "./dist/index.js",
@@ -46,7 +46,7 @@
   "devDependencies": {
     "@types/bun": "latest",
     "typescript": "^5.9.3",
-    "@paykernel/testkit": "^1.0.1"
+    "@paykernel/testkit": "^1.0.2"
   },
   "keywords": [
     "payments",

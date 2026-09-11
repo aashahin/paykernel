@@ -1,5 +1,11 @@
 # @paykernel/store-d1
 
+## 0.1.2
+
+### Patch Changes
+
+- 2c6f377: Accept Cloudflare's native D1 database binding in store factories by correcting the structural batch return type. Consumers can pass env.DB without casting the binding.
+
 ## 0.1.1
 
 ### Patch Changes

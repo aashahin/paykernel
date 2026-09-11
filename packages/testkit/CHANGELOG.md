@@ -1,5 +1,11 @@
 # @paykernel/testkit
 
+## 1.0.2
+
+### Patch Changes
+
+- 0cf6baa: Fix mock gateway accounting for successful payments, authorization holds, and zero balances. Preserve the original currency in refund totals and align partial-capture conformance with the current operation outcome contract.
+
 ## 1.0.1
 
 ### Patch Changes
