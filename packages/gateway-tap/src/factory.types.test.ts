@@ -1,6 +1,7 @@
 import {
   createGatewayRegistry,
   createPaymentClient,
+  money,
   type PaymentClient,
 } from "@paykernel/core";
 import { tapGateway, type TapGateway } from "./index";
@@ -27,7 +28,7 @@ void _inferredDefaultIsTap;
 
 function _assignTapCreateLiteral() {
   void gateway.createPayment({
-    amount: 10,
+    amount: money("10.00", "SAR"),
     currency: "SAR",
     callbackUrl: "https://merchant.example/callback",
     tapCustomer: { firstName: "Ada", lastName: "Lovelace", email: "ada@example.com" },
@@ -37,14 +38,14 @@ void _assignTapCreateLiteral;
 
 function _assignTapCreateViaClientFacade() {
   void client.createPayment({
-    amount: 10,
+    amount: money("10.00", "SAR"),
     currency: "SAR",
     callbackUrl: "https://merchant.example/callback",
     tapCustomer: { firstName: "Ada", lastName: "Lovelace", email: "ada@example.com" },
   });
   void client.createPayment(
     {
-      amount: 10,
+      amount: money("10.00", "SAR"),
       currency: "SAR",
       callbackUrl: "https://merchant.example/callback",
       tapCustomer: { firstName: "Ada", lastName: "Lovelace", email: "ada@example.com" },
@@ -61,7 +62,7 @@ function _assignTapCreateViaSingletonWithoutDefaultGateway() {
     },
   });
   void singleton.createPayment({
-    amount: 10,
+    amount: money("10.00", "SAR"),
     currency: "SAR",
     callbackUrl: "https://merchant.example/callback",
     tapCustomer: { firstName: "Ada", lastName: "Lovelace", email: "ada@example.com" },
@@ -77,7 +78,7 @@ function _assignTapCreateViaRegistryFacade() {
     defaultGateway: "tap",
   });
   void registryClient.createPayment({
-    amount: 10,
+    amount: money("10.00", "SAR"),
     currency: "SAR",
     callbackUrl: "https://merchant.example/callback",
     tapCustomer: { firstName: "Ada", lastName: "Lovelace", email: "ada@example.com" },
@@ -87,7 +88,7 @@ void _assignTapCreateViaRegistryFacade;
 
 function _rejectTapCustomerOnCoreParams(legacy: PaymentClient): void {
   void legacy.createPayment({
-    amount: 10,
+    amount: money("10.00", "USD"),
     currency: "USD",
     callbackUrl: "https://merchant.example/callback",
     // @ts-expect-error tapCustomer is not on core CreatePaymentParams
@@ -98,7 +99,7 @@ void _rejectTapCustomerOnCoreParams;
 
 function _rejectInlineCustomerWithoutLastName() {
   void gateway.createPayment({
-    amount: 10,
+    amount: money("10.00", "SAR"),
     currency: "SAR",
     callbackUrl: "https://merchant.example/callback",
     // @ts-expect-error inline tapCustomer requires lastName

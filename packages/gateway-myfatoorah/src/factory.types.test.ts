@@ -1,4 +1,9 @@
-import { createGatewayRegistry, createPaymentClient, type PaymentClient } from "@paykernel/core";
+import {
+  createGatewayRegistry,
+  createPaymentClient,
+  money,
+  type PaymentClient,
+} from "@paykernel/core";
 import { myfatoorahGateway, type MyFatoorahGateway } from "./index";
 
 const client = createPaymentClient({
@@ -24,7 +29,7 @@ void _inferredDefaultIsMyfatoorah;
 
 function _assignMyfatoorahCreateLiteral() {
   void gateway.createPayment({
-    amount: 10,
+    amount: money("10.00", "SAR"),
     currency: "SAR",
     callbackUrl: "https://merchant.example/callback",
     idempotencyKey: "idem-1",
@@ -35,7 +40,7 @@ void _assignMyfatoorahCreateLiteral;
 
 function _assignMyfatoorahCreateViaClientFacade() {
   void client.createPayment({
-    amount: 10,
+    amount: money("10.00", "SAR"),
     currency: "SAR",
     callbackUrl: "https://merchant.example/callback",
     idempotencyKey: "idem-1",
@@ -43,7 +48,7 @@ function _assignMyfatoorahCreateViaClientFacade() {
   });
   void client.createPayment(
     {
-      amount: 10,
+      amount: money("10.00", "SAR"),
       currency: "SAR",
       callbackUrl: "https://merchant.example/callback",
       idempotencyKey: "idem-1",
@@ -64,7 +69,7 @@ function _assignMyfatoorahCreateViaSingletonWithoutDefaultGateway() {
     },
   });
   void singleton.createPayment({
-    amount: 10,
+    amount: money("10.00", "SAR"),
     currency: "SAR",
     callbackUrl: "https://merchant.example/callback",
     idempotencyKey: "idem-1",
@@ -86,7 +91,7 @@ function _assignMyfatoorahCreateViaRegistryFacade() {
     defaultGateway: "myfatoorah",
   });
   void registryClient.createPayment({
-    amount: 10,
+    amount: money("10.00", "SAR"),
     currency: "SAR",
     callbackUrl: "https://merchant.example/callback",
     idempotencyKey: "idem-1",
@@ -97,7 +102,7 @@ void _assignMyfatoorahCreateViaRegistryFacade;
 
 function _rejectMyfatoorahCustomerOnCoreParams(legacy: PaymentClient): void {
   void legacy.createPayment({
-    amount: 10,
+    amount: money("10.00", "USD"),
     currency: "USD",
     callbackUrl: "https://merchant.example/callback",
     // @ts-expect-error myfatoorahCustomer is not on core CreatePaymentParams
@@ -108,7 +113,7 @@ void _rejectMyfatoorahCustomerOnCoreParams;
 
 function _rejectUnknownPaymentMethod() {
   void gateway.createPayment({
-    amount: 10,
+    amount: money("10.00", "SAR"),
     currency: "SAR",
     callbackUrl: "https://merchant.example/callback",
     // @ts-expect-error lowercase / unknown methods are not in the union

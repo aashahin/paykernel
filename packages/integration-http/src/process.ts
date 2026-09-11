@@ -348,53 +348,48 @@ export async function processWebhookHttp(
         if (hasOnWebhookVerifiedHook(input.client)) {
           warnOnceForWebhookVerifiedHook(input.client);
         }
-        try {
-          const rawEvent: unknown = await input.client.handleWebhook(
-            input.gateway,
-            payloadForVerify,
-            signatureOrHeaders,
-            headerRecord,
-          );
-          if (rawEvent === null || typeof rawEvent !== "object") {
-            throw new Error("missing providerEventId");
-          }
-          const eventRecord = rawEvent as Record<string, unknown>;
-          const providerEventIdValue = eventRecord["id"];
-          const providerEventId =
-            typeof providerEventIdValue === "string" ? providerEventIdValue : "";
-          if (providerEventId.length === 0) {
-            throw new Error("missing providerEventId");
-          }
-          const payloadHashValue = eventRecord["payloadHash"];
-          const rawPayloadValue = eventRecord["rawPayload"];
-          const eventValue = eventRecord["event"];
-
-          const payloadHash = resolveInboxPayloadHash({
-            eventPayloadHash:
-              typeof payloadHashValue === "string" && payloadHashValue.length > 0
-                ? payloadHashValue
-                : undefined,
-            payloadForHash:
-              rawPayloadValue !== undefined
-                ? rawPayloadValue
-                : eventValue !== undefined
-                  ? eventValue
-                  : rawEvent,
-          });
-
-          const event = eventValue !== undefined ? eventValue : rawEvent;
-
-          return {
-            ok: true,
-            gateway: input.gateway,
-            providerEventId,
-            payloadHash,
-            event,
-          };
-        } catch (err) {
-          // Let engine classify InvalidWebhookError (forgery → 400, parse/missing → 500).
-          throw err;
+        const rawEvent: unknown = await input.client.handleWebhook(
+          input.gateway,
+          payloadForVerify,
+          signatureOrHeaders,
+          headerRecord,
+        );
+        if (rawEvent === null || typeof rawEvent !== "object") {
+          throw new Error("missing providerEventId");
         }
+        const eventRecord = rawEvent as Record<string, unknown>;
+        const providerEventIdValue = eventRecord["id"];
+        const providerEventId =
+          typeof providerEventIdValue === "string" ? providerEventIdValue : "";
+        if (providerEventId.length === 0) {
+          throw new Error("missing providerEventId");
+        }
+        const payloadHashValue = eventRecord["payloadHash"];
+        const rawPayloadValue = eventRecord["rawPayload"];
+        const eventValue = eventRecord["event"];
+
+        const payloadHash = resolveInboxPayloadHash({
+          eventPayloadHash:
+            typeof payloadHashValue === "string" && payloadHashValue.length > 0
+              ? payloadHashValue
+              : undefined,
+          payloadForHash:
+            rawPayloadValue !== undefined
+              ? rawPayloadValue
+              : eventValue !== undefined
+                ? eventValue
+                : rawEvent,
+        });
+
+        const event = eventValue !== undefined ? eventValue : rawEvent;
+
+        return {
+          ok: true,
+          gateway: input.gateway,
+          providerEventId,
+          payloadHash,
+          event,
+        };
       },
       handler: input.handler,
     });

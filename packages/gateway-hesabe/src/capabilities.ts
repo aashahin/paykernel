@@ -5,7 +5,7 @@ import {
 } from "@paykernel/core";
 
 /** Adapter package version — must match `packages/gateway-hesabe/package.json`. */
-export const HESABE_ADAPTER_VERSION = "0.1.0-next.0";
+export const HESABE_ADAPTER_VERSION = "0.1.0";
 
 /**
  * Conservative Hesabe claims for this adapter surface.

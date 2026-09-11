@@ -112,12 +112,6 @@ function currenciesMismatch(requested: unknown, retrieved: unknown): boolean {
   return requested.trim().toUpperCase() !== retrieved.trim().toUpperCase();
 }
 
-export interface TapGateway {
-  createPayment(params: TapCreatePaymentParams): Promise<GatewayPaymentResult>;
-  capturePayment(params: TapCaptureParams): Promise<GatewayPaymentResult>;
-  refundPayment(params: TapRefundParams): Promise<GatewayRefundResult>;
-}
-
 export class TapGateway extends BaseGateway {
   readonly name = "tap" as const;
   private readonly tapConfig: TapConfig;

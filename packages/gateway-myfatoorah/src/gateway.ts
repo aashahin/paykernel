@@ -182,13 +182,6 @@ function stringOrNumberId(value: unknown): string | undefined {
   return undefined;
 }
 
-export interface MyFatoorahGateway {
-  createPayment(params: MyFatoorahCreatePaymentParams): Promise<GatewayPaymentResult>;
-  capturePayment(params: CaptureParams): Promise<GatewayPaymentResult>;
-  refundPayment(params: MyFatoorahRefundParams): Promise<GatewayRefundResult>;
-  getPayment(params: MyFatoorahGetPaymentParams): Promise<GatewayPaymentResult>;
-}
-
 export class MyFatoorahGateway extends BaseGateway {
   readonly name = "myfatoorah" as const;
   private readonly myfatoorahConfig: MyFatoorahConfig;

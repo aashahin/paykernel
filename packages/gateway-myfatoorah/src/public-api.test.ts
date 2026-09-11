@@ -1,11 +1,20 @@
 import { describe, expect, it } from "bun:test";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import * as myfatoorah from "./index";
+
+const pkg = JSON.parse(
+  readFileSync(join(import.meta.dir, "..", "package.json"), "utf8"),
+) as { version: string };
 
 describe("public API runtime surface", () => {
   it("re-exports documented runtime symbols", () => {
     expect(typeof myfatoorah.myfatoorahGateway).toBe("function");
     expect(typeof myfatoorah.MyFatoorahGateway).toBe("function");
-    expect(myfatoorah.MYFATOORAH_ADAPTER_VERSION).toBe("0.1.0-next.0");
+    expect(myfatoorah.MYFATOORAH_ADAPTER_VERSION).toBe(pkg.version);
+    expect(
+      myfatoorah.myfatoorahGateway({ apiToken: "test-token", country: "KWT" }).manifest.version,
+    ).toBe(pkg.version);
     expect(myfatoorah.MYFATOORAH_CAPABILITIES.payments).toBe(true);
     expect(myfatoorah.MYFATOORAH_CAPABILITIES.immediateCapture).toBe(true);
     expect(myfatoorah.MYFATOORAH_CAPABILITIES.refunds).toBe(true);
