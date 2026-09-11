@@ -59,7 +59,7 @@ jobs:
       - name: Check API and schema compatibility
         run: bun run check:compat
 
-      - name: Runtime portability (src + dist node: scan)
+      - name: "Runtime portability (src + dist node: scan)"
         run: bun run check:runtime-portability
 
       - name: Pack dry-run
