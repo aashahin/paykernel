@@ -17,7 +17,7 @@
     "test": "bun test packages/core packages/store-contracts packages/testkit packages/webhooks packages/reconciliation packages/observability packages/routing packages/gateway-tap packages/gateway-myfatoorah packages/gateway-hesabe packages/sql-foundation internal/sql-store packages/store-postgres packages/store-redis packages/store-sqlite packages/store-turso packages/store-d1 packages/store-durable-objects scripts/check-adapter-selection-honesty.test.ts scripts/check-compat.test.ts scripts/gateway-regressions.test.ts packages/integration-http packages/integration-hono packages/integration-elysia packages/integration-express packages/integration-cloudflare-workers examples",
     "test:examples": "bun test examples",
     "test:gateways": "bun test packages/core/src/gateways packages/gateway-tap packages/gateway-myfatoorah packages/gateway-hesabe scripts/gateway-regressions.test.ts",
-    "test:coverage": "bun test --coverage packages/core",
+    "test:coverage": "bun test scripts/check-coverage.test.ts && bun run scripts/check-coverage.ts",
     "test:testkit": "bun test packages/testkit",
     "test:sql-store": "bun test packages/sql-foundation internal/sql-store",
     "test:observability": "bun test packages/observability",

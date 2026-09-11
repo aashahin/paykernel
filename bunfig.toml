@@ -1,5 +1,6 @@
 # Test + coverage configuration for @paykernel/core
-# Thresholds apply only when `bun test --coverage` is used (coverage is not always-on).
+# `bun run test:coverage` enforces these thresholds against aggregate LCOV counts.
+# Direct `bun test --coverage` applies Bun's per-file threshold behavior.
 # See packages/core/docs/baseline/coverage-policy.md for focus areas and rationale.
 
 [test]

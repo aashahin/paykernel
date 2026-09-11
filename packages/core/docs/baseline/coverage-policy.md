@@ -11,16 +11,17 @@ From the monorepo root:
 ```bash
 # Local / CI: apply thresholds from monorepo root bunfig.toml
 bun run test:coverage
-# equivalent: bun test --coverage packages/core
+# Runs the core suite with LCOV and enforces the aggregate thresholds.
 
 # Optional LCOV artifact (does not change thresholds)
 bun test --coverage --coverage-reporter=lcov packages/core
 ```
 
 Coverage is **not** always-on. Running plain `bun test packages/core` (or
-`bun run test`) stays fast for local development. Thresholds in monorepo root
-`bunfig.toml` apply only when `--coverage` is passed (or when CI runs
-`test:coverage`).
+`bun run test`) stays fast for local development. `bun run test:coverage` reads thresholds from monorepo root `bunfig.toml`
+and checks aggregate covered/total LCOV counts. It preserves test failures and
+rejects missing or invalid coverage reports. Direct `bun test --coverage` uses
+Bun’s per-file enforcement and is not equivalent to the aggregate CI gate.
 
 ## Global thresholds
 
