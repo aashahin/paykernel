@@ -29,7 +29,7 @@ Never fulfill in `onWebhookVerified`. After `outcome === "indeterminate"` do **n
 
 | Layer | Package | Role |
 | --- | --- | --- |
-| Client | `@paykernel/core` | `createPaymentClient` + gateway factories (`moyasarGateway`, `stripeGateway`, `paypalGateway`, `paymobGateway`). Extra gateways: [`@paykernel/gateway-tap`](/gateways/tap), [`@paykernel/gateway-myfatoorah`](/gateways/myfatoorah) (not `BuiltInGatewayName`). |
+| Client | `@paykernel/core` | `createPaymentClient` + gateway factories (`moyasarGateway`, `stripeGateway`, `paypalGateway`, `paymobGateway`). Extra gateways: [`@paykernel/gateway-tap`](/gateways/tap), [`@paykernel/gateway-myfatoorah`](/gateways/myfatoorah), [`@paykernel/gateway-hesabe`](/gateways/hesabe) (not `BuiltInGatewayName`). |
 | Inbox | `@paykernel/webhooks` | `createWebhookInboxEngine({ store, mode })` — `inline` or `durable_retry` |
 | HTTP | `@paykernel/integration-http` | `processWebhookHttp`, `mapInboxOutcome` |
 | Store | `@paykernel/store-postgres` (or another adapter) | `webhookInbox` + `reconciliation` + idempotency. Migrate explicitly. |

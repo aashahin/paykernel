@@ -1,0 +1,306 @@
+---
+title: Hesabe
+description: Extra package @paykernel/gateway-hesabe — KWD hosted checkout, transaction enquiry, enquiry-verified webhooks, and refunds for createPaymentClient.
+sidebar:
+  order: 8
+---
+
+`@paykernel/gateway-hesabe` is a portable extra adapter (`GatewayAdapter<"hesabe", HesabeGateway>`) you pass into [`createPaymentClient`](/packages/core). It is **not** a `BuiltInGatewayName` (`"moyasar" | "paypal" | "paymob" | "stripe"`). Core does not import this package. Package version is `0.1.0`, published on npm as `@paykernel/gateway-hesabe`.
+
+Runtime dependency is `@paykernel/core` only. Manifest `apiVersion` is `"2.0"`. Surface: encrypted KWD hosted checkout, transaction enquiry, encrypted callback resolution, enquiry-verified notifications, and merchant refunds. Secrets stay closed over by `hesabeGateway` — they are never copied onto the gateway context or manifest.
+
+`gatewayId` from `createPayment` is a **checkout** ID (`checkout:<checkoutToken>`). A transaction token (from `resolveCallback`, `getPayment`, or a verified webhook) is a different identifier and is the only one accepted by `getPayment` / `refundPayment`.
+
+:::caution
+Do not `import { hesabeGateway } from "@paykernel/core"`. Register the adapter yourself. `capture: false`, `capturePayment`, and `voidPayment` throw `OperationNotSupportedError` (`authorization` / `voids` unclaimed). `customerId`, `paymentMethodId`, and `offSession: true` throw `OperationNotSupportedError` (`paymentMethods` unclaimed). Hesabe has **no** webhook signature: synchronous `verifyWebhook` always returns `false` — use `verifyWebhookAsync` / `payments.handleWebhook("hesabe", …)`.
+:::
+
+## Install
+
+Package name `@paykernel/gateway-hesabe`, export `"."` only (`./dist/index.js`). Version `0.1.0`. Published on npm — `bun add @paykernel/gateway-hesabe @paykernel/core` works.
+
+```bash
+bun add @paykernel/gateway-hesabe @paykernel/core
+```
+
+## Public exports
+
+From `@paykernel/gateway-hesabe` (`packages/gateway-hesabe/src/index.ts`):
+
+| Export | Kind |
+| --- | --- |
+| `hesabeGateway` | factory → `GatewayAdapter<"hesabe", HesabeGateway>` |
+| `HesabeGateway` | class (`name: "hesabe"`) |
+| `HESABE_ADAPTER_VERSION` | `"0.1.0"` — `manifest.version`, matches `package.json` |
+| `HESABE_CAPABILITIES` | frozen capability map |
+| `HesabeConfig` | config type |
+| `HesabeCreatePaymentParams` | create payload (`hesabe*` fields) |
+| `HesabeRefundParams` | refund payload (`RefundParams`) |
+| `HesabeGetPaymentParams` | get payload (`GetPaymentParams`) |
+| `HesabeCallbackParams` | `{ data, signal? }` — encrypted callback query |
+| `HesabeGetRefundParams` | get-refund payload (`gatewayRefundId`) |
+| `HesabeWebhookPayload` | plain-JSON notification body |
+
+`HesabeGateway` methods: `createPayment`, `capturePayment` (throws), `refundPayment`, `getPayment`, `getRefund`, `resolveCallback`, `verifyWebhook` (always `false`), `verifyWebhookAsync`, `parseWebhookEvent`. Prefer `PaymentClient.handleWebhook("hesabe", …)` over calling verify/parse yourself. See [/guides/webhooks](/guides/webhooks).
+
+## Quickstart
+
+```ts
+import { createPaymentClient, InMemoryIdempotencyStore, money } from "@paykernel/core";
+import { hesabeGateway } from "@paykernel/gateway-hesabe";
+
+const payments = createPaymentClient({
+  gateways: {
+    hesabe: hesabeGateway({
+      merchantCode: process.env.HESABE_MERCHANT_CODE!,
+      accessCode: process.env.HESABE_ACCESS_CODE!,
+      encryptionKey: process.env.HESABE_ENCRYPTION_KEY!, // 32 UTF-8 bytes
+      ivKey: process.env.HESABE_IV_KEY!, // 16 UTF-8 bytes
+      username: process.env.HESABE_USERNAME!,
+      password: process.env.HESABE_PASSWORD!,
+      idempotencyStore: new InMemoryIdempotencyStore(), // single-process example only
+      // live: true, // sandbox hosts by default
+      // webhookUrl: "https://merchant.example/webhooks/hesabe",
+    }),
+  },
+  defaultGateway: "hesabe",
+});
+
+const result = await payments.createPayment({
+  amount: money("10.000", "KWD"),
+  currency: "KWD",
+  orderId: "order-123",
+  idempotencyKey: "checkout-order-123", // retain this key for retries
+  callbackUrl: "https://merchant.example/hesabe/callback",
+  // hesabeName: "Ada", hesabeEmail: "ada@example.com", hesabeMobileNumber: "12345678",
+});
+
+if (result.outcome === "requires_action" && result.redirectUrl) {
+  // Redirect the customer to result.redirectUrl. The payment is NOT confirmed yet.
+} else if (result.outcome === "indeterminate" || result.reconciliationRequired) {
+  // Submission ambiguous — reconcile before retrying. Do not createPayment again.
+} else {
+  // failed / nothing to redirect — do not mark the order paid
+}
+```
+
+`success: true` is not the fulfillment signal. Use `isPaidOutcome` / `outcome` ([/guides/outcomes](/guides/outcomes)). A redirect return URL is a browser callback, not proof of payment — confirm through `resolveCallback` and/or a verified webhook.
+
+With `defaultGateway: "hesabe"`, or a Hesabe-only `gateways` map without `defaultGateway`, `payments.createPayment({ hesabeName, … })` is typed as `HesabeCreatePaymentParams`. Core does **not** add `hesabe*` keys to `CreatePaymentParams`.
+
+## Config (`HesabeConfig`)
+
+| Field | Required | Notes |
+| --- | --- | --- |
+| `merchantCode` | yes | Sent inside every encrypted checkout / refund payload. Non-empty; trimmed. |
+| `accessCode` | yes | `accessCode` header on checkout, enquiry, refund, and refund-detail requests. |
+| `encryptionKey` | yes | AES-256 key as **32 UTF-8 bytes**. Any other length throws `InvalidRequestError`. |
+| `ivKey` | yes | AES-CBC IV as **16 UTF-8 bytes**. Any other length throws `InvalidRequestError`. |
+| `username` / `password` | yes | Merchant API login credentials. Never echoed in errors. |
+| `idempotencyStore` | yes | Shared atomic `IdempotencyStore` for checkout + refund mutation fences. **Required** — create/refund cannot run without it. |
+| `live` | no | Must be a boolean. Default `false` (sandbox). Selects both base URLs. |
+| `timeoutMs` | no | Finite `> 0`. Default `30000`. |
+| `webhookUrl` | no | Default notification endpoint (HTTPS). Per-request `hesabeWebhookUrl` wins. |
+
+Hosts:
+
+| Purpose | Sandbox (`live: false`) | Live (`live: true`) |
+| --- | --- | --- |
+| Checkout + transaction enquiry | `https://sandbox.hesabe.com` | `https://api.hesabe.com` |
+| Merchant API (login, refunds) | `https://merchantapisandbox.hesabe.com` | `https://merchantapi.hesabe.com` |
+
+Hosts are resolved internally — there is no base-URL config field. Encryption is AES-256-CBC with PKCS#7 padding, hex encoded, through WebCrypto `subtle` ([encryption guide](https://developer.hesabe.com/docs/guides/encryption-library/)). The published PHP example pads plaintext to 32-byte boundaries, which can differ from standard AES block padding for some message lengths — validate several payload lengths in the sandbox.
+
+## Capabilities
+
+Claimed: `payments`, `immediateCapture`, `refunds`, `partialRefunds`.
+
+Unclaimed (fail-closed): `authorization`, `partialCapture`, `voids`, `hostedCheckout`, `tokenization`, `customers`, `paymentMethods`, `marketplaceSplits`, `disputes`, `paymentLinks`, `providerRecurring`.
+
+The hosted payment page is a **redirect**, not a first-class Checkout Session product, so `hostedCheckout` stays `false`. Query with `gateway.supports("partialRefunds")` etc. See [/reference/capabilities](/reference/capabilities).
+
+## Charges
+
+`createPayment` (sale only) posts an encrypted payload to `POST https://{checkoutHost}/checkout` with the `accessCode` header. No bearer token is used on checkout.
+
+Required: `amount` (positive KWD `Money`, at most 3 decimals), `currency` (`KWD`), `orderId`, `idempotencyKey`, HTTPS `callbackUrl`.
+
+Encrypted payload: `merchantCode`, `amount` (decimal string such as `"10.000"`), `currency: "KWD"`, `paymentType: 0` (indirect), `version: "2.0"`, `orderReferenceNumber` (`orderId`), `responseUrl` (`callbackUrl`), `failureUrl` (`hesabeFailureUrl`, default `callbackUrl`), optional `webhookUrl` (`hesabeWebhookUrl` or config `webhookUrl`), optional `name` / `email` / `mobile_number` / `variable1`–`variable5`.
+
+Optional params: `hesabeName`, `hesabeEmail`, `hesabeMobileNumber` (exactly **8 digits**, no country code), `hesabeWebhookUrl`, `hesabeFailureUrl`, `hesabeVariable1`–`hesabeVariable5`. Every URL is asserted HTTPS before any request; a non-HTTPS `callbackUrl` / `hesabeFailureUrl` / `hesabeWebhookUrl` throws `InvalidRequestError`. Checkout response envelope: `{ status: true, response: { data: "<checkoutToken>" } }` (`code` is not required — the provider docs are inconsistent).
+
+Success mapping (always a redirect, never a settlement):
+
+- `gatewayId` = `checkout:<checkoutToken>`
+- `status` = `pending`, `outcome` = `requires_action`
+- `redirectUrl` = `https://{checkoutHost}/payment?data=<url-encoded checkoutToken>`, with `nextAction: { type: "redirect", url }`
+- `references.relatedIds.checkoutToken` carries the raw checkout token; `providerNativeStatus` = `"CHECKOUT"`
+
+Mutating 2xx with an unusable encrypted body (bad hex, bad block size, decrypt failure, non-JSON) is a protocol failure: because it happens after submission it surfaces as `indeterminate`, not as a hard error.
+
+### Checkout IDs are not transaction tokens
+
+`checkout:<token>` identifies an **attempt**, not a money movement. `getPayment` and `refundPayment` reject any `gatewayPaymentId` that starts with `checkout:` and tell you to use the confirmed transaction token. The callback's `paymentToken` is that transaction token. The adapter exposes no lookup by checkout ID, so a checkout whose encrypted response body is lost has no transaction token to enquire with and may need merchant-side investigation. Persist the redirect URL before ACK.
+
+## Confirming a payment
+
+`resolveCallback({ data })` takes the encrypted `data` query parameter from the browser callback:
+
+```ts
+const confirmed = await hesabe.resolveCallback({ data: encryptedCallbackData });
+if (confirmed.status === "paid" && isPaidOutcome(confirmed)) {
+  // cross-check confirmed.orderId / confirmed.amount against your order first
+}
+```
+
+The callback envelope must have `status: true`, a `response.data` object with `paymentToken`, `orderReferenceNumber`, `resultCode`, and a strict KWD `amount`. The adapter then calls transaction enquiry and requires the enquiry to agree on **token, order reference, and amount** before returning anything. `resultCode` values `CAPTURED`, `ACCEPT`, and `SUCCESS` are treated as success and require the enquiry status to be `SUCCESSFUL`; a failure result code returns the confirmed `failed` / `pending` result.
+
+Throws `InvalidRequestError` when: `data` is missing/empty, the envelope was not accepted (`status !== true`), the payload fails to decrypt, `paymentToken` / `orderReferenceNumber` / `resultCode` / `amount` are missing or malformed, `paymentToken` starts with `checkout:`, or the callback contradicts enquiry (different token/order/amount, or a success result code with a non-paid enquiry). Treat those as **do not fulfill** and reconcile.
+
+Never fulfill from the redirect alone. Use the confirmed transaction token for later calls:
+
+```ts
+const latest = await hesabe.getPayment({ gatewayPaymentId: confirmed.gatewayId });
+```
+
+Unknown enquiry statuses stay `pending` + `indeterminate` (“reconcile before trusting this”).
+
+## `getPayment`
+
+`getPayment({ gatewayPaymentId })` performs a **plain-JSON** transaction enquiry at `GET https://{checkoutHost}/api/transaction/{token}` with the `accessCode` header — the enquiry response is not encrypted.
+
+| Enquiry `status` | Payment status | Outcome |
+| --- | --- | --- |
+| `SUCCESSFUL` | `paid` | `succeeded` (with `capturedAmount`) |
+| `FAILED` | `failed` | `failed` |
+| `PENDING` | `pending` | `requires_action` |
+| anything else | `pending` | `indeterminate` — never treated as paid |
+
+Envelope `status: false` means the provider **rejected** the enquiry (`InvalidRequestError`); a malformed envelope, token mismatch, or malformed amount is a `NetworkError`. `gatewayId` is the transaction token; `references.orderId` / `internalReference` carry `reference_number`.
+
+## Webhooks
+
+Hesabe notifications are plain JSON. There is **no** signature header, so verification is an enquiry round trip: `verifyWebhookAsync(payload)` re-reads `token` / `reference_number` / `amount` / `status` from the body, calls transaction enquiry, and accepts only when the enquiry status, token, order reference, and KWD amount all match with a mapped status (`SUCCESSFUL` / `FAILED` / `PENDING`).
+
+```ts
+const webhookEvent = await payments.handleWebhook("hesabe", payload);
+// verify + normalize only. It does not claim, lease, or set HTTP status.
+```
+
+Synchronous `verifyWebhook` always returns `false` (including for a valid payload) — never gate fulfillment on it.
+
+`verifyWebhookAsync` returns `false` when: the payload is not JSON (an empty or unparseable string), `token` / `reference_number` / `status` is missing or blank, the amount is not a strict KWD decimal, the notification status is unknown/unmapped, the enquiry status is unknown, notification and enquiry disagree on status (compared case-insensitively), the token or order reference differs, or the amount/currency differs. An enquiry `InvalidRequestError` / `ResourceNotFoundError` (unknown token, provider rejection) also returns `false`.
+
+Transport failures (timeout, network, 5xx, 429) are **thrown**, not swallowed — so the HTTP layer can answer retryable and the provider can redeliver. Notification fields not in the checked set (`datetime`, extra financial fields, `rawPayload` overrides) are ignored.
+
+Event shape:
+
+- `id` = `<token>:<sha256(token, reference, amount, currency, STATUS) prefix>` — deterministic across redeliveries of the same facts, and independent of the forged `datetime` field.
+- `type` = `transaction.<STATUS>` (native), stable `payment.succeeded` / `payment.failed` / `payment.processing` dual-written via the core `PaymentEvent` metadata.
+- `gatewayPaymentId` = `token`; `paymentId` = `reference_number`; `status` = mapped status; `amount` / `currency` = checked KWD amount; `timestamp` = adapter clock.
+- `payloadHash` = hash over the checked fields (`token`, uppercased `status`, `reference_number`, `amount`).
+
+Applications remain responsible for durable event deduplication and for checking that the order belongs to them and the amount matches before fulfillment.
+
+:::caution
+**Never fulfill in `onWebhookVerified`.** Fulfill after an inbox **claim** ([`@paykernel/webhooks`](/packages/webhooks)), and only for a rematched paid event (`payment.status === "paid"` / `isPaidOutcome`) bound to `gatewayPaymentId`. HTTP status codes live in [`@paykernel/integration-http`](/integrations/http), not in `@paykernel/webhooks`.
+:::
+
+## Refunds
+
+```ts
+const refund = await hesabe.refundPayment({
+  gatewayPaymentId: confirmed.gatewayId, // transaction token
+  idempotencyKey: "refund-order-123-part-1",
+  amount: money("2.500", "KWD"), // omit for a full refund
+  currency: "KWD",
+});
+const latest = await hesabe.getRefund({ gatewayRefundId: refund.gatewayRefundId });
+```
+
+Flow: the adapter enquires the **original transaction** first and requires a confirmed paid status; an indeterminate enquiry aborts the refund (`NetworkError`) instead of guessing. The transaction amount is the ceiling — an explicit amount above it throws `InvalidRequestError`. An explicit amount posts `refundMethod: "2"` (documented partial-refund method) and a full refund posts `refundMethod: "1"` with the transaction amount. The request is `POST https://{merchantHost}/api/v1/refund` with `Authorization: Bearer <merchant token>`, `accessCode`, and the encrypted `{ merchantCode, refundAmount, refundMethod, token }` payload.
+
+Response `{ status: true, response: { id, token, amount, status, refund_at } }` maps as:
+
+| Provider refund | Adapter |
+| --- | --- |
+| `status: 0` | `pending` / `pending` — acceptance is **not** settlement |
+| `status: 1` with a parseable `refund_at` | `completed` / `succeeded` (+ `refundedAt`) |
+| `status: 1` with missing/invalid `refund_at` | `pending` / `indeterminate` |
+| anything else | `pending` / `indeterminate` |
+
+`totalRefunded` is deliberately omitted: the returned amount describes a single refund, not a cumulative total, so the adapter does not invent one. The provider stays authoritative about the remaining refundable balance.
+
+`getRefund({ gatewayRefundId })` accepts a positive numeric refund id only (non-numeric or non-positive ids throw `InvalidRequestError`) and rejects a response whose refund id differs from the one requested. Do not guess an id: an indeterminate submission may not have returned one.
+
+## Money
+
+KWD only. `assertHesabeKwdCurrency` rejects any other currency (case-insensitively trimmed to `KWD`), and `toHesabeKwd` rejects zero, negative, and excess-precision amounts with `InvalidRequestError` (`rounding: "reject"` — no silent scaling). An explicit `Money` exponent other than `3` is rejected. Provider amounts are parsed strictly from JSON numbers or decimal strings (`"10.000"`); malformed amounts are protocol errors, never zero.
+
+Internals use `@paykernel/core` `Money` / bigint. Outbound encrypted amounts are decimal strings (`amount`, `refundAmount`) — never minor units.
+
+## Idempotency and recovery
+
+Every checkout and refund requires a caller `idempotencyKey` and a configured `IdempotencyStore`. Production deployments need a shared durable store whose `reserve()` is atomic across workers: `InMemoryIdempotencyStore` protects one process only and loses records on restart.
+
+The reservation key is `sha256("hesabe", baseUrl, merchantCode, "create" | "refund", idempotencyKey)`. So a sandbox/live switch, a different merchant code, or a different operation is a **different** key.
+
+| Situation | Behavior |
+| --- | --- |
+| Same key, same effective params, completed | Replays the stored result. No second provider call. |
+| Same key, different params (payload fingerprint) | `InvalidRequestError` — key reuse with different params. |
+| Same key while a request is in flight | `InvalidRequestError` — already in progress. |
+| Same key after an indeterminate result | `InvalidRequestError` — indeterminate; reconcile before retrying. |
+| Definitely pre-submit failure | Reservation released; the key can be retried. |
+| Ambiguous post-submit failure | Reservation retained; result is `indeterminate` with `reconciliationRequired`. |
+| Provider accepted, local persistence failed | `indeterminate` with `gatewayId` / `gatewayRefundId` preserved. |
+
+The adapter **never** automatically resubmits a checkout or refund. Checkout and refund POSTs are single-attempt; only GET enquiries retry. Retain uncertain reservations beyond your retry horizon — do not let a generic TTL reopen an unresolved payment or refund — and reconcile with Hesabe and your order records before clearing a reservation or minting a new mutation key.
+
+:::caution
+Never auto-route a second gateway after a timeout, an indeterminate result, or an uncertain 5xx. If you have a transaction token, `getPayment` + [`decideReconciliationPolicy`](/packages/reconciliation); if you only have a checkout ID, the redirect may be unrecoverable.
+:::
+
+## Merchant auth
+
+Merchant API calls (refunds, refund details) use a bearer token from a lazy, per-instance, single-flight `HesabeAuth`:
+
+- `POST https://{merchantHost}/api/v1/login` with `{ username, password }` on the first need.
+- `POST https://{merchantHost}/api/v1/token-refresh` with `{ refreshToken }` while a refresh token is live.
+- Refresh happens **60 seconds** before `expires_in`. Concurrent refunds on the same gateway instance share one login/refresh.
+- Exactly one fallback: if the refresh is explicitly rejected (`AuthenticationError`, i.e. `status: false` or HTTP 401/403), the adapter logs in once. Network errors, timeouts, 429, and 5xx propagate and never silently downgrade to a fresh login.
+- A `status: true` envelope with a malformed token section is a `NetworkError` (protocol), not a credential rejection.
+- Credentials are never included in error messages.
+
+## HTTP and retry policy
+
+- `timeoutMs` (default 30s) is applied per request through a timeout signal; a caller `signal` is forwarded, and one caller's abort never cancels another caller's shared auth.
+- GET enquiries retry the core bounded policy: up to 3 attempts, exponential backoff (500ms base, 5s cap), and a provider `Retry-After` honored up to 120s. `NetworkError` / `RateLimitError` are retryable; 4xx are not.
+- POSTs (checkout, refund, login, token refresh) are **single attempt**. A caller abort detected before `fetch` throws a clean `PaymentAbortedError` with no submission; fetch/body aborts after submission throw `NetworkError` tagged `afterProviderSubmit`, which the gateway maps to `indeterminate`.
+- HTTP mapping: `429` → `RateLimitError` (with `Retry-After` when present), `5xx` → `NetworkError`, `401`/`403` → `AuthenticationError`, `404` → `ResourceNotFoundError`, other `4xx` → `InvalidRequestError`, anything else → `GatewayApiError`.
+- Requests use `redirect: "error"`.
+
+## Webhooks over `@paykernel/integration-http`
+
+`GATEWAY_WEBHOOK_SIGNATURE` has **no** `hesabe` entry, so `processWebhookHttp({ gateway: "hesabe", … })` requires no signature header and performs no early 400 for one. The raw body string is forwarded to `handleWebhook`, which awaits `verifyWebhookAsync` (the enquiry round trip). A `false` verification is forgery-class → `400 { error: "invalid_webhook" }`; an enquiry transport failure throws → `500 { outcome: "handler_failed", retryable: true }`, so a genuine but unverifiable notification is retried rather than discarded. See [/integrations/http](/integrations/http).
+
+## Runtime
+
+`paymentsSdk.portable: true`. Production sources use injected `fetch` and WebCrypto `subtle` via the core runtime (`runtime.crypto`); there are no `node:` / `bun:` / `cloudflare:` imports. If the runtime has no `subtle`, encryption throws `InvalidRequestError` — inject a crypto provider through `createPaymentClient({ runtime })`. Supported: Node ≥ 18, Bun ≥ 1.0, Deno, and Cloudflare Workers. See [/guides/runtime](/guides/runtime).
+
+## Sandbox acceptance
+
+Offline tests cover documented fixtures and simulated failures; live merchant-account interoperability has **not** been validated. Before production use, complete [`docs/sandbox-acceptance.md`](https://github.com/paykernel/paykernel/blob/main/packages/gateway-hesabe/docs/sandbox-acceptance.md): real checkout + failed payment, encryption across several payload lengths, callback + enquiry agreement, notification verification and deduplication, full/partial refunds (methods `1` / `2`, pending → completed), token expiry/refresh, dropped responses (indeterminate + retained reservation), and two instances against the intended atomic store.
+
+Protocol references: [indirect integration](https://developer.hesabe.com/docs/guides/hesabe-indirect-integration/), [transaction enquiry](https://developer.hesabe.com/docs/guides/transaction-enquiry/), [webhook integration](https://developer.hesabe.com/docs/guides/webhook-integration/), [merchant login](https://developer.hesabe.com/docs/api/post-merchant-login/), [refund request](https://developer.hesabe.com/docs/api/post-refund-request/), [refund details](https://developer.hesabe.com/docs/api/get-refund-details/), [encryption library](https://developer.hesabe.com/docs/guides/encryption-library/).
+
+## Production notes
+
+- Keep `merchantCode`, `accessCode`, `encryptionKey`, `ivKey`, `username`, and `password` on the backend. They never appear on the manifest or in errors.
+- Use the **live** flag deliberately: sandbox and live hosts are different merchant APIs, and the reservation key includes the base URL.
+- Persist the checkout `redirectUrl` before ACK; a pending checkout redirect cannot be recovered from the API.
+- `checkout:` IDs are not transaction tokens. Treat them as attempt handles only.
+- Fulfill only from `status === "paid"` after callback/enquiry agreement **and** a claimed webhook, and check order ownership and amount first.
+- Refund acceptance is not settlement — confirm with `getRefund` (`status: 1` + `refund_at`) or a verified notification.
+- Never retry a checkout or refund automatically after an indeterminate result.
+- Live interoperability is unvalidated: run the sandbox acceptance checklist before real money moves.

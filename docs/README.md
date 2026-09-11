@@ -21,6 +21,8 @@ Read in this order. Package guides stay next to the code they describe.
 | `@paykernel/reconciliation` | [README](../packages/reconciliation/README.md) · [overview](../packages/reconciliation/docs/overview.md) |
 | `@paykernel/routing` | [README](../packages/routing/README.md) · [overview](../packages/routing/docs/overview.md) |
 | `@paykernel/gateway-tap` | [README](../packages/gateway-tap/README.md) · [overview](../packages/gateway-tap/docs/overview.md) |
+| `@paykernel/gateway-myfatoorah` | [README](../packages/gateway-myfatoorah/README.md) · [overview](../packages/gateway-myfatoorah/docs/overview.md) |
+| `@paykernel/gateway-hesabe` | [README](../packages/gateway-hesabe/README.md) · [sandbox acceptance](../packages/gateway-hesabe/docs/sandbox-acceptance.md) |
 | `@paykernel/opentelemetry` | [README](../packages/observability/README.md) · [overview](../packages/observability/docs/overview.md) |
 | `@paykernel/store-contracts` | [README](../packages/store-contracts/README.md) · [contracts](../packages/store-contracts/docs/contracts.md) |
 | `@paykernel/sql-foundation` | [README](../packages/sql-foundation/README.md) · [relational foundation](../packages/sql-foundation/docs/relational-foundation.md) |

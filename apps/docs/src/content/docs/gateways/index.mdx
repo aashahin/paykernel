@@ -1,13 +1,13 @@
 ---
 title: Gateways
-description: Built-in Moyasar, PayPal, Paymob, and Stripe adapters in @paykernel/core, plus extra Tap and MyFatoorah packages.
+description: Built-in Moyasar, PayPal, Paymob, and Stripe adapters in @paykernel/core, plus extra Tap, MyFatoorah, and Hesabe packages.
 sidebar:
   order: 1
 ---
 
 Four **built-in** gateways ship inside [`@paykernel/core`](/packages/core): Moyasar, PayPal, Paymob, and Stripe. `BuiltInGatewayName` is closed to those four strings.
 
-Tap and MyFatoorah are **extra packages**. They implement the same `GatewayAdapter` shape and depend only on `@paykernel/core`. They are **not** `BuiltInGatewayName` values — do not treat them as if they lived in core.
+Tap, MyFatoorah, and Hesabe are **extra packages**. They implement the same `GatewayAdapter` shape and depend only on `@paykernel/core`. They are **not** `BuiltInGatewayName` values — do not treat them as if they lived in core.
 
 | Gateway | Factory | Package | Docs |
 | --- | --- | --- | --- |
@@ -17,6 +17,7 @@ Tap and MyFatoorah are **extra packages**. They implement the same `GatewayAdapt
 | Stripe | `stripeGateway` | `@paykernel/core` | [Stripe](/gateways/stripe) |
 | Tap | `tapGateway` | `@paykernel/gateway-tap` | [Tap](/gateways/tap) |
 | MyFatoorah | `myfatoorahGateway` | `@paykernel/gateway-myfatoorah` | [MyFatoorah](/gateways/myfatoorah) |
+| Hesabe | `hesabeGateway` | `@paykernel/gateway-hesabe` | [Hesabe](/gateways/hesabe) |
 | Custom | your `GatewayAdapter` | your code | [Custom](/gateways/custom) |
 
 There is **no** `@paykernel/gateway-stripe` (or Moyasar / PayPal / Paymob) package.

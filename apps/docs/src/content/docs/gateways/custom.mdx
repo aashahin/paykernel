@@ -2,7 +2,7 @@
 title: Custom gateways
 description: Implement PaymentGateway via BaseGateway, wrap it in a GatewayAdapter, and register it with createPaymentClient — no core edits.
 sidebar:
-  order: 8
+  order: 9
 ---
 
 Third-party gateways are first-class: implement `PaymentGateway` (usually via `BaseGateway`), wrap it in a `GatewayAdapter`, and pass the adapter to `createPaymentClient`. No core source edits.
@@ -177,7 +177,7 @@ Map keys must equal `adapter.name` or construction throws `InvalidRequestError`.
 
 ## Extra first-party packages (not `BuiltInGatewayName`)
 
-Tap and MyFatoorah use the same adapter shape from **their own packages**. They are **not** members of `BuiltInGatewayName`.
+Tap, MyFatoorah, and Hesabe use the same adapter shape from **their own packages**. They are **not** members of `BuiltInGatewayName`.
 
 ```ts
 import { createPaymentClient } from "@paykernel/core";
@@ -206,7 +206,27 @@ const myfatoorahPayments = createPaymentClient({
 });
 ```
 
-See [Tap](/gateways/tap) and [MyFatoorah](/gateways/myfatoorah).
+```ts
+import { createPaymentClient, InMemoryIdempotencyStore } from "@paykernel/core";
+import { hesabeGateway } from "@paykernel/gateway-hesabe";
+
+const hesabePayments = createPaymentClient({
+  gateways: {
+    hesabe: hesabeGateway({
+      merchantCode: process.env.HESABE_MERCHANT_CODE!,
+      accessCode: process.env.HESABE_ACCESS_CODE!,
+      encryptionKey: process.env.HESABE_ENCRYPTION_KEY!, // 32 UTF-8 bytes
+      ivKey: process.env.HESABE_IV_KEY!, // 16 UTF-8 bytes
+      username: process.env.HESABE_USERNAME!,
+      password: process.env.HESABE_PASSWORD!,
+      idempotencyStore: new InMemoryIdempotencyStore(), // single-process only — use a durable store
+    }),
+  },
+  defaultGateway: "hesabe",
+});
+```
+
+See [Tap](/gateways/tap), [MyFatoorah](/gateways/myfatoorah), and [Hesabe](/gateways/hesabe).
 
 ## Registry builder
 

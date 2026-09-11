@@ -5,7 +5,7 @@ sidebar:
   order: 2
 ---
 
-Every row below is copied from `packages/*/package.json` (`name`, `version`, `exports` keys, `private` absent/false). All packages are **published to the public registry** (`core` 1.0.0, gateways/testkit 1.0.1, engines/stores/integrations 0.1.1, contracts/sql-foundation 0.1.0). Install with `bun add @paykernel/<name>` or `npm install @paykernel/<name>`.
+Every row below is copied from `packages/*/package.json` (`name`, `version`, `exports` keys, `private` absent/false). All packages are **published to the public registry** (`core` 1.0.0, `gateway-tap`/`gateway-myfatoorah`/`testkit` 1.0.1–1.0.2, `gateway-hesabe` 0.1.0, engines/stores/integrations 0.1.1–0.1.2, contracts/sql-foundation 0.1.0). Install with `bun add @paykernel/<name>` or `npm install @paykernel/<name>`.
 
 :::caution[Names]
 The folder `packages/observability` publishes as **`@paykernel/opentelemetry`**. Never import or install `@paykernel/observability`.
@@ -24,6 +24,7 @@ The folder `packages/observability` publishes as **`@paykernel/opentelemetry`**.
 | `@paykernel/opentelemetry` | `0.1.1` | `.`, `./otel` | [opentelemetry](/packages/opentelemetry) |
 | `@paykernel/gateway-tap` | `1.0.1` | `.` | [Tap](/gateways/tap) |
 | `@paykernel/gateway-myfatoorah` | `1.0.1` | `.` | [MyFatoorah](/gateways/myfatoorah) |
+| `@paykernel/gateway-hesabe` | `0.1.0` | `.` | [Hesabe](/gateways/hesabe) |
 | `@paykernel/integration-http` | `0.1.1` | `.` | [HTTP](/integrations/http) |
 | `@paykernel/integration-hono` | `0.1.1` | `.` | [Hono](/integrations/hono) |
 | `@paykernel/integration-elysia` | `0.1.1` | `.` | [Elysia](/integrations/elysia) |
@@ -35,11 +36,11 @@ The folder `packages/observability` publishes as **`@paykernel/opentelemetry`**.
 | `@paykernel/store-redis` | `0.1.1` | `.`, `./bun`, `./upstash`, `./ioredis`, `./node-redis` | [redis](/stores/redis) |
 | `@paykernel/store-sqlite` | `0.1.1` | `.`, `./bun`, `./node`, `./better-sqlite3` | [sqlite](/stores/sqlite) |
 | `@paykernel/store-turso` | `0.1.1` | `.`, `./serverless`, `./libsql` | [turso](/stores/turso) |
-| `@paykernel/store-d1` | `0.1.1` | `.` | [d1](/stores/d1) |
+| `@paykernel/store-d1` | `0.1.2` | `.` | [d1](/stores/d1) |
 | `@paykernel/store-durable-objects` | `0.1.1` | `.` | [durable objects](/stores/durable-objects) |
-| `@paykernel/testkit` | `1.0.1` | `.` | [testkit](/packages/testkit) |
+| `@paykernel/testkit` | `1.0.2` | `.` | [testkit](/packages/testkit) |
 
-There is **no** `@paykernel/gateway-stripe` (or Moyasar / PayPal / Paymob) package. Built-ins are factories on `@paykernel/core`: `stripeGateway`, `moyasarGateway`, `paypalGateway`, `paymobGateway`. Tap and MyFatoorah are extra packages and are **not** `BuiltInGatewayName`.
+There is **no** `@paykernel/gateway-stripe` (or Moyasar / PayPal / Paymob) package. Built-ins are factories on `@paykernel/core`: `stripeGateway`, `moyasarGateway`, `paypalGateway`, `paymobGateway`. Tap, MyFatoorah, and Hesabe are extra packages and are **not** `BuiltInGatewayName`.
 
 ## Subpaths that exist (do not invent others)
 

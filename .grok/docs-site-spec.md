@@ -197,9 +197,9 @@ Sources: each package `README.md` + `docs/` + `src/index.ts`. Observability fold
 
 ### extra-gateways
 
-Owns: `gateways/tap.mdx`, `gateways/myfatoorah.mdx`.
+Owns: `gateways/tap.mdx`, `gateways/myfatoorah.mdx`, `gateways/hesabe.mdx`.
 
-Sources: `packages/gateway-tap/**`, `packages/gateway-myfatoorah/**` (README, docs, `src/index.ts`). They depend only on `@paykernel/core`.
+Sources: `packages/gateway-tap/**`, `packages/gateway-myfatoorah/**`, `packages/gateway-hesabe/**` (README, docs, `src/index.ts`). They depend only on `@paykernel/core`.
 
 ### stores
 
@@ -243,7 +243,7 @@ Owns: `reference/**` and `apps/docs/scripts/check-doc-claims.ts`.
 
 ## Publishable packages (must all appear)
 
-`@paykernel/core`, `@paykernel/webhooks`, `@paykernel/reconciliation`, `@paykernel/routing`, `@paykernel/opentelemetry`, `@paykernel/gateway-tap`, `@paykernel/gateway-myfatoorah`, `@paykernel/integration-http`, `@paykernel/integration-hono`, `@paykernel/integration-elysia`, `@paykernel/integration-express`, `@paykernel/integration-cloudflare-workers`, `@paykernel/store-contracts`, `@paykernel/sql-foundation`, `@paykernel/store-postgres`, `@paykernel/store-redis`, `@paykernel/store-sqlite`, `@paykernel/store-turso`, `@paykernel/store-d1`, `@paykernel/store-durable-objects`, `@paykernel/testkit`.
+`@paykernel/core`, `@paykernel/webhooks`, `@paykernel/reconciliation`, `@paykernel/routing`, `@paykernel/opentelemetry`, `@paykernel/gateway-tap`, `@paykernel/gateway-myfatoorah`, `@paykernel/gateway-hesabe`, `@paykernel/integration-http`, `@paykernel/integration-hono`, `@paykernel/integration-elysia`, `@paykernel/integration-express`, `@paykernel/integration-cloudflare-workers`, `@paykernel/store-contracts`, `@paykernel/sql-foundation`, `@paykernel/store-postgres`, `@paykernel/store-redis`, `@paykernel/store-sqlite`, `@paykernel/store-turso`, `@paykernel/store-d1`, `@paykernel/store-durable-objects`, `@paykernel/testkit`.
 
 ## Docs-guard
 

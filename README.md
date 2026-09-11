@@ -11,7 +11,7 @@
 
 > The payment orchestration kernel for TypeScript.
 
-Type-safe payment orchestration for **MENA + global** providers — **Moyasar, PayPal, Paymob, Stripe, Tap, MyFatoorah** — with portable webhook inbox, reconciliation, and multi-store adapters. Built for modern server runtimes: **Node, Bun, Deno, Cloudflare Workers**.
+Type-safe payment orchestration for **MENA + global** providers — **Moyasar, PayPal, Paymob, Stripe, Tap, MyFatoorah, Hesabe** — with portable webhook inbox, reconciliation, and multi-store adapters. Built for modern server runtimes: **Node, Bun, Deno, Cloudflare Workers**.
 
 **Repository:** [paykernel/paykernel](https://github.com/paykernel/paykernel) · **npm scope:** [`@paykernel`](https://www.npmjs.com/org/paykernel) · **Docs:** [paykernel-docs.abshahin.workers.dev](https://paykernel-docs.abshahin.workers.dev) · **License:** MIT
 
@@ -76,7 +76,7 @@ Full composition (verify → claim → fulfill → reconcile): [`docs/getting-st
 | [`packages/routing`](./packages/routing) | [`@paykernel/routing`](https://www.npmjs.com/package/@paykernel/routing) | Select-only gateway routing + restricted post-attempt fallback |
 | [`packages/gateway-tap`](./packages/gateway-tap) | [`@paykernel/gateway-tap`](https://www.npmjs.com/package/@paykernel/gateway-tap) | **Tap Payments** adapter (charges, auth/capture/void, refunds, webhooks) |
 | [`packages/gateway-myfatoorah`](./packages/gateway-myfatoorah) | [`@paykernel/gateway-myfatoorah`](https://www.npmjs.com/package/@paykernel/gateway-myfatoorah) | **MyFatoorah** adapter (V3 hosted payments, refunds, Webhook V2) |
-| [`packages/gateway-hesabe`](./packages/gateway-hesabe) | `@paykernel/gateway-hesabe` (unreleased) | **Hesabe** adapter (KWD hosted payments, enquiry, refunds, verified callbacks/webhooks) |
+| [`packages/gateway-hesabe`](./packages/gateway-hesabe) | [`@paykernel/gateway-hesabe`](https://www.npmjs.com/package/@paykernel/gateway-hesabe) | **Hesabe** adapter (KWD hosted payments, enquiry, refunds, verified callbacks/webhooks) |
 | [`packages/testkit`](./packages/testkit) | [`@paykernel/testkit`](https://www.npmjs.com/package/@paykernel/testkit) | Mock gateway, conformance suites, NON-PRODUCTION memory stores |
 | [`packages/store-contracts`](./packages/store-contracts) | [`@paykernel/store-contracts`](https://www.npmjs.com/package/@paykernel/store-contracts) | Portable store contracts (lease stores, errors, manifests) |
 | [`packages/sql-foundation`](./packages/sql-foundation) | [`@paykernel/sql-foundation`](https://www.npmjs.com/package/@paykernel/sql-foundation) | Relational schemas, migrations, claim SQL templates |
@@ -102,7 +102,7 @@ bun add @paykernel/webhooks                               # inbox engine
 bun add @paykernel/reconciliation                         # reconciliation
 bun add @paykernel/opentelemetry                          # observability
 bun add @paykernel/routing                                # routing policies
-bun add @paykernel/gateway-tap @paykernel/gateway-myfatoorah  # extra gateways
+bun add @paykernel/gateway-tap @paykernel/gateway-myfatoorah @paykernel/gateway-hesabe  # extra gateways
 bun add @paykernel/store-postgres                         # Postgres (app layer)
 bun add @paykernel/store-redis                            # Redis/Valkey/Upstash (optional)
 bun add @paykernel/store-sqlite                           # SQLite single-host

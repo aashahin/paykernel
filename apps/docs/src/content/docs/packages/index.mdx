@@ -7,7 +7,7 @@ sidebar:
 
 PayKernel is a **composition** of packages, not a single SDK. `@paykernel/core` creates payments, maps money, and **verifies** webhooks. Claim, lease, HTTP status, stores, routing, and OpenTelemetry live in other packages you wire at the application layer.
 
-Published versions: `core` **1.0.0**, `gateway-tap`/`gateway-myfatoorah`/`testkit` **1.0.1**, `webhooks`/`reconciliation`/`routing`/`opentelemetry`/`stores`/`integrations` **0.1.1**, `store-contracts`/`sql-foundation` **0.1.0**. All packages below are **published** to the public registry. Install with `bun add @paykernel/<name>`.
+Published versions: `core` **1.0.0**, `gateway-tap`/`gateway-myfatoorah` **1.0.1**, `testkit` **1.0.2**, `gateway-hesabe` **0.1.0**, `webhooks`/`reconciliation`/`routing`/`opentelemetry`/`stores`/`integrations` **0.1.1**, `store-d1` **0.1.2**, `store-contracts`/`sql-foundation` **0.1.0**. All packages below are **published** to the public registry. Install with `bun add @paykernel/<name>`.
 
 :::caution
 The folder `packages/observability` publishes as **`@paykernel/opentelemetry`**. Never import or install `@paykernel/observability`.
@@ -25,12 +25,13 @@ The folder `packages/observability` publishes as **`@paykernel/opentelemetry`**.
 
 ## Extra gateways (not `BuiltInGatewayName`)
 
-Built-ins live **in** `@paykernel/core`: `moyasar`, `paypal`, `paymob`, `stripe`. Tap and MyFatoorah are **first-party extra packages**. They depend only on `@paykernel/core` and are **not** members of `BuiltInGatewayName` (`"moyasar" \| "paypal" \| "paymob" \| "stripe"`).
+Built-ins live **in** `@paykernel/core`: `moyasar`, `paypal`, `paymob`, `stripe`. Tap, MyFatoorah, and Hesabe are **first-party extra packages**. They depend only on `@paykernel/core` and are **not** members of `BuiltInGatewayName` (`"moyasar" \| "paypal" \| "paymob" \| "stripe"`).
 
 | Package | Role | Docs |
 | --- | --- | --- |
 | [`@paykernel/gateway-tap`](/gateways/tap) | Tap charges, authorize/capture/void, refunds, hashstring webhooks. | [Tap](/gateways/tap) |
 | [`@paykernel/gateway-myfatoorah`](/gateways/myfatoorah) | MyFatoorah V3 hosted payments, refunds, Webhook V2. | [MyFatoorah](/gateways/myfatoorah) |
+| [`@paykernel/gateway-hesabe`](/gateways/hesabe) | Hesabe KWD hosted checkout, enquiry-verified webhooks, refunds. | [Hesabe](/gateways/hesabe) |
 
 There is **no** `@paykernel/gateway-stripe` (or Moyasar/PayPal/Paymob) package. Use `stripeGateway` / `moyasarGateway` / `paypalGateway` / `paymobGateway` from `@paykernel/core`.
 

@@ -74,7 +74,7 @@ Enforced by `bun run check:boundaries` (`scripts/check-workspace-boundaries.ts`)
 | SQLite | Single-host only. Never advertise as multi-host |
 | Turso | Remote multi-host. Subpaths `/serverless` and `/libsql` only — **no** `/sync` |
 | D1 vs DO | Separate packages. Shared D1 ≠ partitioned Durable Objects |
-| Extra gateways | `@paykernel/gateway-tap` and `@paykernel/gateway-myfatoorah` depend on **core only**. Not `BuiltInGatewayName` |
+| Extra gateways | `@paykernel/gateway-tap`, `@paykernel/gateway-myfatoorah`, and `@paykernel/gateway-hesabe` depend on **core only**. Not `BuiltInGatewayName` |
 | Examples | `examples/*` are private consumer apps. `packages/*` must never import `examples/*` |
 
 ## Docs you write

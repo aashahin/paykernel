@@ -313,7 +313,7 @@ createPaymentRuntime({
 
 `package.json` `engines`: `"node": ">=18"`, `"bun": ">=1.0.0"`. Single ESM export entry (portable). CommonJS `require()` is not supported.
 
-Portability CI (`bun run check:runtime-portability`) fails if `node:` / `bun:` / `cloudflare:` appear in production sources or `dist/**/*.js` for `PORTABLE_PACKAGE_DIRS`: `packages/core`, `webhooks`, `reconciliation`, `observability`, `routing`, `store-contracts`, `sql-foundation`, `testkit`, `gateway-tap`, `gateway-myfatoorah`, `integration-http`, `integration-hono`, `integration-elysia`, `integration-cloudflare-workers`. (`integration-express` and the store adapters are not in that list.)
+Portability CI (`bun run check:runtime-portability`) fails if `node:` / `bun:` / `cloudflare:` appear in production sources or `dist/**/*.js` for `PORTABLE_PACKAGE_DIRS`: `packages/core`, `webhooks`, `reconciliation`, `observability`, `routing`, `store-contracts`, `sql-foundation`, `testkit`, `gateway-tap`, `gateway-myfatoorah`, `gateway-hesabe`, `integration-http`, `integration-hono`, `integration-elysia`, `integration-cloudflare-workers`. (`integration-express` and the store adapters are not in that list.)
 
 ## What is not supported
 

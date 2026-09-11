@@ -43,11 +43,16 @@ paykernel/                         # private workspace root (not published)
 │   │   ├── docs/                     # overview, routing-inputs, selection, safe-fallback, telemetry
 │   │   ├── package.json              # paymentsSdk.portable: true; depends on core only
 │   │   └── README.md
-│   ├── gateway-hesabe/              # @paykernel/gateway-hesabe (portable KWD adapter; not a built-in)
 │   ├── gateway-myfatoorah/           # @paykernel/gateway-myfatoorah (Phase 23; portable MyFatoorah adapter; not a built-in)
 │   │   ├── src/                      # gateway, types, money, idempotency, docs
 │   │   ├── dist/
 │   │   ├── docs/                     # overview, charges, refunds, webhooks, ...
+│   │   ├── package.json              # paymentsSdk.portable: true; depends on core only
+│   │   └── README.md
+│   ├── gateway-hesabe/               # @paykernel/gateway-hesabe (portable KWD Hesabe adapter; not a built-in)
+│   │   ├── src/                      # gateway, crypto, payload, payment-map, auth, reservations
+│   │   ├── dist/
+│   │   ├── docs/                     # sandbox acceptance checklist
 │   │   ├── package.json              # paymentsSdk.portable: true; depends on core only
 │   │   └── README.md
 │   ├── store-contracts/              # @paykernel/store-contracts (portable; publishable)

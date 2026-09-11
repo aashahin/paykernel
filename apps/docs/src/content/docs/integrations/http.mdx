@@ -167,6 +167,7 @@ After `outcome === "indeterminate"` or `reconciliationRequired` on **create**, d
 
 - **String-HMAC** (`stripe`, `paypal`, `myfatoorah`): the raw string is passed unchanged into `handleWebhook`. Do not `JSON.parse` / `JSON.stringify`.
 - **Object-HMAC** (`tap`, `moyasar`, `paymob` — `OBJECT_HMAC_GATEWAYS`): `processWebhookHttp` defensively `JSON.parse`s a JSON **object** and passes that object. Arrays and invalid JSON stay the raw string (fail-closed at the verifier).
+- **No signature — enquiry-verified** (`hesabe`): the raw string is passed unchanged; the adapter parses it and verifies facts through an async transaction-enquiry round trip inside `handleWebhook`.
 
 ## Signature profiles
 
@@ -182,6 +183,8 @@ After `outcome === "indeterminate"` or `reconciliationRequired` on **create**, d
 | `moyasar` | `payload` | signature lives in the body; `extractWebhookSignature` returns `undefined` |
 
 `extractWebhookSignature(gateway, headers, query?, profile?)` returns a string, a lowercased header record (PayPal), or `undefined`. Unknown gateways return `undefined` (no early 400 from a missing profile).
+
+`hesabe` has **no** entry. No signature header is required and no early 400 is emitted; the body is forwarded to `handleWebhook`, which awaits the adapter's `verifyWebhookAsync` (transaction enquiry). A failed verification is forgery-class → `400 { error: "invalid_webhook" }`; an enquiry transport failure throws → `500 { outcome: "handler_failed", retryable: true }` so an authentic but unverifiable notification is redelivered. See [Hesabe](/gateways/hesabe).
 
 ## Failure paths
 

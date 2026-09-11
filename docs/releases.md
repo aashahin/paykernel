@@ -18,6 +18,8 @@ How this monorepo versions packages, generates release notes, publishes to npm w
 | Integration Express| `packages/integration-express` | `@paykernel/integration-express` | Public; Phase 24 thin Express adapter (**node-only**; integration-http only) |
 | Integration Workers| `packages/integration-cloudflare-workers` | `@paykernel/integration-cloudflare-workers` | Public; Phase 24 thin Workers adapter (portable; integration-http only) |
 | Tap gateway       | `packages/gateway-tap`      | `@paykernel/gateway-tap`        | Public; Phase 23 extra Tap Payments adapter (portable; core-only; **not** a core built-in) |
+| MyFatoorah gateway | `packages/gateway-myfatoorah` | `@paykernel/gateway-myfatoorah` | Public; extra MyFatoorah adapter (portable; core-only; **not** a core built-in) |
+| Hesabe gateway    | `packages/gateway-hesabe`   | `@paykernel/gateway-hesabe`     | Public; extra Hesabe adapter — KWD hosted checkout, enquiry-verified notifications, refunds (portable; core-only; **not** a core built-in) |
 | Postgres adapter  | `packages/store-postgres` | `@paykernel/store-postgres`   | Public; Phase 12 durable stores — **may publish separately** from core |
 | Redis adapter     | `packages/store-redis`    | `@paykernel/store-redis`      | Public; Phase 13 optional Redis/Valkey — **may publish separately** from core |
 | SQLite adapter    | `packages/store-sqlite`   | `@paykernel/store-sqlite`     | Public; Phase 14 single-host SQLite — **may publish separately** from core |
@@ -41,7 +43,7 @@ Versioning is **independent** (`fixed: []`, `linked: []` in `.changeset/config.j
 3. **Merge to `main`**. The Release workflow either:
    - opens/updates a **Version packages** PR (when unpublished changesets exist), or
    - **publishes** to npm when that version PR is merged (versions already bumped).
-4. Consumers install the new version from npm (`@paykernel/core`, and optionally `@paykernel/testkit` / `@paykernel/webhooks` / `@paykernel/reconciliation` / `@paykernel/opentelemetry` / `@paykernel/routing` / `@paykernel/integration-http` / `@paykernel/integration-hono` / `@paykernel/integration-elysia` / `@paykernel/integration-express` / `@paykernel/integration-cloudflare-workers` / `@paykernel/store-postgres` / `@paykernel/store-redis` / `@paykernel/store-sqlite` / `@paykernel/store-turso` / `@paykernel/store-d1` / `@paykernel/store-durable-objects`).
+4. Consumers install the new version from npm (`@paykernel/core`, and optionally `@paykernel/testkit` / `@paykernel/webhooks` / `@paykernel/reconciliation` / `@paykernel/opentelemetry` / `@paykernel/routing` / `@paykernel/gateway-tap` / `@paykernel/gateway-myfatoorah` / `@paykernel/gateway-hesabe` / `@paykernel/integration-http` / `@paykernel/integration-hono` / `@paykernel/integration-elysia` / `@paykernel/integration-express` / `@paykernel/integration-cloudflare-workers` / `@paykernel/store-postgres` / `@paykernel/store-redis` / `@paykernel/store-sqlite` / `@paykernel/store-turso` / `@paykernel/store-d1` / `@paykernel/store-durable-objects`).
 
 ### Commands (root)
 

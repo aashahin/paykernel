@@ -10,7 +10,7 @@ next:
 
 PayKernel is a TypeScript payment orchestration toolkit. You compose **`@paykernel/core`** (create / capture / refund / verify) with optional inbox, reconciliation, routing, stores, and HTTP adapters at the application layer. Core never depends on those packages.
 
-All packages are **published to npm** as `@paykernel/*` (`core` 1.0.0, gateways/testkit 1.0.1, engines/stores/integrations 0.1.1, contracts/sql-foundation 0.1.0). Install with `bun add @paykernel/core` or `npm install @paykernel/core`. Source: [paykernel/paykernel](https://github.com/paykernel/paykernel).
+All packages are **published to npm** as `@paykernel/*` (`core` 1.0.0, `gateway-tap`/`gateway-myfatoorah` 1.0.1, `testkit` 1.0.2, `gateway-hesabe` 0.1.0, `store-d1` 0.1.2, engines/stores/integrations 0.1.1, contracts/sql-foundation 0.1.0). Install with `bun add @paykernel/core` or `npm install @paykernel/core`. Source: [paykernel/paykernel](https://github.com/paykernel/paykernel).
 
 <CardGrid>
   <Card title="Quickstart" icon="ph:rocket-launch">
@@ -20,7 +20,7 @@ All packages are **published to npm** as `@paykernel/*` (`core` 1.0.0, gateways/
     [Getting started](/guides/getting-started) (inbox + store + reconcile), [outcomes](/guides/outcomes), [webhooks](/guides/webhooks), [stores](/guides/adapter-selection), [best practices](/guides/best-practices).
   </Card>
   <Card title="Packages" icon="ph:package">
-    Full map on [Packages](/packages). Built-in gateways live in core; Tap and MyFatoorah are extra packages, not `BuiltInGatewayName`.
+    Full map on [Packages](/packages). Built-in gateways live in core; Tap, MyFatoorah, and Hesabe are extra packages, not `BuiltInGatewayName`.
   </Card>
   <Card title="Examples" icon="ph:code">
     Private hosts under [Examples](/examples) (never published). `POST /internal/*` test hooks require `enableTestHooks` and **must not be deployed**.
@@ -30,7 +30,7 @@ All packages are **published to npm** as `@paykernel/*` (`core` 1.0.0, gateways/
 ## Honesty
 
 :::note[Published]
-All packages are published (`core` 1.0.0, gateways/testkit 1.0.1, others 0.1.1/0.1.0). `bun add @paykernel/core` works. See [Packages](/packages) and [Reference](/reference/packages).
+All packages are published (`core` 1.0.0, `gateway-tap`/`gateway-myfatoorah` 1.0.1, `testkit` 1.0.2, `gateway-hesabe` 0.1.0, others 0.1.1/0.1.0). `bun add @paykernel/core` works. See [Packages](/packages) and [Reference](/reference/packages).
 :::
 
 - Folder `packages/observability` publishes as **`@paykernel/opentelemetry`**. Do not invent an npm name from the folder.
@@ -49,7 +49,7 @@ If markdown and implementation disagree, **code wins**.
 
 ## Package map
 
-All names below are the `package.json` `"name"` fields. Extra Tap / MyFatoorah adapters depend only on `@paykernel/core` and are **not** `BuiltInGatewayName` (`"moyasar" | "paypal" | "paymob" | "stripe"`).
+All names below are the `package.json` `"name"` fields. Extra Tap / MyFatoorah / Hesabe adapters depend only on `@paykernel/core` and are **not** `BuiltInGatewayName` (`"moyasar" | "paypal" | "paymob" | "stripe"`).
 
 ### Core and engines
 
@@ -67,6 +67,7 @@ All names below are the `package.json` `"name"` fields. Extra Tap / MyFatoorah a
 | --- | --- |
 | [`@paykernel/gateway-tap`](/gateways/tap) | Tap Payments adapter. Not a core built-in |
 | [`@paykernel/gateway-myfatoorah`](/gateways/myfatoorah) | MyFatoorah adapter. Not a core built-in |
+| [`@paykernel/gateway-hesabe`](/gateways/hesabe) | Hesabe adapter (KWD). Not a core built-in |
 
 Built-ins: [Moyasar](/gateways/moyasar), [PayPal](/gateways/paypal), [Paymob](/gateways/paymob), [Stripe](/gateways/stripe), [custom plugins](/gateways/custom).
 

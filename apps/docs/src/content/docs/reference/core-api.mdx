@@ -93,7 +93,7 @@ Copied in inventory order from `public-api.inventory.json` `"runtime"`.
 
 `InMemoryIdempotencyStore` is a core helper. Inbox / reconciliation **memory stores** are **NON-PRODUCTION** and live in [`@paykernel/testkit`](/packages/testkit), not in this package.
 
-Built-in factories: `moyasarGateway`, `paypalGateway`, `paymobGateway`, `stripeGateway`. Extra adapters `tapGateway` / `myfatoorahGateway` are **not** in this list — import them from [`@paykernel/gateway-tap`](/gateways/tap) and [`@paykernel/gateway-myfatoorah`](/gateways/myfatoorah).
+Built-in factories: `moyasarGateway`, `paypalGateway`, `paymobGateway`, `stripeGateway`. Extra adapters `tapGateway` / `myfatoorahGateway` / `hesabeGateway` are **not** in this list — import them from [`@paykernel/gateway-tap`](/gateways/tap), [`@paykernel/gateway-myfatoorah`](/gateways/myfatoorah), and [`@paykernel/gateway-hesabe`](/gateways/hesabe).
 
 ## Type-only exports (183)
 
@@ -163,7 +163,7 @@ Copied in inventory order from `public-api.inventory.json` `"typeOnly"`. These e
 | `WebhookEvent` | `WebhookEventToPaymentEventOptions` | `WebhookFailedHook` |
 | `WebhookReceivedHook` | `WebhookVerifiedHook` | `WithRetryOptions` |
 
-`BuiltInGatewayName` is `"moyasar" | "paypal" | "paymob" | "stripe"`. Tap and MyFatoorah are extra packages.
+`BuiltInGatewayName` is `"moyasar" | "paypal" | "paymob" | "stripe"`. Tap, MyFatoorah, and Hesabe are extra packages.
 
 ## Failure paths
 

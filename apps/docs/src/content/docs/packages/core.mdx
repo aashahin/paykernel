@@ -76,10 +76,10 @@ Amounts are `Money` only (`AmountInput = Money`). Pass `money("10.50", "SAR")`. 
 | Kind | Names | Package |
 | --- | --- | --- |
 | Built-in factories | `moyasarGateway`, `paypalGateway`, `paymobGateway`, `stripeGateway` | `@paykernel/core` |
-| Extra first-party | `tapGateway`, `myfatoorahGateway` | [`@paykernel/gateway-tap`](/gateways/tap), [`@paykernel/gateway-myfatoorah`](/gateways/myfatoorah) |
+| Extra first-party | `tapGateway`, `myfatoorahGateway`, `hesabeGateway` | [`@paykernel/gateway-tap`](/gateways/tap), [`@paykernel/gateway-myfatoorah`](/gateways/myfatoorah), [`@paykernel/gateway-hesabe`](/gateways/hesabe) |
 | Your adapter | any registry name | implement `GatewayAdapter` — [custom gateways](/gateways/custom) |
 
-Tap and MyFatoorah are **not** `BuiltInGatewayName`. There is no `@paykernel/gateway-stripe` package.
+Tap, MyFatoorah, and Hesabe are **not** `BuiltInGatewayName`. There is no `@paykernel/gateway-stripe` package.
 
 ```ts
 import { createPaymentClient, moyasarGateway, stripeGateway } from "@paykernel/core";
