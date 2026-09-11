@@ -1,0 +1,6 @@
+# Copy to .dev.vars for local development; use fresh random values for both secrets.
+APP_ORIGIN=http://localhost:5173
+TESTER_EMAILS=lab-tester@example.com
+BETTER_AUTH_SECRET=replace-with-a-new-random-secret-at-least-32-characters
+SIMULATOR_SECRET=replace-with-another-new-random-secret-at-least-32-characters
+# Provider sandbox credentials are optional. /setup lists the exact missing names.

@@ -18,6 +18,12 @@ export default tseslint.config(
   eslint.configs.recommended,
   ...tseslint.configs.recommended,
   {
+    files: ["apps/payment-lab/**/*.{ts,tsx}"],
+    rules: {
+      "@typescript-eslint/no-unused-vars": ["error", { argsIgnorePattern: "^_", ignoreRestSiblings: true }],
+    },
+  },
+  {
     files: [
       "packages/*/src/**/*.ts",
       "internal/*/src/**/*.ts",

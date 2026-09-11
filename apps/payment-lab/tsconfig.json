@@ -1,0 +1,38 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "target": "ESNext",
+    "lib": [
+      "ESNext",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "types": [
+      "vite/client",
+      "vinext/types",
+      "node",
+      "bun"
+    ],
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    }
+  },
+  "include": [
+    "app",
+    "worker",
+    "src",
+    "scripts",
+    "vite.config.ts",
+    "drizzle.config.ts",
+    "playwright.config.ts",
+    "worker-configuration.d.ts",
+    "tests"
+  ]
+}

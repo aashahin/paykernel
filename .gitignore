@@ -54,3 +54,14 @@ packages/*/dist/
 internal/*/dist/
 coverage/
 *.tsbuildinfo
+
+# Payment lab runtime state, credentials, and test artifacts
+apps/payment-lab/.dev.vars*
+!apps/payment-lab/.dev.vars.example
+apps/payment-lab/.wrangler/
+apps/payment-lab/.next/
+apps/payment-lab/dist/
+apps/payment-lab/playwright-report/
+apps/payment-lab/test-results/
+apps/payment-lab/validation-results/
+apps/payment-lab/.seller-password

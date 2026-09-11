@@ -1,0 +1,33 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "paykernel-lab",
+  "main": "worker/index.ts",
+  "account_id": "53fb41ede04e54b276ce3fd9bfd270b6",
+  "compatibility_date": "2026-09-09",
+  // Simulator callbacks must re-enter the public Worker webhook route.
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": {
+    "binding": "ASSETS",
+    "directory": "dist/client",
+    "not_found_handling": "none"
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "paykernel-lab",
+      "database_id": "ae745b2a-9638-4ed5-a096-c2eea3492f74",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "APP_ORIGIN": "https://paykernel-lab.abshahin.workers.dev",
+    "TESTER_EMAILS": "abdelrahmanshaheeen8@gmail.com"
+  },
+  "triggers": { "crons": ["* * * * *"] },
+  "observability": {
+    "enabled": true,
+    "traces": {
+      "enabled": true
+    }
+  }
+}

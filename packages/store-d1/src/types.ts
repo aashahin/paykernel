@@ -43,7 +43,7 @@ export type D1PreparedStatementLike = {
  */
 export type D1DatabaseLike = {
   prepare(query: string): D1PreparedStatementLike;
-  batch<T = unknown>(statements: D1PreparedStatementLike[]): Promise<T[]>;
+  batch(statements: D1PreparedStatementLike[]): Promise<unknown[]>;
   exec?(query: string): Promise<unknown>;
   /** Sessions API — returns a session-scoped DB (or self-like object). */
   withSession?(constraintOrBookmark?: string): D1DatabaseLike;
