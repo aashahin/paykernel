@@ -15,6 +15,10 @@ Runtime dependency is `@paykernel/core` only. Manifest `apiVersion` is `"2.0"`. 
 Do not `import { hesabeGateway } from "@paykernel/core"`. Register the adapter yourself. `capture: false`, `capturePayment`, and `voidPayment` throw `OperationNotSupportedError` (`authorization` / `voids` unclaimed). `customerId`, `paymentMethodId`, and `offSession: true` throw `OperationNotSupportedError` (`paymentMethods` unclaimed). Hesabe has **no** webhook signature: synchronous `verifyWebhook` always returns `false` — use `verifyWebhookAsync` / `payments.handleWebhook("hesabe", …)`.
 :::
 
+:::note[Recorded account testing]
+**Sandbox configuration checked on 2026-09-11.** Settings matched the official public sandbox credentials. No account checkout or refund has been exercised; the sandbox acceptance checklist remains open. See the [gateway validation matrix](/guides/gateway-validation) for scope and evidence.
+:::
+
 ## Install
 
 Package name `@paykernel/gateway-hesabe`, export `"."` only (`./dist/index.js`). Version `0.1.1`. Published on npm — `bun add @paykernel/gateway-hesabe @paykernel/core` works.

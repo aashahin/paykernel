@@ -9,6 +9,10 @@ Paymob uses the Unified Intention API for hosted checkout. The adapter lives in 
 
 Amounts are `Money`. Conversion uses ISO 4217 exponents via `getCurrencyExponent` (optional `currencyExponentOverrides`). Example: `money("20.125", "OMR")` → `20125` (×1000). Confirm OMR scaling with your Paymob Oman account; override only after Paymob confirms.
 
+:::note[Recorded account testing]
+**Sandbox account payments and refunds verified on 2026-09-11.** The deployed lab completed hosted payments, a full refund, and a partial refund, then confirmed settlement through authenticated inquiry and repeated reconciliation. See the [gateway validation matrix](/guides/gateway-validation) for scope and evidence.
+:::
+
 ## Configuration
 
 ```ts

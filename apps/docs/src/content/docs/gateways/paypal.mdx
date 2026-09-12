@@ -7,6 +7,10 @@ sidebar:
 
 PayPal uses OAuth 2.0 and the Orders API v2. The adapter lives in `@paykernel/core` as `paypalGateway` (`BuiltInGatewayName` `"paypal"`). This page documents PayKernel’s mapping. Upstream: [PayPal developer docs](https://developer.paypal.com/docs/).
 
+:::note[Recorded account testing]
+**Sandbox authentication and webhook configuration checked on 2026-09-11.** Authentication succeeded and the webhook ID resolved to the lab endpoint. Completed buyer checkout, delivered callbacks, and refunds are not yet recorded. See the [gateway validation matrix](/guides/gateway-validation) for scope and evidence.
+:::
+
 ## Configuration
 
 ```ts

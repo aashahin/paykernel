@@ -13,6 +13,10 @@ Runtime dependency is `@paykernel/core` only. Manifest `apiVersion` is `"V2"`. A
 Do not `import { tapGateway } from "@paykernel/core"`. Register the adapter yourself. Two or more gateways still need `defaultGateway` or a named `gateway` argument.
 :::
 
+:::note[Recorded account testing]
+**No account test recorded as of 2026-09-11.** Credentials were unavailable. Automated fixtures and simulations do not establish merchant-account interoperability. See the [gateway validation matrix](/guides/gateway-validation) for scope and evidence.
+:::
+
 ## Install
 
 Package name `@paykernel/gateway-tap`, export `"."` only (`./dist/index.js`). Version `1.0.2`. Published on npm — `bun add @paykernel/gateway-tap @paykernel/core` works.

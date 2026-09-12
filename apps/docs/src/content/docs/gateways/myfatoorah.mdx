@@ -13,6 +13,10 @@ Runtime dependency is `@paykernel/core` only. Manifest `apiVersion` is `"V3"`. S
 Do not `import { myfatoorahGateway } from "@paykernel/core"`. Register the adapter yourself. Two or more gateways still need `defaultGateway` or a named `gateway` argument. `capture: false` and `capturePayment` throw `OperationNotSupportedError` (`authorization` unclaimed). `voidPayment` is not implemented.
 :::
 
+:::note[Recorded account testing]
+**Merchant-account testing was blocked on 2026-09-11.** Both supplied tokens returned HTTP 401; an official public sandbox credential succeeded in a separate control check. No completed checkout or refund with the supplied account is recorded. See the [gateway validation matrix](/guides/gateway-validation) for scope and evidence.
+:::
+
 ## Install
 
 Package name `@paykernel/gateway-myfatoorah`, export `"."` only (`./dist/index.js`). Version `1.0.2`. Published on npm — `bun add @paykernel/gateway-tap @paykernel/core` works.

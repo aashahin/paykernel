@@ -12,6 +12,12 @@ PayKernel is a TypeScript payment orchestration toolkit. You compose **`@paykern
 
 All packages are **published to npm** as `@paykernel/*` (`core` 1.0.0, `gateway-tap`/`gateway-myfatoorah` 1.0.2, `testkit` 1.0.2, `gateway-hesabe` 0.1.1, `store-d1` 0.1.2, `integration-http` 0.1.2, other engines/stores/frameworks 0.1.x, contracts/sql-foundation 0.1.0). Install with `bun add @paykernel/core` or `npm install @paykernel/core`. Source: [aashahin/paykernel](https://github.com/aashahin/paykernel).
 
+## Tested with provider sandbox accounts
+
+The deployed payment lab completed **Paymob payments and full/partial refunds** and a **Moyasar card payment with 3-D Secure** against real provider sandbox accounts on **2026-09-11**. Authenticated provider inquiries confirmed the app's settlement totals. Stripe and PayPal also passed authentication/configuration checks.
+
+The [gateway validation matrix](/guides/gateway-validation) separates completed account flows, configuration checks, and automated simulation results for all seven gateways. It also records the remaining gaps; these results do not claim production-account testing.
+
 <CardGrid>
   <Card title="Quickstart" icon="ph:rocket-launch">
     [Create a first Moyasar payment](/quickstart) with `createPaymentClient`, `moyasarGateway`, `money()`, and `isPaidOutcome` — including declined and indeterminate branches.

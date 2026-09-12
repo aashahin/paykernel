@@ -7,6 +7,10 @@ sidebar:
 
 Moyasar is a Saudi payment gateway. The adapter lives in `@paykernel/core` as `moyasarGateway` (`BuiltInGatewayName` `"moyasar"`). This page documents PayKernel’s mapping — not Moyasar’s product docs. Upstream: [Moyasar documentation](https://docs.moyasar.com).
 
+:::note[Recorded account testing]
+**Sandbox account card payment verified on 2026-09-11.** The deployed lab completed tokenization, a successful 3-D Secure flow, buyer return, and SAR 10.00 settlement confirmed through provider inquiry. The run included lab-specific paid-sale normalization; provider refund and manual-capture flows remain unverified. See the [gateway validation matrix](/guides/gateway-validation) for scope and evidence.
+:::
+
 ## Configuration
 
 ```ts

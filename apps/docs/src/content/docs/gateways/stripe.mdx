@@ -7,6 +7,10 @@ sidebar:
 
 The Stripe adapter lives in `@paykernel/core` as `stripeGateway` (`BuiltInGatewayName` `"stripe"`). There is **no** `@paykernel/gateway-stripe` package. This page documents PayKernel’s mapping. Upstream: [Stripe API](https://docs.stripe.com/api).
 
+:::note[Recorded account testing]
+**Test-account authentication and webhook setup checked on 2026-09-11.** The API key authenticated and a test webhook endpoint was registered. Completed buyer checkout, delivered callbacks, and refunds are not yet recorded. See the [gateway validation matrix](/guides/gateway-validation) for scope and evidence.
+:::
+
 ## Configuration
 
 ```ts

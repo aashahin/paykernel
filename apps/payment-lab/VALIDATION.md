@@ -1,6 +1,6 @@
 # Payment lab validation
 
-Verified on 2026-09-10. These results distinguish simulation from real provider tests.
+Simulator checks were verified on 2026-09-10; provider-account checks below were recorded on 2026-09-11. These results distinguish simulation from real provider tests. See the [public gateway validation matrix](../../docs/gateway-validation.md) for a per-gateway summary.
 
 | Check | Result |
 | --- | --- |
@@ -37,9 +37,9 @@ The supplied credentials are saved in ignored, owner-readable `.env` and `.dev.v
 - Paymob: the supplied API key authenticates transaction inquiries. A user-completed sandbox checkout confirmed that the modern secret key and integration ID create a payable intention. The card checkout flow supplies per-payment notification and redirect URLs. See the settlement recovery below.
 - Moyasar: authenticated payment listing passed with an explicit HTTP user agent.
 - Hesabe: the supplied settings match the official published sandbox credentials; checkout has not been exercised.
-- MyFatoorah: after the user confirmed all permissions, the exact saved token was rechecked with Bearer authentication and an explicit HTTP user agent. Payment-method discovery (`/v2/InitiatePayment`) returned HTTP 401, `The token is not valid or expired!`, from both the sandbox and Kuwait production API hosts. These checks created no payments. Evidence is saved in `validation-results/myfatoorah-auth.json`. The [official API-key documentation](https://docs.myfatoorah.com/docs/api-key) gives a different error for missing permissions and identifies active status, expiry, and the creating user's enabled status as token-validity requirements. The supplied value remains unchanged.
+- MyFatoorah: after the user confirmed all permissions, the exact saved token was rechecked with Bearer authentication and an explicit HTTP user agent. Payment-method discovery (`/v2/InitiatePayment`) returned HTTP 401, `The token is not valid or expired!`, from both the sandbox and Kuwait production API hosts. These checks created no payments. Evidence is saved in `validation-results/myfatoorah-auth.json`. The [official API-key documentation](https://docs.myfatoorah.com/docs/api-key) gives a different error for missing permissions and identifies active status, expiry, and the creating user's enabled status as token-validity requirements. A later replacement token also returned HTTP 401; an official public sandbox credential succeeded in a separate control check. That follow-up is recorded in `validation-results/myfatoorah-replacement-check.json`. Neither check completed a merchant-account payment.
 
-After explicit user approval, all 23 gateway settings were uploaded to the public Worker on 2026-09-11. Paymob's supplied API key was subsequently added for transaction inquiries. The deployed `/api/gateways` endpoint confirms the settings are present for all six configured gateways; Tap alone remains unconfigured. `/api/health` returned HTTP 200 with `ok: true` and `db: true`. MyFatoorah's rejected token still needs replacement despite passing the configuration-presence check. Paymob sale and refund settlement are verified below. Other provider checkout and callback flows, and a full sandbox scenario matrix, remain unverified.
+After explicit user approval, all 23 gateway settings were uploaded to the public Worker on 2026-09-11. Paymob's supplied API key was subsequently added for transaction inquiries. The deployed `/api/gateways` endpoint confirms the settings are present for all six configured gateways; Tap alone remains unconfigured. `/api/health` returned HTTP 200 with `ok: true` and `db: true`. MyFatoorah's supplied tokens did not pass authentication despite the configuration-presence check. Paymob sale/refund settlement and Moyasar card checkout/settlement are verified below. Other provider checkout and callback flows, and a full provider-account scenario matrix, remain unverified.
 
 ## Paymob settlement recovery — 2026-09-11
 

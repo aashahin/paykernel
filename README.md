@@ -23,6 +23,12 @@ Type-safe payment orchestration for **MENA + global** providers — **Moyasar, P
 - **Composable storage** — pick Postgres, Redis/Valkey/Upstash, SQLite, Turso/libSQL, D1, or Durable Objects. Core never mandates a store.
 - **Observable & testable** — redacting telemetry, OTEL bridge, and a full testkit with mock gateway + conformance harnesses.
 
+## Tested with provider sandbox accounts
+
+On **2026-09-11**, the deployed payment lab completed **Paymob payments plus full and partial refunds**, and a **Moyasar card payment with 3-D Secure**, using real provider sandbox accounts and authenticated settlement inquiries. Stripe and PayPal authentication/configuration checks also passed. These are sandbox results; account coverage varies by gateway.
+
+See the [gateway validation matrix](./docs/gateway-validation.md) for the exact tested flows, simulator coverage, and remaining account-test gaps, or read it on the [docs website](https://paykernel-docs.abshahin.workers.dev/guides/gateway-validation).
+
 ## Quick start
 
 ```bash
