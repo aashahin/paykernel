@@ -7,11 +7,11 @@ sidebar:
 
 `@paykernel/example-bun-hono-sqlite` is a **private** workspace host (`private: true`). It is **not** `@paykernel/integration-hono` and is **not** published. The [checkout kernel](/examples/checkout-kernel) owns checkout, inbox, and reconciliation. This package only maps HTTP.
 
-Source: [`examples/bun-hono-sqlite`](https://github.com/paykernel/paykernel/tree/main/examples/bun-hono-sqlite) ([README](https://github.com/paykernel/paykernel/blob/main/examples/bun-hono-sqlite/README.md)).
+Source: [`examples/bun-hono-sqlite`](https://github.com/aashahin/paykernel/tree/main/examples/bun-hono-sqlite) ([README](https://github.com/aashahin/paykernel/blob/main/examples/bun-hono-sqlite/README.md)).
 
 ## Mapping
 
-[`createHonoCheckoutApp`](https://github.com/paykernel/paykernel/blob/main/examples/bun-hono-sqlite/src/app.ts) builds a `Hono` from `createCheckoutHandlers` + [`honoWebhook`](/integrations/hono). Imports and Stripe route as in source:
+[`createHonoCheckoutApp`](https://github.com/aashahin/paykernel/blob/main/examples/bun-hono-sqlite/src/app.ts) builds a `Hono` from `createCheckoutHandlers` + [`honoWebhook`](/integrations/hono). Imports and Stripe route as in source:
 
 ```ts
 import { Hono } from "hono";

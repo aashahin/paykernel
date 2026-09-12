@@ -89,9 +89,9 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/paykernel/paykernel.git"
+    "url": "git+https://github.com/aashahin/paykernel.git"
   },
-  "homepage": "https://github.com/paykernel/paykernel#readme",
+  "homepage": "https://github.com/aashahin/paykernel#readme",
   "keywords": [
     "payments",
     "payment-orchestration",

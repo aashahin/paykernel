@@ -9,8 +9,8 @@ const nimbusConfig = defineNimbusConfig({
   description:
     "Type-safe payment orchestration for TypeScript (MENA providers + modern server runtimes).",
   locale: "en",
-  github: "https://github.com/paykernel/paykernel",
-  editPattern: "https://github.com/paykernel/paykernel/edit/main/apps/docs/{path}",
+  github: "https://github.com/aashahin/paykernel",
+  editPattern: "https://github.com/aashahin/paykernel/edit/main/apps/docs/{path}",
   socialImageAlt: "PayKernel documentation preview",
   sidebar: {
     items: [

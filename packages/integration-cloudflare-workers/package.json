@@ -60,18 +60,18 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/paykernel/paykernel.git",
+    "url": "git+https://github.com/aashahin/paykernel.git",
     "directory": "packages/integration-cloudflare-workers"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
-  "homepage": "https://github.com/paykernel/paykernel/tree/main/packages/integration-cloudflare-workers#readme",
+  "homepage": "https://github.com/aashahin/paykernel/tree/main/packages/integration-cloudflare-workers#readme",
   "paymentsSdk": {
     "portable": true
   },
   "bugs": {
-    "url": "https://github.com/paykernel/paykernel/issues"
+    "url": "https://github.com/aashahin/paykernel/issues"
   }
 }

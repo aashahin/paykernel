@@ -3,7 +3,7 @@
 [![npm version](https://img.shields.io/npm/v/@paykernel/core?label=%40paykernel%2Fcore&color=0ea5e9)](https://www.npmjs.com/package/@paykernel/core)
 [![npm downloads](https://img.shields.io/npm/dm/@paykernel/core?color=0ea5e9)](https://www.npmjs.com/package/@paykernel/core)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![CI](https://github.com/paykernel/paykernel/actions/workflows/ci.yml/badge.svg)](https://github.com/paykernel/paykernel/actions/workflows/ci.yml)
+[![CI](https://github.com/aashahin/paykernel/actions/workflows/ci.yml/badge.svg)](https://github.com/aashahin/paykernel/actions/workflows/ci.yml)
 [![Docs](https://img.shields.io/badge/docs-paykernel.dev-0ea5e9)](https://paykernel-docs.abshahin.workers.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue)](https://www.typescriptlang.org/)
 [![Node](https://img.shields.io/badge/Node-%3E%3D18-339933)](https://nodejs.org/)
@@ -13,7 +13,7 @@
 
 Type-safe payment orchestration for **MENA + global** providers — **Moyasar, PayPal, Paymob, Stripe, Tap, MyFatoorah, Hesabe** — with portable webhook inbox, reconciliation, and multi-store adapters. Built for modern server runtimes: **Node, Bun, Deno, Cloudflare Workers**.
 
-**Repository:** [paykernel/paykernel](https://github.com/paykernel/paykernel) · **npm scope:** [`@paykernel`](https://www.npmjs.com/org/paykernel) · **Docs:** [paykernel-docs.abshahin.workers.dev](https://paykernel-docs.abshahin.workers.dev) · **License:** MIT
+**Repository:** [aashahin/paykernel](https://github.com/aashahin/paykernel) · **npm scope:** [`@paykernel`](https://www.npmjs.com/org/paykernel) · **Docs:** [paykernel-docs.abshahin.workers.dev](https://paykernel-docs.abshahin.workers.dev) · **License:** MIT
 
 ## Why PayKernel
 

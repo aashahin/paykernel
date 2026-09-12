@@ -34,8 +34,8 @@ Repo root: the PayKernel monorepo. Docs site: `apps/docs` (Nimbus / Astro). Cont
 - Nimbus config (`astro.config.ts`):
   - `title`: PayKernel
   - `description`: Type-safe payment orchestration for TypeScript (MENA providers + modern server runtimes).
-  - `github`: `https://github.com/paykernel/paykernel`
-  - `editPattern`: `https://github.com/paykernel/paykernel/edit/main/{path}`
+  - `github`: `https://github.com/aashahin/paykernel`
+  - `editPattern`: `https://github.com/aashahin/paykernel/edit/main/{path}`
   - `site`: `https://paykernel-docs.abdelrahman.workers.dev` until wrangler prints the real `*.workers.dev` URL; then update.
 - Sidebar (scaffold owns `astro.config.ts` only):
 

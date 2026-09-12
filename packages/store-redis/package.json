@@ -87,19 +87,19 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/paykernel/paykernel.git",
+    "url": "git+https://github.com/aashahin/paykernel.git",
     "directory": "packages/store-redis"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
-  "homepage": "https://github.com/paykernel/paykernel/tree/main/packages/store-redis#readme",
+  "homepage": "https://github.com/aashahin/paykernel/tree/main/packages/store-redis#readme",
   "paymentsSdk": {
     "portable": false,
     "runtime": "node-or-bun"
   },
   "bugs": {
-    "url": "https://github.com/paykernel/paykernel/issues"
+    "url": "https://github.com/aashahin/paykernel/issues"
   }
 }

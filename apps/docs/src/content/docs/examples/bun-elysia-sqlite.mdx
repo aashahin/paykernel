@@ -7,11 +7,11 @@ sidebar:
 
 `@paykernel/example-bun-elysia-sqlite` is a **private** workspace host (`private: true`). It is **not** published and is **not** [`@paykernel/integration-elysia`](/integrations/elysia). The [checkout kernel](/examples/checkout-kernel) owns checkout, inbox, and reconciliation.
 
-Source: [`examples/bun-elysia-sqlite`](https://github.com/paykernel/paykernel/tree/main/examples/bun-elysia-sqlite) ([README](https://github.com/paykernel/paykernel/blob/main/examples/bun-elysia-sqlite/README.md)).
+Source: [`examples/bun-elysia-sqlite`](https://github.com/aashahin/paykernel/tree/main/examples/bun-elysia-sqlite) ([README](https://github.com/aashahin/paykernel/blob/main/examples/bun-elysia-sqlite/README.md)).
 
 ## Mapping
 
-[`createElysiaCheckoutApp`](https://github.com/paykernel/paykernel/blob/main/examples/bun-elysia-sqlite/src/app.ts) returns an `Elysia` instance. JSON routes use `parse: "none"` and `readRequestJson(request)`. Imports and Stripe route as in source:
+[`createElysiaCheckoutApp`](https://github.com/aashahin/paykernel/blob/main/examples/bun-elysia-sqlite/src/app.ts) returns an `Elysia` instance. JSON routes use `parse: "none"` and `readRequestJson(request)`. Imports and Stripe route as in source:
 
 ```ts
 import { Elysia } from "elysia";

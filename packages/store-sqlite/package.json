@@ -75,14 +75,14 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/paykernel/paykernel.git",
+    "url": "git+https://github.com/aashahin/paykernel.git",
     "directory": "packages/store-sqlite"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
-  "homepage": "https://github.com/paykernel/paykernel/tree/main/packages/store-sqlite#readme",
+  "homepage": "https://github.com/aashahin/paykernel/tree/main/packages/store-sqlite#readme",
   "paymentsSdk": {
     "portable": false,
     "runtime": "node-or-bun",
@@ -90,6 +90,6 @@
     "enginesNote": "engines.node >=18 is /bun + /better-sqlite3 + root types; ./node needs Node >=22.5.0"
   },
   "bugs": {
-    "url": "https://github.com/paykernel/paykernel/issues"
+    "url": "https://github.com/aashahin/paykernel/issues"
   }
 }

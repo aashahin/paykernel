@@ -13,12 +13,12 @@ Root `package.json` `"workspaces"` is `packages/*`, `internal/*`, `examples/*`, 
 
 Contributor-only files stay off the primary docs nav. Use GitHub:
 
-- [Monorepo DX](https://github.com/paykernel/paykernel/blob/main/docs/monorepo.md) — layout, commands, build order
-- [Workspace boundaries](https://github.com/paykernel/paykernel/blob/main/docs/workspace-boundaries.md) — `bun run check:boundaries`
-- [Releases](https://github.com/paykernel/paykernel/blob/main/docs/releases.md) — Changesets, provenance, prerelease
-- [Stability](https://github.com/paykernel/paykernel/blob/main/docs/stability.md) — semver, events, schema, runtimes
-- [Core baseline](https://github.com/paykernel/paykernel/blob/main/packages/core/docs/baseline/README.md) — generated public-api / pack inventory (not a product guide)
-- [roadmap.md](https://github.com/paykernel/paykernel/blob/main/roadmap.md) — completed phase log (0–25 shipped; Phase 23 leftover gateways). Not the consumer index
+- [Monorepo DX](https://github.com/aashahin/paykernel/blob/main/docs/monorepo.md) — layout, commands, build order
+- [Workspace boundaries](https://github.com/aashahin/paykernel/blob/main/docs/workspace-boundaries.md) — `bun run check:boundaries`
+- [Releases](https://github.com/aashahin/paykernel/blob/main/docs/releases.md) — Changesets, provenance, prerelease
+- [Stability](https://github.com/aashahin/paykernel/blob/main/docs/stability.md) — semver, events, schema, runtimes
+- [Core baseline](https://github.com/aashahin/paykernel/blob/main/packages/core/docs/baseline/README.md) — generated public-api / pack inventory (not a product guide)
+- [roadmap.md](https://github.com/aashahin/paykernel/blob/main/roadmap.md) — completed phase log (0–25 shipped; Phase 23 leftover gateways). Not the consumer index
 
 ## Install and commands
 
@@ -52,7 +52,7 @@ bun run build
 bun test
 ```
 
-Live adapter suites skip unless env is set (`PAYMENTS_SDK_PG_URL`, `PAYMENTS_SDK_REDIS_URL`, `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`, D1/DO harness vars). See [monorepo.md](https://github.com/paykernel/paykernel/blob/main/docs/monorepo.md).
+Live adapter suites skip unless env is set (`PAYMENTS_SDK_PG_URL`, `PAYMENTS_SDK_REDIS_URL`, `TURSO_DATABASE_URL` + `TURSO_AUTH_TOKEN`, D1/DO harness vars). See [monorepo.md](https://github.com/aashahin/paykernel/blob/main/docs/monorepo.md).
 
 Docs site (this app under `apps/docs`, `"private": true`, not in Changesets publish):
 
@@ -92,7 +92,7 @@ Honesty that reviewers will reject:
 - Test-hook `POST /internal/*` documented as production (`enableTestHooks` only)
 - HTTP status invented in `@paykernel/webhooks`
 
-No mermaid (Nimbus Sätteri does not run remark plugins). Use tables or ASCII. Do not paraphrase upstream PSP docs — [link out](https://github.com/paykernel/paykernel) from gateway pages and document only PayKernel’s mapping.
+No mermaid (Nimbus Sätteri does not run remark plugins). Use tables or ASCII. Do not paraphrase upstream PSP docs — [link out](https://github.com/aashahin/paykernel) from gateway pages and document only PayKernel’s mapping.
 
 ## Releases
 
@@ -104,8 +104,8 @@ bun run version-packages       # apply → version bump + CHANGELOG.md
 bun run release                # changeset publish (CI)
 ```
 
-CI publish uses npm provenance (OIDC). Do not `npm publish` from `internal/*`. Full pipeline: [releases.md](https://github.com/paykernel/paykernel/blob/main/docs/releases.md). Consumer-facing 1.0 policy: [stability.md](https://github.com/paykernel/paykernel/blob/main/docs/stability.md) (engines Node `>=18`, Bun `>=1.0.0`; Deno is Web-API-intended, **not CI-gated**).
+CI publish uses npm provenance (OIDC). Do not `npm publish` from `internal/*`. Full pipeline: [releases.md](https://github.com/aashahin/paykernel/blob/main/docs/releases.md). Consumer-facing 1.0 policy: [stability.md](https://github.com/aashahin/paykernel/blob/main/docs/stability.md) (engines Node `>=18`, Bun `>=1.0.0`; Deno is Web-API-intended, **not CI-gated**).
 
 ## License
 
-MIT. Repository: [paykernel/paykernel](https://github.com/paykernel/paykernel).
+MIT. Repository: [aashahin/paykernel](https://github.com/aashahin/paykernel).

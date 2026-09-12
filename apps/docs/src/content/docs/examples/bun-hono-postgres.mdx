@@ -7,13 +7,13 @@ sidebar:
 
 `@paykernel/example-bun-hono-postgres` is a **private** workspace host (`private: true`). It is **not** published. HTTP mapping is the same thin Hono adapter as [Bun + Hono + SQLite](/examples/bun-hono-sqlite). The difference is how tests and the listen script obtain stores.
 
-Source: [`examples/bun-hono-postgres`](https://github.com/paykernel/paykernel/tree/main/examples/bun-hono-postgres) ([README](https://github.com/paykernel/paykernel/blob/main/examples/bun-hono-postgres/README.md)).
+Source: [`examples/bun-hono-postgres`](https://github.com/aashahin/paykernel/tree/main/examples/bun-hono-postgres) ([README](https://github.com/aashahin/paykernel/blob/main/examples/bun-hono-postgres/README.md)).
 
 Postgres here means **durable inbox / recon / idempotency tables** on a shared cluster ([`@paykernel/store-postgres/pg`](/stores/postgres)). The charge gateway is still the kernel **mock**. No published adapter declares `coordinationScope: "multi-region"`. This host is still one Hono process.
 
 ## HTTP mapping
 
-[`src/app.ts`](https://github.com/paykernel/paykernel/blob/main/examples/bun-hono-postgres/src/app.ts) matches the sqlite Hono host: `createCheckoutHandlers` + `honoWebhook` from [`@paykernel/integration-hono`](/integrations/hono). Stripe HMAC is verified on `Request.text()`. Never `c.req.json()` on `/webhooks/stripe`. Status codes come from `mapInboxOutcome`, not [`@paykernel/webhooks`](/packages/webhooks). Never fulfill in `onWebhookVerified`.
+[`src/app.ts`](https://github.com/aashahin/paykernel/blob/main/examples/bun-hono-postgres/src/app.ts) matches the sqlite Hono host: `createCheckoutHandlers` + `honoWebhook` from [`@paykernel/integration-hono`](/integrations/hono). Stripe HMAC is verified on `Request.text()`. Never `c.req.json()` on `/webhooks/stripe`. Status codes come from `mapInboxOutcome`, not [`@paykernel/webhooks`](/packages/webhooks). Never fulfill in `onWebhookVerified`.
 
 Routes (same as other hosts):
 
@@ -30,7 +30,7 @@ Tests pass `{ enableTestHooks: true }`. Listen does not. Without the flag, inter
 
 ## Listen (Postgres required)
 
-[`src/index.ts`](https://github.com/paykernel/paykernel/blob/main/examples/bun-hono-postgres/src/index.ts) uses the **typed** `/pg` API (`{ client: pool }`), matching [Getting started](/guides/getting-started) and the store-postgres README:
+[`src/index.ts`](https://github.com/aashahin/paykernel/blob/main/examples/bun-hono-postgres/src/index.ts) uses the **typed** `/pg` API (`{ client: pool }`), matching [Getting started](/guides/getting-started) and the store-postgres README:
 
 ```ts
 import { createCheckoutKernel } from "@paykernel/example-checkout-kernel";
@@ -57,7 +57,7 @@ const kernel = await createCheckoutKernel({
 });
 ```
 
-`createPostgresStoresFromPg` is `{ client, clock?, namespace? }` — not `{ executor }` ([`packages/store-postgres/src/drivers/pg.ts`](https://github.com/paykernel/paykernel/blob/main/packages/store-postgres/src/drivers/pg.ts)).
+`createPostgresStoresFromPg` is `{ client, clock?, namespace? }` — not `{ executor }` ([`packages/store-postgres/src/drivers/pg.ts`](https://github.com/aashahin/paykernel/blob/main/packages/store-postgres/src/drivers/pg.ts)).
 
 Without `PAYMENTS_SDK_PG_URL` / `DATABASE_URL` the process **exits**. Set `ALLOW_MEMORY_FALLBACK=1` to fall back to the kernel’s in-memory SQLite (dev only, not a Postgres RC):
 
@@ -75,7 +75,7 @@ Listen does **not** enable test hooks. Do not deploy this example as-is.
 
 ## Tests
 
-Live Postgres is required for the checkout suite. When `PAYMENTS_SDK_PG_URL` (or `DATABASE_URL`) is unset, that suite is `describe.skipIf` — same honesty as [`packages/store-postgres/docs/testing.md`](https://github.com/paykernel/paykernel/blob/main/packages/store-postgres/docs/testing.md).
+Live Postgres is required for the checkout suite. When `PAYMENTS_SDK_PG_URL` (or `DATABASE_URL`) is unset, that suite is `describe.skipIf` — same honesty as [`packages/store-postgres/docs/testing.md`](https://github.com/aashahin/paykernel/blob/main/packages/store-postgres/docs/testing.md).
 
 ```bash
 docker compose -f ../../packages/store-postgres/docker-compose.yml up -d
@@ -87,7 +87,7 @@ From the monorepo root with no PG env, `bun test examples/bun-hono-postgres` sti
 Tests call `createHonoCheckoutApp(kernel)` and `app.fetch`. They do not start a listener.
 
 :::note[Test file vs typed `/pg` factory]
-[`src/app.test.ts`](https://github.com/paykernel/paykernel/blob/main/examples/bun-hono-postgres/src/app.test.ts) currently calls `createPostgresStoresFromPg({ executor, namespace: { tablePrefix: prefix } })` and imports from `packages/store-postgres/src/pg`. The public function requires `client: PgPoolLike`. The host README describes that test call; [Getting started](/guides/getting-started) and the listen script use `{ client: pool }`. **Code of `createPostgresStoresFromPg` wins** — copy the listen / getting-started shape.
+[`src/app.test.ts`](https://github.com/aashahin/paykernel/blob/main/examples/bun-hono-postgres/src/app.test.ts) currently calls `createPostgresStoresFromPg({ executor, namespace: { tablePrefix: prefix } })` and imports from `packages/store-postgres/src/pg`. The public function requires `client: PgPoolLike`. The host README describes that test call; [Getting started](/guides/getting-started) and the listen script use `{ client: pool }`. **Code of `createPostgresStoresFromPg` wins** — copy the listen / getting-started shape.
 :::
 
 The honesty tests still construct `createCheckoutKernel()` with **no** Postgres factory (in-memory sqlite) to assert `/internal/*` is `404` without `enableTestHooks`.

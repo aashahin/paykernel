@@ -7,11 +7,11 @@ sidebar:
 
 `@paykernel/example-cloudflare-workers-fetch` is a **private** workspace host (`private: true`). It is **not** published. The [checkout kernel](/examples/checkout-kernel) owns checkout, inbox, and reconciliation. This package maps `fetch`.
 
-Source: [`examples/cloudflare-workers-fetch`](https://github.com/paykernel/paykernel/tree/main/examples/cloudflare-workers-fetch) ([README](https://github.com/paykernel/paykernel/blob/main/examples/cloudflare-workers-fetch/README.md)). There is no Wrangler config and no `index.ts` in this example — tests in Bun only.
+Source: [`examples/cloudflare-workers-fetch`](https://github.com/aashahin/paykernel/tree/main/examples/cloudflare-workers-fetch) ([README](https://github.com/aashahin/paykernel/blob/main/examples/cloudflare-workers-fetch/README.md)). There is no Wrangler config and no `index.ts` in this example — tests in Bun only.
 
 ## Mapping
 
-[`createCloudflareCheckoutFetch`](https://github.com/paykernel/paykernel/blob/main/examples/cloudflare-workers-fetch/src/app.ts):
+[`createCloudflareCheckoutFetch`](https://github.com/aashahin/paykernel/blob/main/examples/cloudflare-workers-fetch/src/app.ts):
 
 ```ts
 import { handleCloudflareWebhook } from "@paykernel/integration-cloudflare-workers";
@@ -43,7 +43,7 @@ export function createCloudflareCheckoutFetch(
 }
 ```
 
-`handleCloudflareWebhook` reads `request.text()`, `request.headers`, and `URL.searchParams`, then `processWebhookHttp`. Correlation id is `x-request-id`, then `x-correlation-id`, then `cf-ray` ([`resolveCorrelationId`](https://github.com/paykernel/paykernel/blob/main/packages/integration-http/src/headers.ts)).
+`handleCloudflareWebhook` reads `request.text()`, `request.headers`, and `URL.searchParams`, then `processWebhookHttp`. Correlation id is `x-request-id`, then `x-correlation-id`, then `cf-ray` ([`resolveCorrelationId`](https://github.com/aashahin/paykernel/blob/main/packages/integration-http/src/headers.ts)).
 
 The helper **only** rejects non-`POST` with `405`. Callers **must** guard the path (`POST /webhooks/stripe`) before delegating. Without that guard every POST on the Worker would hit the Stripe verifier. This example already checks pathname.
 

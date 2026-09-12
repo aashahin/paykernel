@@ -7,11 +7,11 @@ sidebar:
 
 `@paykernel/example-checkout-kernel` is the shared checkout kernel for every HTTP example. It is a **private** workspace package (`private: true`, version `0.1.0`). It is **not** published. Hosts import its public helpers; they do not reimplement inbox HTTP mapping or Stripe signing.
 
-Source: [`examples/checkout-kernel`](https://github.com/paykernel/paykernel/tree/main/examples/checkout-kernel). There is no package README; this page follows `src/index.ts`, `kernel.ts`, `handlers.ts`, `http-policy.ts`, `stripe-webhook.ts`, and `scenarios.ts`.
+Source: [`examples/checkout-kernel`](https://github.com/aashahin/paykernel/tree/main/examples/checkout-kernel). There is no package README; this page follows `src/index.ts`, `kernel.ts`, `handlers.ts`, `http-policy.ts`, `stripe-webhook.ts`, and `scenarios.ts`.
 
 ## Public exports
 
-From [`src/index.ts`](https://github.com/paykernel/paykernel/blob/main/examples/checkout-kernel/src/index.ts) (`exports: { ".": "./src/index.ts" }`):
+From [`src/index.ts`](https://github.com/aashahin/paykernel/blob/main/examples/checkout-kernel/src/index.ts) (`exports: { ".": "./src/index.ts" }`):
 
 ```ts
 import {
@@ -38,7 +38,7 @@ import {
 
 ## What the kernel composes
 
-[`createCheckoutKernel`](https://github.com/paykernel/paykernel/blob/main/examples/checkout-kernel/src/kernel.ts) builds:
+[`createCheckoutKernel`](https://github.com/aashahin/paykernel/blob/main/examples/checkout-kernel/src/kernel.ts) builds:
 
 | Piece | Package | Role in this example |
 | --- | --- | --- |
@@ -105,7 +105,7 @@ Never fulfill in `onWebhookVerified`. `handleWebhook` verifies and normalizes; i
 
 ## HTTP status (`mapInboxOutcome`)
 
-Default policy in this kernel is `provider_redelivery` ([`packages/integration-http/src/http-policy.ts`](https://github.com/paykernel/paykernel/blob/main/packages/integration-http/src/http-policy.ts)):
+Default policy in this kernel is `provider_redelivery` ([`packages/integration-http/src/http-policy.ts`](https://github.com/aashahin/paykernel/blob/main/packages/integration-http/src/http-policy.ts)):
 
 | Inbox outcome | Status |
 | --- | --- |
@@ -121,7 +121,7 @@ Default policy in this kernel is `provider_redelivery` ([`packages/integration-h
 
 ## Route helpers
 
-[`createCheckoutHandlers`](https://github.com/paykernel/paykernel/blob/main/examples/checkout-kernel/src/handlers.ts) / `dispatchCheckoutRequest` / `createCheckoutFetchApp`:
+[`createCheckoutHandlers`](https://github.com/aashahin/paykernel/blob/main/examples/checkout-kernel/src/handlers.ts) / `dispatchCheckoutRequest` / `createCheckoutFetchApp`:
 
 ```ts
 const kernel = await createCheckoutKernel();
@@ -148,7 +148,7 @@ const res = await app.fetch(req);
 
 ## Stripe fixtures
 
-[`stripe-webhook.ts`](https://github.com/paykernel/paykernel/blob/main/examples/checkout-kernel/src/stripe-webhook.ts) builds sanitized PaymentIntent events and signs `t=<unix>,v1=<hmac-hex>` with `hmacSha256Hex` from core. Paid fixtures include `amount_received` and omit string `latest_charge` (an unexpanded charge id demotes domain status to `processing`). Checkout Session `cs_test_` / `cs_live_` ids fail `assertFixtureSafe` from [`@paykernel/testkit`](/packages/testkit). Use `signStripeWebhook` / `signedStripePaidWebhook` — do not copy HMAC helpers.
+[`stripe-webhook.ts`](https://github.com/aashahin/paykernel/blob/main/examples/checkout-kernel/src/stripe-webhook.ts) builds sanitized PaymentIntent events and signs `t=<unix>,v1=<hmac-hex>` with `hmacSha256Hex` from core. Paid fixtures include `amount_received` and omit string `latest_charge` (an unexpanded charge id demotes domain status to `processing`). Checkout Session `cs_test_` / `cs_live_` ids fail `assertFixtureSafe` from [`@paykernel/testkit`](/packages/testkit). Use `signStripeWebhook` / `signedStripePaidWebhook` — do not copy HMAC helpers.
 
 ## Shared HTTP scenarios
 

@@ -62,18 +62,18 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/paykernel/paykernel.git",
+    "url": "git+https://github.com/aashahin/paykernel.git",
     "directory": "packages/core"
   },
   "publishConfig": {
     "access": "public",
     "provenance": true
   },
-  "homepage": "https://github.com/paykernel/paykernel/tree/main/packages/core#readme",
+  "homepage": "https://github.com/aashahin/paykernel/tree/main/packages/core#readme",
   "dependencies": {
     "zod": "3.25.76"
   },
   "bugs": {
-    "url": "https://github.com/paykernel/paykernel/issues"
+    "url": "https://github.com/aashahin/paykernel/issues"
   }
 }

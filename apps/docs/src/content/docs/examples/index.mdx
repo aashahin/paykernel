@@ -5,7 +5,7 @@ sidebar:
   order: 1
 ---
 
-PayKernel ships **private** workspace apps under [`examples/`](https://github.com/paykernel/paykernel/tree/main/examples). They are consumer hosts, not SDK packages: `private: true`, never published. `packages/*` must not import `examples/*`.
+PayKernel ships **private** workspace apps under [`examples/`](https://github.com/aashahin/paykernel/tree/main/examples). They are consumer hosts, not SDK packages: `private: true`, never published. `packages/*` must not import `examples/*`.
 
 The shared kernel is [`@paykernel/example-checkout-kernel`](/examples/checkout-kernel). Five thin HTTP hosts map routes onto it. SDK packages used here are **published** (`core` 1.0.0, others 0.1.1) — `bun add @paykernel/core` works. Examples themselves are private (not published).
 
@@ -17,14 +17,14 @@ Local SQLite is **single-host**. Default kernels use in-memory Bun SQLite (`:mem
 
 | Directory | Package | Docs |
 | --- | --- | --- |
-| [`checkout-kernel`](https://github.com/paykernel/paykernel/tree/main/examples/checkout-kernel) | `@paykernel/example-checkout-kernel` | [Checkout kernel](/examples/checkout-kernel) |
-| [`bun-hono-sqlite`](https://github.com/paykernel/paykernel/tree/main/examples/bun-hono-sqlite) | `@paykernel/example-bun-hono-sqlite` | [Bun + Hono + SQLite](/examples/bun-hono-sqlite) |
-| [`bun-hono-postgres`](https://github.com/paykernel/paykernel/tree/main/examples/bun-hono-postgres) | `@paykernel/example-bun-hono-postgres` | [Bun + Hono + Postgres](/examples/bun-hono-postgres) |
-| [`bun-elysia-sqlite`](https://github.com/paykernel/paykernel/tree/main/examples/bun-elysia-sqlite) | `@paykernel/example-bun-elysia-sqlite` | [Bun + Elysia + SQLite](/examples/bun-elysia-sqlite) |
-| [`express-sqlite`](https://github.com/paykernel/paykernel/tree/main/examples/express-sqlite) | `@paykernel/example-express-sqlite` | [Express + SQLite](/examples/express-sqlite) |
-| [`cloudflare-workers-fetch`](https://github.com/paykernel/paykernel/tree/main/examples/cloudflare-workers-fetch) | `@paykernel/example-cloudflare-workers-fetch` | [Cloudflare Workers fetch](/examples/cloudflare-workers-fetch) |
+| [`checkout-kernel`](https://github.com/aashahin/paykernel/tree/main/examples/checkout-kernel) | `@paykernel/example-checkout-kernel` | [Checkout kernel](/examples/checkout-kernel) |
+| [`bun-hono-sqlite`](https://github.com/aashahin/paykernel/tree/main/examples/bun-hono-sqlite) | `@paykernel/example-bun-hono-sqlite` | [Bun + Hono + SQLite](/examples/bun-hono-sqlite) |
+| [`bun-hono-postgres`](https://github.com/aashahin/paykernel/tree/main/examples/bun-hono-postgres) | `@paykernel/example-bun-hono-postgres` | [Bun + Hono + Postgres](/examples/bun-hono-postgres) |
+| [`bun-elysia-sqlite`](https://github.com/aashahin/paykernel/tree/main/examples/bun-elysia-sqlite) | `@paykernel/example-bun-elysia-sqlite` | [Bun + Elysia + SQLite](/examples/bun-elysia-sqlite) |
+| [`express-sqlite`](https://github.com/aashahin/paykernel/tree/main/examples/express-sqlite) | `@paykernel/example-express-sqlite` | [Express + SQLite](/examples/express-sqlite) |
+| [`cloudflare-workers-fetch`](https://github.com/aashahin/paykernel/tree/main/examples/cloudflare-workers-fetch) | `@paykernel/example-cloudflare-workers-fetch` | [Cloudflare Workers fetch](/examples/cloudflare-workers-fetch) |
 
-Source index: [`examples/README.md`](https://github.com/paykernel/paykernel/blob/main/examples/README.md).
+Source index: [`examples/README.md`](https://github.com/aashahin/paykernel/blob/main/examples/README.md).
 
 ## Honesty
 
@@ -43,7 +43,7 @@ Hosts stay thin: `createCheckoutKernel()`, then `createCheckoutHandlers(kernel)`
 | --- | --- | --- |
 | `POST` | `/payments` | Create order + mock charge. Catalog amount only. Duplicate `orderId` → `409`. |
 | `POST` | `/webhooks/stripe` | Raw body + `stripe-signature`. Status from `mapInboxOutcome`. |
-| `GET` | `/orders/:orderId` | Order book lookup (`200` / `404`). Kernel dispatch uses this path; [`examples/README.md`](https://github.com/paykernel/paykernel/blob/main/examples/README.md) writes `/orders/:id`. |
+| `GET` | `/orders/:orderId` | Order book lookup (`200` / `404`). Kernel dispatch uses this path; [`examples/README.md`](https://github.com/aashahin/paykernel/blob/main/examples/README.md) writes `/orders/:id`. |
 | `POST` | `/internal/reconcile` | **Test hook.** Unauthenticated. Do not deploy. |
 | `POST` | `/internal/provider-paid` | **Test hook.** Injects a paid provider snapshot. Do not deploy. |
 | `GET` | `/internal/create-count` | **Test hook.** `createPayment` call count. Do not deploy. |
