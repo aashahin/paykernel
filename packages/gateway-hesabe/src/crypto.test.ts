@@ -33,6 +33,18 @@ function nodeEncryptBytesToHex(bytes: Buffer): string {
   return Buffer.concat([cipher.update(bytes), cipher.final()]).toString("hex");
 }
 
+function nodeEncryptLegacyHex(plaintext: string, corruptPadding = false): string {
+  const bytes = Buffer.from(plaintext, "utf8");
+  const pad = 32 - (bytes.length % 32);
+  const padding = Buffer.alloc(pad, pad);
+  if (corruptPadding) padding[0] = 0;
+  const cipher = createCipheriv("aes-256-cbc", Buffer.from(KEY), Buffer.from(IV));
+  cipher.setAutoPadding(false);
+  return Buffer.concat([cipher.update(Buffer.concat([bytes, padding])), cipher.final()]).toString(
+    "hex",
+  );
+}
+
 describe("hesabe AES-256-CBC fixtures", () => {
   it("decrypts the official docs vector", async () => {
     await expect(hesabeDecrypt(FIXTURE_HEX, KEY, IV, provider)).resolves.toBe(PLAINTEXT);
@@ -62,6 +74,35 @@ describe("hesabe AES-256-CBC fixtures", () => {
     expect(actualHex).toBe(expectedHex);
     await expect(hesabeDecrypt(expectedHex, KEY, IV, provider)).resolves.toBe(text);
     expect(nodeDecryptHex(actualHex)).toBe(text);
+  });
+});
+
+describe("Hesabe legacy 32-byte response padding", () => {
+  it.each([17, 23, 32])("decrypts a response with %i padding bytes", async (pad) => {
+    const plaintext = "x".repeat(32 - pad);
+    await expect(hesabeDecrypt(nodeEncryptLegacyHex(plaintext), KEY, IV, provider)).resolves.toBe(
+      plaintext,
+    );
+  });
+
+  it("parses a legacy padded JSON response", async () => {
+    await expect(
+      hesabeDecryptJson(nodeEncryptLegacyHex('{"ok":true}'), KEY, IV, provider),
+    ).resolves.toEqual({ ok: true });
+  });
+
+  it("rejects inconsistent legacy padding", async () => {
+    const ciphertext = nodeEncryptLegacyHex("123456789", true);
+    await expect(hesabeDecrypt(ciphertext, KEY, IV, provider)).rejects.toBeInstanceOf(
+      InvalidRequestError,
+    );
+  });
+
+  it("rejects a different 32-byte decryption key", async () => {
+    const ciphertext = nodeEncryptLegacyHex('{"ok":true}');
+    await expect(hesabeDecrypt(ciphertext, "x".repeat(32), IV, provider)).rejects.toBeInstanceOf(
+      InvalidRequestError,
+    );
   });
 });
 

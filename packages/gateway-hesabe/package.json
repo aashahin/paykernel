@@ -1,6 +1,6 @@
 {
   "name": "@paykernel/gateway-hesabe",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Portable Hesabe gateway adapter for @paykernel/core: encrypted checkout, transaction enquiry, merchant refunds, and enquiry-verified webhooks.",
   "type": "module",
   "main": "./dist/index.js",
