@@ -41,11 +41,14 @@ From `@paykernel/gateway-hesabe` (`packages/gateway-hesabe/src/index.ts`):
 | `HesabeCreatePaymentParams` | create payload (`hesabe*` fields) |
 | `HesabeRefundParams` | refund payload (`RefundParams`) |
 | `HesabeGetPaymentParams` | get payload (`GetPaymentParams`) |
+| `HesabeTransactionEnquiryParams` | exactly one of `token` / `orderReferenceNumber`, plus optional `signal` |
+| `HesabeTransactionEnquiryResult` | successful provider envelope with `data` and optional `results` |
+| `HesabeEnquiryTransaction` | transaction details with native field names and decimal amount strings |
 | `HesabeCallbackParams` | `{ data, signal? }` — encrypted callback query |
 | `HesabeGetRefundParams` | get-refund payload (`gatewayRefundId`) |
 | `HesabeWebhookPayload` | plain-JSON notification body |
 
-`HesabeGateway` methods: `createPayment`, `capturePayment` (throws), `refundPayment`, `getPayment`, `getRefund`, `resolveCallback`, `verifyWebhook` (always `false`), `verifyWebhookAsync`, `parseWebhookEvent`. Prefer `PaymentClient.handleWebhook("hesabe", …)` over calling verify/parse yourself. See [/guides/webhooks](/guides/webhooks).
+`HesabeGateway` methods: `createPayment`, `capturePayment` (throws), `refundPayment`, `getPayment`, `getTransactionEnquiry`, `getRefund`, `resolveCallback`, `verifyWebhook` (always `false`), `verifyWebhookAsync`, `parseWebhookEvent`. Prefer `PaymentClient.handleWebhook("hesabe", …)` over calling verify/parse yourself. See [/guides/webhooks](/guides/webhooks).
 
 ## Quickstart
 
@@ -144,7 +147,7 @@ Mutating 2xx with an unusable encrypted body (bad hex, bad block size, decrypt f
 
 ### Checkout IDs are not transaction tokens
 
-`checkout:<token>` identifies an **attempt**, not a money movement. `getPayment` and `refundPayment` reject any `gatewayPaymentId` that starts with `checkout:` and tell you to use the confirmed transaction token. The callback's `paymentToken` is that transaction token. The adapter exposes no lookup by checkout ID, so a checkout whose encrypted response body is lost has no transaction token to enquire with and may need merchant-side investigation. Persist the redirect URL before ACK.
+`checkout:<token>` identifies an **attempt**, not a money movement. `getPayment` and `refundPayment` reject any `gatewayPaymentId` that starts with `checkout:` and tell you to use the confirmed transaction token. The callback's `paymentToken` is that transaction token. `getTransactionEnquiry` also rejects checkout IDs as tokens, but accepts an order reference to look for resulting transactions. An absent match does not prove a lost checkout submission failed or make another submission safe. No enquiry recovers a checkout redirect; persist the redirect URL before ACK.
 
 ## Confirming a payment
 
@@ -181,6 +184,66 @@ Unknown enquiry statuses stay `pending` + `indeterminate` (“reconcile before t
 | anything else | `pending` | `indeterminate` — never treated as paid |
 
 Envelope `status: false` means the provider **rejected** the enquiry (`InvalidRequestError`); a malformed envelope, token mismatch, or malformed amount is a `NetworkError`. `gatewayId` is the transaction token; `references.orderId` / `internalReference` carry `reference_number`.
+
+## `getTransactionEnquiry`
+
+`getTransactionEnquiry` is unreleased and will ship in the next minor release after `0.1.1`.
+
+Call `payments.gateway("hesabe").getTransactionEnquiry(params)` for typed provider details or order-reference lookup. It is specific to the Hesabe adapter and does not invoke core operation hooks.
+
+```ts
+const hesabe = payments.gateway("hesabe");
+const byToken = await hesabe.getTransactionEnquiry({
+  token: confirmed.gatewayId,
+});
+const byOrder = await hesabe.getTransactionEnquiry({
+  orderReferenceNumber: "order-123",
+  // signal: abortController.signal,
+});
+
+// data is required; results may be absent or empty.
+const transactions = byOrder.results?.length ? byOrder.results : [byOrder.data];
+for (const transaction of transactions) {
+  console.log(transaction.token, transaction.amount, transaction.status);
+}
+```
+
+`HesabeTransactionEnquiryParams` accepts exactly one non-empty `token` or `orderReferenceNumber`, plus optional `signal`. Passing both, neither, the URL dot segments `.` / `..`, malformed Unicode, or a `checkout:`-prefixed token throws `InvalidRequestError` before any request. Use the confirmed transaction token for token lookup.
+
+`HesabeTransactionEnquiryResult` contains `status: true`, optional `message`, required `data`, and optional `results`. Both `data` and each result are `HesabeEnquiryTransaction` with required `token`, `reference_number`, `amount` (decimal string), and native `status`. Optional provider details retain their documented names: `TransactionID`, `Id`, `PaymentID`, `Terminal`, `TrackID`, `payment_type`, `service_type`, customer/card fields, and `datetime`. Documented nullable values remain `null`.
+
+`Id` is a positive safe integer or `null` when present; other optional details are strings or `null`. Amount strings retain provider decimal precision after trimming, while numeric provider amounts are validated and converted to decimal strings. Native status strings are trimmed without normalization. `datetime` retains the provider value with no inferred timezone.
+
+All entries must match the requested token or order reference. Results retain provider ordering, including multiple transactions for one order; the adapter neither selects a successful payment nor converts native statuses to core outcomes. Unknown native statuses are returned for application reconciliation. Use [`getPayment`](#getpayment) for the normalized payment API.
+
+| Failure | Error |
+| --- | --- |
+| Invalid selectors or checkout token | `InvalidRequestError` |
+| Provider envelope `status: false` | `InvalidRequestError` |
+| HTTP 404 | `ResourceNotFoundError` |
+| Malformed envelope/details/amount or token/order mismatch | `NetworkError` |
+
+```ts
+import { ResourceNotFoundError } from "@paykernel/core";
+
+try {
+  await hesabe.getTransactionEnquiry({ orderReferenceNumber: "order-123" });
+} catch (error) {
+  if (error instanceof ResourceNotFoundError) {
+    // Keep any uncertain reservation; no match does not prove submission failed.
+  } else {
+    throw error;
+  }
+}
+```
+
+The response is plain JSON. Requests use `GET https://{checkoutHost}/api/transaction/{encoded-identifier}` with `accessCode` and `Accept: application/json` headers. Order-reference lookup adds `?isOrderReference=1`. It uses the existing configured timeout, cancellation, and bounded GET retry policy, without merchant login or encryption.
+
+:::note[Order-reference transport assumption]
+The [current Hesabe guide](https://developer.hesabe.com/docs/guides/transaction-enquiry/) shows GET but asks for `isOrderReference=1` in the request body. Portable `fetch` cannot send a GET body, so the adapter sends the flag as a query parameter. Published sandbox token/order identifiers returned HTTP 404 during planning; successful order-reference interoperability remains unverified. Complete the token/order equivalence check in the [sandbox acceptance checklist](https://github.com/aashahin/paykernel/blob/main/packages/gateway-hesabe/docs/sandbox-acceptance.md) before claiming live validation.
+:::
+
+An enquiry only reads provider state. It does not fulfill an order, clear an uncertain reservation, or resubmit a checkout or refund.
 
 ## Webhooks
 
@@ -294,7 +357,7 @@ Merchant API calls (refunds, refund details) use a bearer token from a lazy, per
 
 ## Sandbox acceptance
 
-Offline tests cover documented fixtures and simulated failures; live merchant-account interoperability has **not** been validated. Before production use, complete [`docs/sandbox-acceptance.md`](https://github.com/aashahin/paykernel/blob/main/packages/gateway-hesabe/docs/sandbox-acceptance.md): real checkout + failed payment, encryption across several payload lengths, callback + enquiry agreement, notification verification and deduplication, full/partial refunds (methods `1` / `2`, pending → completed), token expiry/refresh, dropped responses (indeterminate + retained reservation), and two instances against the intended atomic store.
+Offline tests cover documented fixtures and simulated failures; live merchant-account interoperability has **not** been validated. Before production use, complete [`docs/sandbox-acceptance.md`](https://github.com/aashahin/paykernel/blob/main/packages/gateway-hesabe/docs/sandbox-acceptance.md): real checkout + failed payment, encryption across several payload lengths, callback + enquiry agreement, token/order-reference enquiry equivalence and multiple results, notification verification and deduplication, full/partial refunds (methods `1` / `2`, pending → completed), token expiry/refresh, dropped responses (indeterminate + retained reservation), and two instances against the intended atomic store.
 
 Protocol references: [indirect integration](https://developer.hesabe.com/docs/guides/hesabe-indirect-integration/), [transaction enquiry](https://developer.hesabe.com/docs/guides/transaction-enquiry/), [webhook integration](https://developer.hesabe.com/docs/guides/webhook-integration/), [merchant login](https://developer.hesabe.com/docs/api/post-merchant-login/), [refund request](https://developer.hesabe.com/docs/api/post-refund-request/), [refund details](https://developer.hesabe.com/docs/api/get-refund-details/), [encryption library](https://developer.hesabe.com/docs/guides/encryption-library/).
 

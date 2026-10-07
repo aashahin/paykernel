@@ -10,6 +10,7 @@ import {
 } from "@paykernel/core";
 import { parseHesabeKwdAmount } from "./money";
 import { mapHesabeEnquiryStatus } from "./status";
+import type { HesabeTransactionEnquiryParams } from "./types";
 
 export type HesabeTransaction = {
   token: string;
@@ -25,7 +26,10 @@ function asRecord(value: unknown): Record<string, unknown> | undefined {
   return undefined;
 }
 
-function requireOuterAccepted(envelope: unknown, context: string): Record<string, unknown> {
+export function requireHesabeAcceptedEnvelope(
+  envelope: unknown,
+  context: string,
+): Record<string, unknown> {
   const rec = asRecord(envelope);
   if (rec === undefined) {
     throw new NetworkError(`Hesabe ${context} response malformed`);
@@ -86,8 +90,15 @@ export function parseHesabeTransaction(
   if (expected === undefined) {
     throw new InvalidRequestError("Hesabe transaction lookup requires a token");
   }
-  const rec = requireOuterAccepted(envelope, "transaction enquiry");
-  const data = asRecord(rec.data);
+  const rec = requireHesabeAcceptedEnvelope(envelope, "transaction enquiry");
+  return parseHesabeTransactionData(rec.data, { token: expected });
+}
+
+export function parseHesabeTransactionData(
+  transactionData: unknown,
+  expected: HesabeTransactionEnquiryParams,
+): HesabeTransaction {
+  const data = asRecord(transactionData);
   if (data === undefined) {
     throw new NetworkError("Hesabe transaction enquiry response malformed");
   }
@@ -97,8 +108,14 @@ export function parseHesabeTransaction(
   if (token === undefined || referenceNumber === undefined || nativeStatus === undefined) {
     throw new NetworkError("Hesabe transaction enquiry response malformed");
   }
-  if (token !== expected) {
+  if (expected.token !== undefined && token !== expected.token) {
     throw new NetworkError("Hesabe transaction token mismatch");
+  }
+  if (
+    expected.orderReferenceNumber !== undefined &&
+    referenceNumber !== expected.orderReferenceNumber
+  ) {
+    throw new NetworkError("Hesabe transaction order reference mismatch");
   }
   let amount: Money;
   try {
@@ -161,7 +178,7 @@ export function parseHesabeRefund(
   envelope: unknown,
   expected: { id?: string; token?: string; amount?: Money },
 ): GatewayRefundResult {
-  const rec = requireOuterAccepted(envelope, "refund");
+  const rec = requireHesabeAcceptedEnvelope(envelope, "refund");
   const response = asRecord(rec.response);
   if (response === undefined) {
     throw new NetworkError("Hesabe refund response malformed");
@@ -231,7 +248,7 @@ export function parseHesabeCheckout(
   params: { orderId: string; amount: Money; baseUrl: string },
 ): GatewayPaymentResult {
   const { orderId, baseUrl } = params;
-  const rec = requireOuterAccepted(envelope, "checkout");
+  const rec = requireHesabeAcceptedEnvelope(envelope, "checkout");
   const response = asRecord(rec.response);
   if (response === undefined) {
     throw new NetworkError("Hesabe checkout response malformed");

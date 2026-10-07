@@ -41,14 +41,22 @@ import {
   parseHesabeCheckout,
   parseHesabeRefund,
   parseHesabeTransaction,
+  type HesabeTransaction,
 } from "./payment-map";
 import { isHesabeCallbackSuccess, mapHesabeEnquiryStatus } from "./status";
+import {
+  encodeHesabeEnquiryIdentifier,
+  normalizeHesabeEnquiryParams,
+  parseHesabeTransactionEnquiry,
+} from "./transaction-enquiry";
 import type {
   HesabeCallbackParams,
   HesabeCreatePaymentParams,
   HesabeGetPaymentParams,
   HesabeGetRefundParams,
   HesabeRefundParams,
+  HesabeTransactionEnquiryParams,
+  HesabeTransactionEnquiryResult,
 } from "./types";
 import {
   checkedHesabeWebhookFields,
@@ -197,6 +205,14 @@ export class HesabeGateway extends BaseGateway {
       const transaction = await this.enquireTransaction(token, signal);
       return hesabeTransactionResult(transaction);
     });
+  }
+
+  async getTransactionEnquiry(
+    params: HesabeTransactionEnquiryParams,
+  ): Promise<HesabeTransactionEnquiryResult> {
+    const selector = normalizeHesabeEnquiryParams(params);
+    const envelope = await this.transactionEnquiryResponse(selector);
+    return parseHesabeTransactionEnquiry(envelope, selector);
   }
 
   async refundPayment(params: HesabeRefundParams): Promise<GatewayRefundResult> {
@@ -535,29 +551,35 @@ export class HesabeGateway extends BaseGateway {
   private async enquireTransaction(
     token: string,
     signal?: AbortSignal,
-  ): Promise<{
-    token: string;
-    referenceNumber: string;
-    amount: Money;
-    nativeStatus: string;
-  }> {
+  ): Promise<HesabeTransaction> {
+    const envelope = await this.transactionEnquiryResponse({
+      token,
+      ...(signal === undefined ? {} : { signal }),
+    });
+    return parseHesabeTransaction(envelope, token);
+  }
+
+  private async transactionEnquiryResponse(
+    params: HesabeTransactionEnquiryParams,
+  ): Promise<unknown> {
     const checkoutBaseUrl = resolveHesabeCheckoutBaseUrl(this.hesabeConfig);
+    const identifier = params.token ?? params.orderReferenceNumber;
+    const encodedIdentifier = encodeHesabeEnquiryIdentifier(identifier);
+    const orderQuery = params.orderReferenceNumber === undefined ? "" : "?isOrderReference=1";
     const responseText = await hesabeReadRequest({
       fetch: this.fetch,
       timeoutMs: this.timeoutMs(),
-      url: `${checkoutBaseUrl}/api/transaction/${encodeURIComponent(token)}`,
+      url: `${checkoutBaseUrl}/api/transaction/${encodedIdentifier}${orderQuery}`,
       headers: {
         accessCode: this.hesabeConfig.accessCode,
         Accept: "application/json",
       },
-      ...(signal !== undefined ? { signal } : {}),
+      ...(params.signal === undefined ? {} : { signal: params.signal }),
     });
-    let envelope: unknown;
     try {
-      envelope = JSON.parse(responseText) as unknown;
+      return JSON.parse(responseText) as unknown;
     } catch {
       throw new NetworkError("Hesabe transaction enquiry returned invalid JSON");
     }
-    return parseHesabeTransaction(envelope, token);
   }
 }

@@ -65,6 +65,55 @@ const latest = await hesabe.getPayment({ gatewayPaymentId: confirmed.gatewayId }
 
 Unknown provider statuses require reconciliation. Never fulfill from a checkout redirect, a callback alone, or a successful HTTP response.
 
+## Transaction enquiry details
+
+`getTransactionEnquiry` is unreleased and will ship in the next minor release after `0.1.1`.
+
+Use the Hesabe-specific `getTransactionEnquiry` method when you need the provider's transaction details or an order-reference lookup:
+
+```ts
+const byToken = await hesabe.getTransactionEnquiry({
+  token: confirmed.gatewayId, // confirmed transaction token, not a checkout ID
+});
+const byOrder = await hesabe.getTransactionEnquiry({
+  orderReferenceNumber: "order-123",
+  // signal: abortController.signal,
+});
+
+// data is always present; results is optional and may be empty.
+const transactions = byOrder.results?.length ? byOrder.results : [byOrder.data];
+for (const transaction of transactions) {
+  // Match the order and amount before deciding how to reconcile each transaction.
+  console.log(transaction.token, transaction.amount, transaction.status);
+}
+```
+
+`HesabeTransactionEnquiryParams` accepts exactly one of `token` or `orderReferenceNumber`, plus optional `signal`. Empty identifiers, the URL dot segments `.` / `..`, malformed Unicode, both/neither selector, and `checkout:`-prefixed tokens throw `InvalidRequestError` before a request. The method is available on `payments.gateway("hesabe")`; it is a provider-specific API and does not invoke core operation hooks.
+
+`HesabeTransactionEnquiryResult` contains `status: true`, optional `message`, required `data: HesabeEnquiryTransaction`, and optional `results: HesabeEnquiryTransaction[]`. It preserves provider field names, native status strings, nullable customer/card details, and result ordering. Amount strings retain their decimal precision after trimming; numeric provider amounts are validated and converted to decimal strings. Every returned transaction must match the requested token or order reference. The adapter returns every result and does not choose a successful payment. Use `getPayment` for the existing normalized payment result.
+
+Handle an unknown token or order reference separately from an unavailable or malformed response:
+
+```ts
+import { ResourceNotFoundError } from "@paykernel/core";
+
+try {
+  await hesabe.getTransactionEnquiry({ orderReferenceNumber: "order-123" });
+} catch (error) {
+  if (error instanceof ResourceNotFoundError) {
+    // No transaction was found. Retain any uncertain checkout reservation.
+  } else {
+    throw error;
+  }
+}
+```
+
+Provider rejection (`status: false`) throws `InvalidRequestError`; malformed details or identity mismatches throw `NetworkError`. HTTP 404 throws `ResourceNotFoundError`. Enquiries use the configured timeout, caller cancellation, and bounded GET retries, with no merchant login or encrypted request.
+
+Token lookup uses `GET /api/transaction/{encoded-token}` with `accessCode` and `Accept: application/json` headers. Order lookup uses the encoded order reference and `?isOrderReference=1`. The [Hesabe guide](https://developer.hesabe.com/docs/guides/transaction-enquiry/) shows GET but asks for that flag in the request body; this adapter sends it as a query parameter because portable `fetch` cannot send a GET body. Successful order-reference interoperability remains unverified: the published sandbox identifiers returned HTTP 404 during planning. Complete the token/order equivalence check in the [sandbox checklist](./docs/sandbox-acceptance.md) before treating it as live-validated.
+
+Enquiries only inspect provider state. They do not fulfill orders, clear uncertain reservations, or retry checkout/refund submissions.
+
 ## Webhooks
 
 Use `payments.handleWebhook("hesabe", payload)` or call `verifyWebhookAsync(payload)` before `parseWebhookEvent(payload)`. Synchronous `verifyWebhook` always returns `false` because Hesabe does not document a webhook signature.
@@ -95,7 +144,7 @@ Every checkout and refund requires a stable `idempotencyKey` and the configured 
 
 The adapter fingerprints effective provider parameters, rejects changed parameters or concurrent requests under the same key, and replays completed results. Eligible GET failures use the SDK’s bounded retry policy (up to three attempts, with backoff and Retry-After). It never automatically resubmits a checkout or refund. A failure after submission can return `indeterminate` with `reconciliationRequired: true`; its reservation stays blocked. A local persistence failure after provider acceptance also requires reconciliation.
 
-Retain uncertain reservations beyond your retry horizon; do not let a generic TTL reopen an unresolved payment or refund. Reconcile with Hesabe and your order records before clearing a reservation or choosing a new mutation key. A checkout submission whose response was lost may require merchant-side investigation because the API has not returned a transaction token.
+Retain uncertain reservations beyond your retry horizon; do not let a generic TTL reopen an unresolved payment or refund. Reconcile with Hesabe and your order records before clearing a reservation or choosing a new mutation key. If a checkout response was lost, an order-reference enquiry may locate resulting transactions. An absent match does not make another submission safe, and merchant-side investigation may still be needed.
 
 ## Supported capabilities
 
