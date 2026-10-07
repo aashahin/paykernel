@@ -1,4 +1,7 @@
 import { describe, expect, it } from "bun:test";
+import { createCipheriv } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   createPaymentClient,
   createPaymentRuntime,
@@ -9,10 +12,15 @@ import {
   PaymentAbortedError,
   money,
 } from "@paykernel/core";
-import { hesabeGateway, type HesabeConfig } from "./index";
+import { HESABE_ADAPTER_VERSION, hesabeGateway, type HesabeConfig } from "./index";
 import { hesabeEncrypt, hesabeDecryptJson } from "./crypto";
 
 const cryptoProvider = createPaymentRuntime().crypto;
+const packageVersion = (
+  JSON.parse(readFileSync(join(import.meta.dir, "..", "package.json"), "utf8")) as {
+    version: string;
+  }
+).version;
 const config = (overrides: Partial<HesabeConfig> = {}): HesabeConfig => ({
   merchantCode: "842217",
   accessCode: "test-access",
@@ -51,6 +59,17 @@ async function encrypted(value: unknown): Promise<string> {
   const c = config();
   return hesabeEncrypt(JSON.stringify(value), c.encryptionKey, c.ivKey, cryptoProvider);
 }
+function legacyEncrypted(value: unknown): string {
+  const c = config();
+  const bytes = Buffer.from(JSON.stringify(value));
+  const pad = 32 - (bytes.length % 32);
+  const cipher = createCipheriv("aes-256-cbc", Buffer.from(c.encryptionKey), Buffer.from(c.ivKey));
+  cipher.setAutoPadding(false);
+  return Buffer.concat([
+    cipher.update(Buffer.concat([bytes, Buffer.alloc(pad, pad)])),
+    cipher.final(),
+  ]).toString("hex");
+}
 async function decode(body: unknown): Promise<Record<string, unknown>> {
   const c = config();
   return (await hesabeDecryptJson(
@@ -81,6 +100,8 @@ const json = (body: unknown) => Response.json(body);
 describe("Hesabe adapter integration", () => {
   it("registers without network or credential exposure", () => {
     const adapter = hesabeGateway(config());
+    expect(HESABE_ADAPTER_VERSION).toBe(packageVersion);
+    expect(adapter.manifest.version).toBe(packageVersion);
     expect(JSON.stringify(adapter)).not.toContain("test-password");
     expect(JSON.stringify(adapter)).not.toContain("test-access");
     const { gateway, calls } = setup(() => {
@@ -117,6 +138,16 @@ describe("Hesabe adapter integration", () => {
     await expect(
       gateway.createPayment({ ...createParams(), amount: money("11", "KWD") }),
     ).rejects.toBeInstanceOf(InvalidRequestError);
+  });
+  it("opens checkout from Hesabe's legacy padded response", async () => {
+    const { gateway, calls } = setup(
+      () => new Response(legacyEncrypted({ status: true, response: { data: "session" } })),
+    );
+    const result = await gateway.createPayment(createParams());
+    expect(result.outcome).toBe("requires_action");
+    expect(result.gatewayId).toBe("checkout:session");
+    expect(result.redirectUrl).toBe("https://sandbox.hesabe.com/payment?data=session");
+    expect(calls).toHaveLength(1);
   });
   it.each([
     { name: "missing idempotency key", change: { idempotencyKey: "" } },

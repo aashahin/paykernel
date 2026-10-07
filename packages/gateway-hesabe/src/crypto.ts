@@ -46,6 +46,19 @@ function assertHexPayload(hex: string): Uint8Array {
   return bytes;
 }
 
+function stripLegacyPadding(padded: Uint8Array): ArrayBuffer {
+  const pad = padded.at(-1) ?? 0;
+  if (
+    padded.length % 32 !== 0 ||
+    pad < 17 ||
+    pad > 32 ||
+    !padded.slice(-pad).every((byte) => byte === pad)
+  ) {
+    throw new Error("Invalid legacy padding");
+  }
+  return padded.slice(0, -pad).buffer as ArrayBuffer;
+}
+
 async function importAesKey(
   subtle: SubtleCrypto,
   key: string,
@@ -92,8 +105,9 @@ export async function hesabeEncrypt(
 }
 
 /**
- * Standard AES-256-CBC / PKCS#7 decrypt from hex. Rejects bad hex, bad
- * block size, padding failures, and non-UTF8 plaintext.
+ * AES-256-CBC decrypt from hex. Hesabe also emits a legacy 32-byte padded
+ * response; accept that form only when normal PKCS#7 decryption fails.
+ * Reject bad hex, block size, padding, and non-UTF8 plaintext.
  */
 export async function hesabeDecrypt(
   hex: string,
@@ -112,10 +126,32 @@ export async function hesabeDecrypt(
       bytes as BufferSource,
     );
   } catch (error) {
-    if (error instanceof Error) {
-      throw new InvalidRequestError("Hesabe payload failed to decrypt");
+    try {
+      // WebCrypto always removes PKCS#7 padding. Append one valid AES-CBC
+      // block so it removes only that block, exposing Hesabe's original bytes.
+      const encryptKey = await importAesKey(subtle, key, "encrypt");
+      const finalBlock = await subtle.encrypt(
+        { name: "AES-CBC", iv: bytes.slice(-16) as BufferSource },
+        encryptKey,
+        new Uint8Array(0),
+      );
+      const extended = new Uint8Array(bytes.length + 16);
+      extended.set(bytes);
+      extended.set(new Uint8Array(finalBlock), bytes.length);
+      const padded = new Uint8Array(
+        await subtle.decrypt(
+          { name: "AES-CBC", iv: ivBytes(iv) as BufferSource },
+          imported,
+          extended as BufferSource,
+        ),
+      );
+      plain = stripLegacyPadding(padded);
+    } catch {
+      if (error instanceof Error) {
+        throw new InvalidRequestError("Hesabe payload failed to decrypt");
+      }
+      throw error;
     }
-    throw error;
   }
   try {
     return new TextDecoder("utf-8", { fatal: true }).decode(plain);

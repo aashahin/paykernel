@@ -1,5 +1,11 @@
 # @paykernel/gateway-hesabe
 
+## 0.1.2
+
+### Patch Changes
+
+- Accept Hesabe's legacy 32-byte padded encrypted responses, including checkout tokens, while rejecting malformed padding.
+
 ## 0.1.1
 
 ### Patch Changes
