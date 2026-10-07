@@ -2,12 +2,12 @@
 
 Hesabe adapter for `@paykernel/core`, supporting KWD hosted payments, transaction enquiry, confirmed callbacks, enquiry-verified webhooks, and full/partial refunds. Register it as an external adapter; it does not extend core's built-in gateway names.
 
-This adapter is version `0.1.2`. Complete the [sandbox acceptance checklist](./docs/sandbox-acceptance.md) before production use.
+This documentation describes adapter version `0.2.0`. Live sandbox interoperability has not been validated — complete the [sandbox acceptance checklist](./docs/sandbox-acceptance.md) before production use.
 
 ## Setup
 
 ```sh
-bun add @paykernel/core @paykernel/gateway-hesabe
+bun add @paykernel/core @paykernel/gateway-hesabe@0.2.0
 ```
 
 ```ts
@@ -67,7 +67,7 @@ Unknown provider statuses require reconciliation. Never fulfill from a checkout 
 
 ## Transaction enquiry details
 
-`getTransactionEnquiry` is unreleased and will ship in the next minor release after `0.1.1`.
+`getTransactionEnquiry` was introduced in `0.2.0` and requires that version or newer.
 
 Use the Hesabe-specific `getTransactionEnquiry` method when you need the provider's transaction details or an order-reference lookup:
 
