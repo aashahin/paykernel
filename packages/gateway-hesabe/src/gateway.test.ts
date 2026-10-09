@@ -11,8 +11,16 @@ import {
   OperationNotSupportedError,
   PaymentAbortedError,
   money,
+  type PaymentHooks,
 } from "@paykernel/core";
-import { HESABE_ADAPTER_VERSION, hesabeGateway, type HesabeConfig } from "./index";
+import {
+  HESABE_ADAPTER_VERSION,
+  hesabeGateway,
+  isHesabeApplePayAction,
+  isHesabeEmbeddedCheckoutAction,
+  type HesabeConfig,
+  type HesabeCreatePaymentParams,
+} from "./index";
 import { hesabeEncrypt, hesabeDecryptJson } from "./crypto";
 
 const cryptoProvider = createPaymentRuntime().crypto;
@@ -82,10 +90,12 @@ async function decode(body: unknown): Promise<Record<string, unknown>> {
 function setup(
   handler: (url: string, init: RequestInit) => Response | Promise<Response>,
   overrides: Partial<HesabeConfig> = {},
+  hooks: PaymentHooks = {},
 ) {
   const calls: { url: string; init: RequestInit }[] = [];
   const client = createPaymentClient({
     gateways: { hesabe: hesabeGateway(config(overrides)) },
+    hooks,
     runtime: {
       fetch: (async (url, init) => {
         calls.push({ url: String(url), init: init ?? {} });
@@ -97,11 +107,18 @@ function setup(
 }
 const json = (body: unknown) => Response.json(body);
 
+const browserCheckouts = [
+  { hesabeCheckoutMode: "embedded" },
+  { hesabeCheckoutMode: "applepay", hesabeApplePayDomain: "shop.example" },
+] as const;
+const checkoutModes = [{ hesabeCheckoutMode: "redirect" }, ...browserCheckouts] as const;
+
 describe("Hesabe adapter integration", () => {
   it("registers without network or credential exposure", () => {
     const adapter = hesabeGateway(config());
     expect(HESABE_ADAPTER_VERSION).toBe(packageVersion);
     expect(adapter.manifest.version).toBe(packageVersion);
+    expect(adapter.manifest.apiVersion).toBe("2.0/3.0");
     expect(JSON.stringify(adapter)).not.toContain("test-password");
     expect(JSON.stringify(adapter)).not.toContain("test-access");
     const { gateway, calls } = setup(() => {
@@ -134,6 +151,9 @@ describe("Hesabe adapter integration", () => {
       failureUrl: "https://shop.example/callback",
     });
     expect(await gateway.createPayment(createParams())).toEqual(result);
+    expect(
+      await gateway.createPayment({ ...createParams(), hesabeCheckoutMode: "redirect" }),
+    ).toEqual(result);
     expect(calls).toHaveLength(1);
     await expect(
       gateway.createPayment({ ...createParams(), amount: money("11", "KWD") }),
@@ -176,39 +196,46 @@ describe("Hesabe adapter integration", () => {
     );
     expect(calls).toHaveLength(0);
   });
-  it("fences concurrent checkout requests across instances sharing a store", async () => {
-    let release!: () => void;
-    const gate = new Promise<void>((resolve) => {
-      release = resolve;
-    });
-    const store = new InMemoryIdempotencyStore();
-    let started!: () => void;
-    const submitted = new Promise<void>((resolve) => {
-      started = resolve;
-    });
-    const first = setup(
-      async () => {
-        started();
-        await gate;
-        return new Response(await encrypted({ status: true, response: { data: "session" } }));
-      },
-      { idempotencyStore: store },
-    );
-    const second = setup(
-      () => {
-        throw new Error("duplicate");
-      },
-      { idempotencyStore: store },
-    );
-    const pending = first.gateway.createPayment(createParams());
-    await submitted;
-    await expect(second.gateway.createPayment(createParams())).rejects.toBeInstanceOf(
-      InvalidRequestError,
-    );
-    release();
-    await pending;
-    expect(second.calls).toHaveLength(0);
-  });
+  it.each([...checkoutModes])(
+    "fences concurrent $hesabeCheckoutMode requests across instances sharing a store",
+    async (options) => {
+      let release!: () => void;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const store = new InMemoryIdempotencyStore();
+      let started!: () => void;
+      const submitted = new Promise<void>((resolve) => {
+        started = resolve;
+      });
+      const first = setup(
+        async () => {
+          started();
+          await gate;
+          return new Response(await encrypted({ status: true, response: { data: "session" } }));
+        },
+        { idempotencyStore: store },
+      );
+      const second = setup(
+        () => {
+          throw new Error("duplicate");
+        },
+        { idempotencyStore: store },
+      );
+      const params = { ...createParams(), ...options };
+      const pending = first.gateway.createPayment(params);
+      await submitted;
+      try {
+        await expect(second.gateway.createPayment(params)).rejects.toBeInstanceOf(
+          InvalidRequestError,
+        );
+        expect(second.calls).toHaveLength(0);
+      } finally {
+        release();
+        await pending;
+      }
+    },
+  );
   it.each([
     {
       name: "transport error",
@@ -361,6 +388,245 @@ describe("Hesabe adapter integration", () => {
   });
 });
 
+describe("Hesabe browser checkout initialization", () => {
+  it.each(
+    browserCheckouts.flatMap((options) => [
+      { options, live: false, baseUrl: "https://sandbox.hesabe.com", environment: "sandbox" },
+      { options, live: true, baseUrl: "https://api.hesabe.com", environment: "production" },
+    ]),
+  )(
+    "initializes $options.hesabeCheckoutMode in $environment without reporting settlement",
+    async ({ options, live, baseUrl, environment }) => {
+      let payload: Record<string, unknown> = {};
+      const checkoutToken = "session +/&=?";
+      const { client, gateway, calls } = setup(
+        async (_url, init) => {
+          payload = await decode(init.body);
+          return new Response(
+            await encrypted({ status: true, response: { data: checkoutToken }, private: "hidden" }),
+          );
+        },
+        { live },
+      );
+      const params = {
+        ...createParams(),
+        ...options,
+        hesabeName: "Aïcha",
+        hesabeEmail: "customer@example.com",
+        hesabeMobileNumber: "12345678",
+        hesabeVariable1: "cart__123",
+        hesabeWebhookUrl: "https://shop.example/webhook",
+        hesabeFailureUrl: "https://shop.example/failed",
+      };
+      const result = await client.createPayment(params, "hesabe");
+      expect(calls[0]?.url).toBe(`${baseUrl}/checkout`);
+      expect(payload).toMatchObject({
+        amount: "10.000",
+        currency: "KWD",
+        orderReferenceNumber: "order-1",
+        responseUrl: "https://shop.example/callback",
+        failureUrl: "https://shop.example/failed",
+        webhookUrl: "https://shop.example/webhook",
+        name: "Aïcha",
+        email: "customer@example.com",
+        mobile_number: "12345678",
+        variable1: "cart__123",
+      });
+      expect(result.outcome).toBe("requires_action");
+      expect(result.status).toBe("pending");
+      expect(result.capturedAmount).toBeUndefined();
+      expect(result.redirectUrl).toBeUndefined();
+      expect(result.gatewayId).toBe(`checkout:${checkoutToken}`);
+      expect(result.references?.relatedIds?.checkoutToken).toBe(checkoutToken);
+      expect(result.amount).toEqual(money("10", "KWD"));
+      expect(result.rawResponse).toEqual({ checkoutToken });
+      if (options.hesabeCheckoutMode === "embedded") {
+        expect(payload).toMatchObject({ paymentType: 0, version: "3.0", embeddedPayment: true });
+        expect(isHesabeEmbeddedCheckoutAction(result.nextAction)).toBe(true);
+        expect(result.nextAction).toEqual({
+          type: "hesabe_embedded_checkout",
+          sessionId: checkoutToken,
+          environment,
+        });
+      } else {
+        expect(payload).toMatchObject({
+          paymentType: 9,
+          version: "2.0",
+          variable5: "shop.example",
+        });
+        expect(payload).not.toHaveProperty("embeddedPayment");
+        expect(isHesabeApplePayAction(result.nextAction)).toBe(true);
+        expect(result.nextAction).toEqual({
+          type: "hesabe_apple_pay",
+          checkoutToken,
+          environment,
+          scriptUrl: `${baseUrl}/applepay?data=session%20%2B%2F%26%3D%3F`,
+        });
+      }
+      expect(await gateway.createPayment(params)).toEqual(result);
+      expect(calls).toHaveLength(1);
+    },
+  );
+
+  it.each([9, 10, 11, 12, 13, 14] as const)(
+    "selects Apple Pay type %s and normalizes the merchant domain",
+    async (paymentType) => {
+      let payload: Record<string, unknown> = {};
+      const { gateway } = setup(async (_url, init) => {
+        payload = await decode(init.body);
+        return new Response(await encrypted({ status: true, response: { data: "session" } }));
+      });
+      const params: HesabeCreatePaymentParams = {
+        ...createParams(),
+        hesabeCheckoutMode: "applepay",
+        hesabeApplePayDomain: " Shop.Example ",
+        hesabeApplePayPaymentType: paymentType,
+      };
+      const result = await gateway.createPayment(params);
+      expect(payload).toMatchObject({ paymentType, variable5: "shop.example" });
+      expect(isHesabeApplePayAction(result.nextAction)).toBe(true);
+    },
+  );
+
+  it.each([
+    { name: "unknown mode", fields: { hesabeCheckoutMode: "other" } },
+    { name: "null mode", fields: { hesabeCheckoutMode: null } },
+    { name: "Apple Pay domain without mode", fields: { hesabeApplePayDomain: "shop.example" } },
+    {
+      name: "Apple Pay type in embedded mode",
+      fields: { hesabeCheckoutMode: "embedded", hesabeApplePayPaymentType: 9 },
+    },
+    { name: "missing domain", fields: { hesabeCheckoutMode: "applepay" } },
+    ...[
+      "",
+      "https://shop.example",
+      "shop.example/path",
+      "shop.example:443",
+      "user@shop.example",
+      "shop.example?x=1",
+      "shop.example#fragment",
+      "shop..example",
+      "-shop.example",
+      "shop.example\\path",
+      "shop\n.example",
+      `${"a".repeat(64)}.example`,
+      `${"a.".repeat(125)}test`,
+    ].map((domain) => ({
+      name: `invalid domain ${domain}`,
+      fields: { hesabeCheckoutMode: "applepay", hesabeApplePayDomain: domain },
+    })),
+    ...[0, 15, "9", null].map((paymentType) => ({
+      name: `invalid Apple Pay type ${String(paymentType)}`,
+      fields: {
+        hesabeCheckoutMode: "applepay",
+        hesabeApplePayDomain: "shop.example",
+        hesabeApplePayPaymentType: paymentType,
+      },
+    })),
+    {
+      name: "reserved variable5",
+      fields: {
+        hesabeCheckoutMode: "applepay",
+        hesabeApplePayDomain: "shop.example",
+        hesabeVariable5: "shop.example",
+      },
+    },
+  ])("rejects $name before contacting the provider", async ({ fields }) => {
+    const { gateway, calls } = setup(() => {
+      throw new Error("unexpected request");
+    });
+    // JS callers and hook-supplied input do not carry TypeScript's discriminated union.
+    const params = { ...createParams(), ...fields } as HesabeCreatePaymentParams;
+    await expect(gateway.createPayment(params)).rejects.toBeInstanceOf(InvalidRequestError);
+    expect(calls).toHaveLength(0);
+  });
+
+  it.each([
+    { from: { hesabeCheckoutMode: "redirect" }, to: { hesabeCheckoutMode: "embedded" } },
+    { from: browserCheckouts[0], to: browserCheckouts[1] },
+    { from: browserCheckouts[1], to: browserCheckouts[0] },
+    {
+      from: browserCheckouts[1],
+      to: { ...browserCheckouts[1], hesabeApplePayDomain: "other.example" },
+    },
+    { from: browserCheckouts[1], to: { ...browserCheckouts[1], hesabeApplePayPaymentType: 10 } },
+  ] as const)(
+    "does not reuse an idempotency key after changing $from to $to",
+    async ({ from, to }) => {
+      const { gateway, calls } = setup(
+        async () => new Response(await encrypted({ status: true, response: { data: "session" } })),
+      );
+      await gateway.createPayment({ ...createParams(), ...from });
+      await expect(gateway.createPayment({ ...createParams(), ...to })).rejects.toBeInstanceOf(
+        InvalidRequestError,
+      );
+      expect(calls).toHaveLength(1);
+    },
+  );
+
+  it.each([...browserCheckouts])(
+    "keeps $hesabeCheckoutMode indeterminate after an unusable response",
+    async (options) => {
+      const { gateway, calls } = setup(
+        async () => new Response(await encrypted({ status: true, response: { data: "" } })),
+      );
+      const params = { ...createParams(), ...options };
+      const result = await gateway.createPayment(params);
+      expect(result.outcome).toBe("indeterminate");
+      expect(result.reconciliationRequired).toBe(true);
+      expect(result.nextAction).toBeUndefined();
+      expect(result.redirectUrl).toBeUndefined();
+      await expect(gateway.createPayment(params)).rejects.toBeInstanceOf(InvalidRequestError);
+      expect(calls).toHaveLength(1);
+    },
+  );
+
+  it.each([...browserCheckouts])(
+    "retains $hesabeCheckoutMode reservations when the transport times out",
+    async (options) => {
+      const { gateway, calls } = setup(() => new Promise<Response>(() => {}), { timeoutMs: 10 });
+      const params = { ...createParams(), ...options };
+      expect((await gateway.createPayment(params)).outcome).toBe("indeterminate");
+      await expect(gateway.createPayment(params)).rejects.toBeInstanceOf(InvalidRequestError);
+      expect(calls).toHaveLength(1);
+    },
+  );
+
+  it("builds the action from the post-hook mode and protects it from after-hook mutation", async () => {
+    let payload: Record<string, unknown> = {};
+    const { gateway, calls } = setup(
+      async (_url, init) => {
+        payload = await decode(init.body);
+        return new Response(await encrypted({ status: true, response: { data: "session" } }));
+      },
+      {},
+      {
+        beforeCreatePayment: (ctx) => ({
+          proceed: true,
+          params: { ...ctx.params, ...browserCheckouts[1] },
+        }),
+        afterCreatePayment: (_ctx, result) => {
+          result.status = "paid";
+          result.outcome = "succeeded";
+          if (isHesabeApplePayAction(result.nextAction))
+            result.nextAction.scriptUrl = "https://other.example/script";
+          return { proceed: true, modifiedResult: result };
+        },
+      },
+    );
+    const result = await gateway.createPayment(createParams());
+    expect(payload).toMatchObject({ paymentType: 9, version: "2.0", variable5: "shop.example" });
+    expect(result.outcome).toBe("requires_action");
+    expect(result.status).toBe("pending");
+    expect(result.nextAction).toMatchObject({
+      type: "hesabe_apple_pay",
+      scriptUrl: "https://sandbox.hesabe.com/applepay?data=session",
+    });
+    expect(await gateway.createPayment(createParams())).toEqual(result);
+    expect(calls).toHaveLength(1);
+  });
+});
+
 it("full refunds use original enquiry amount and retain uncertain submissions", async () => {
   let posted: Record<string, unknown> | undefined;
   const { gateway, calls } = setup(async (url, init) => {
@@ -455,18 +721,22 @@ it("holds confirmed webhook snapshots between verify and parse", async () => {
   expect(event.event?.type).toBe("payment.succeeded");
 });
 
-it("pre-aborted checkout makes no fetch and the same key can be used later", async () => {
-  const { gateway, calls } = setup(
-    async () => new Response(await encrypted({ status: true, response: { data: "session" } })),
-  );
-  const controller = new AbortController();
-  controller.abort();
-  await expect(
-    gateway.createPayment({ ...createParams(), signal: controller.signal }),
-  ).rejects.toThrow();
-  expect(calls).toHaveLength(0);
-  expect((await gateway.createPayment(createParams())).outcome).toBe("requires_action");
-});
+it.each([...checkoutModes])(
+  "pre-aborted $hesabeCheckoutMode makes no fetch and the same key can be used later",
+  async (options) => {
+    const { gateway, calls } = setup(
+      async () => new Response(await encrypted({ status: true, response: { data: "session" } })),
+    );
+    const controller = new AbortController();
+    controller.abort();
+    const params = { ...createParams(), ...options };
+    await expect(
+      gateway.createPayment({ ...params, signal: controller.signal }),
+    ).rejects.toBeInstanceOf(PaymentAbortedError);
+    expect(calls).toHaveLength(0);
+    expect((await gateway.createPayment(params)).outcome).toBe("requires_action");
+  },
+);
 
 it("does not cache definitive success when storing its result fails", async () => {
   const store = new InMemoryIdempotencyStore();

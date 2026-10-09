@@ -7,7 +7,14 @@ import {
 } from "@paykernel/core";
 import {
   hesabeGateway,
+  isHesabeApplePayAction,
+  isHesabeEmbeddedCheckoutAction,
+  type HesabeApplePayAction,
+  type HesabeApplePayPaymentType,
+  type HesabeCheckoutMode,
   type HesabeConfig,
+  type HesabeCreatePaymentParams,
+  type HesabeEmbeddedCheckoutAction,
   type HesabeEnquiryTransaction,
   type HesabeGateway,
   type HesabeTransactionEnquiryParams,
@@ -95,3 +102,56 @@ function verifyTransactionEnquiryTypes() {
   });
 }
 void verifyTransactionEnquiryTypes;
+
+async function verifyCheckoutModes() {
+  const base = {
+    amount: money("10", "KWD"),
+    currency: "KWD",
+    callbackUrl: "https://shop.example/callback",
+    orderId: "order",
+    idempotencyKey: "checkout-order",
+  };
+  const mode: HesabeCheckoutMode = "embedded";
+  const paymentType: HesabeApplePayPaymentType = 11;
+  const params: HesabeCreatePaymentParams = {
+    ...base,
+    hesabeCheckoutMode: "applepay",
+    hesabeApplePayDomain: "shop.example",
+    hesabeApplePayPaymentType: paymentType,
+  };
+  void client.createPayment({ ...base, hesabeCheckoutMode: mode, hesabeVariable5: "custom" });
+  void client.createPayment(params, "hesabe");
+  void gateway.createPayment(params);
+  const result = await client.createPayment(params);
+  if (isHesabeApplePayAction(result.nextAction)) {
+    const action: HesabeApplePayAction = result.nextAction;
+    const token: string = action.checkoutToken;
+    const script: string = action.scriptUrl;
+    void [token, script];
+  }
+  if (isHesabeEmbeddedCheckoutAction(result.nextAction)) {
+    const action: HesabeEmbeddedCheckoutAction = result.nextAction;
+    const session: string = action.sessionId;
+    const environment: "sandbox" | "production" = action.environment;
+    void [session, environment];
+  }
+  // @ts-expect-error Direct Apple Pay must identify its merchant domain.
+  void client.createPayment({ ...base, hesabeCheckoutMode: "applepay" });
+  // @ts-expect-error Apple Pay options cannot silently fall back to redirect mode.
+  void gateway.createPayment({ ...base, hesabeApplePayDomain: "shop.example" });
+  const embeddedWithApplePayType = {
+    ...base,
+    hesabeCheckoutMode: "embedded",
+    hesabeApplePayPaymentType: 9,
+  } as const;
+  // @ts-expect-error Embedded checkout does not accept direct Apple Pay types.
+  void client.createPayment(embeddedWithApplePayType);
+  // @ts-expect-error Provider type 15 is a subscription, not Apple Pay.
+  void gateway.createPayment({ ...params, hesabeApplePayPaymentType: 15 });
+  // @ts-expect-error Direct Apple Pay reserves variable5 for its domain.
+  void client.createPayment({ ...params, hesabeVariable5: "custom" }, "hesabe");
+  // @ts-expect-error Checkout modes stay out of core's common input.
+  const core: CreatePaymentParams = { ...base, hesabeCheckoutMode: "embedded" };
+  void core;
+}
+void verifyCheckoutModes;

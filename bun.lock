@@ -198,7 +198,7 @@
     },
     "packages/gateway-hesabe": {
       "name": "@paykernel/gateway-hesabe",
-      "version": "0.2.0",
+      "version": "0.3.0",
       "dependencies": {
         "@paykernel/core": "^1.0.0",
       },

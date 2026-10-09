@@ -1,7 +1,7 @@
 {
   "name": "@paykernel/gateway-hesabe",
-  "version": "0.2.0",
-  "description": "Portable Hesabe gateway adapter for @paykernel/core: encrypted checkout, transaction enquiry, merchant refunds, and enquiry-verified webhooks.",
+  "version": "0.3.0",
+  "description": "Portable Hesabe gateway adapter for @paykernel/core: redirect and embedded checkout, direct Apple Pay, transaction enquiry, refunds, and enquiry-verified webhooks.",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -22,8 +22,8 @@
     "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm --packages external && bun run build:types",
     "build:types": "tsc --emitDeclarationOnly --declaration --outDir dist",
     "test": "bun test",
-    "typecheck": "tsc --noEmit",
-    "typecheck:types": "tsc -p tsconfig.type-tests.json --noEmit",
+    "typecheck": "bun check -p tsconfig.json",
+    "typecheck:types": "bun check -p tsconfig.type-tests.json",
     "publint": "publint",
     "attw": "attw --pack . --profile esm-only --ignore-rules internal-resolution-error",
     "prepublishOnly": "bun run build"

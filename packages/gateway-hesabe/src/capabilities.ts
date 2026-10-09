@@ -5,12 +5,13 @@ import {
 } from "@paykernel/core";
 
 /** Adapter package version — must match `packages/gateway-hesabe/package.json`. */
-export const HESABE_ADAPTER_VERSION = "0.2.0";
+export const HESABE_ADAPTER_VERSION = "0.3.0";
 
 /**
  * Conservative Hesabe claims for this adapter surface.
  *
- * Checkout is a hosted redirect (not a first-class Checkout Session product).
+ * Checkout uses createPayment with redirect, embedded, or Apple Pay actions
+ * (not the core Checkout Session API).
  * Authorize / capture / void, tokenization, customers, payment methods,
  * splits, disputes, links, and recurring are not implemented.
  */

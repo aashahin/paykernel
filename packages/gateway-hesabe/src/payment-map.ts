@@ -9,8 +9,9 @@ import {
   type Money,
 } from "@paykernel/core";
 import { parseHesabeKwdAmount } from "./money";
+import { hesabeCheckoutAction } from "./checkout";
 import { mapHesabeEnquiryStatus } from "./status";
-import type { HesabeTransactionEnquiryParams } from "./types";
+import type { HesabeCheckoutMode, HesabeTransactionEnquiryParams } from "./types";
 
 export type HesabeTransaction = {
   token: string;
@@ -245,7 +246,7 @@ export function parseHesabeRefund(
  */
 export function parseHesabeCheckout(
   envelope: unknown,
-  params: { orderId: string; amount: Money; baseUrl: string },
+  params: { orderId: string; amount: Money; baseUrl: string; checkoutMode?: HesabeCheckoutMode },
 ): GatewayPaymentResult {
   const { orderId, baseUrl } = params;
   const rec = requireHesabeAcceptedEnvelope(envelope, "checkout");
@@ -258,8 +259,12 @@ export function parseHesabeCheckout(
     throw new NetworkError("Hesabe checkout response malformed");
   }
   const gatewayId = `checkout:${checkoutToken}`;
-  const normalizedBase = baseUrl.replace(/\/+$/, "");
-  const redirectUrl = `${normalizedBase}/payment?data=${encodeURIComponent(checkoutToken)}`;
+  const nextAction = hesabeCheckoutAction(
+    params.checkoutMode ?? "redirect",
+    checkoutToken,
+    baseUrl,
+  );
+  const redirectUrl = nextAction.type === "redirect" ? nextAction.url : undefined;
   const rawResponse = { checkoutToken };
   const references = buildProviderReferences({
     gateway: "hesabe",
@@ -284,9 +289,9 @@ export function parseHesabeCheckout(
       internalReference: orderId,
       relatedIds: { checkoutToken },
       redirectUrl,
-      nextAction: { type: "redirect", url: redirectUrl },
+      nextAction,
     },
     "requires_action",
-    { action: { type: "redirect", url: redirectUrl } },
+    { action: nextAction },
   );
 }

@@ -16,7 +16,7 @@ export function hesabeGateway(config: HesabeConfig): GatewayAdapter<"hesabe", He
       name: "hesabe",
       displayName: "Hesabe",
       version: HESABE_ADAPTER_VERSION,
-      apiVersion: "2.0",
+      apiVersion: "2.0/3.0",
       capabilities: HESABE_CAPABILITIES,
     },
     create(context: GatewayContext) {

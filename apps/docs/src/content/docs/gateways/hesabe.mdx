@@ -1,13 +1,13 @@
 ---
 title: Hesabe
-description: Extra package @paykernel/gateway-hesabe — KWD hosted checkout, transaction enquiry, enquiry-verified webhooks, and refunds for createPaymentClient.
+description: Extra package @paykernel/gateway-hesabe — KWD redirect and embedded checkout, direct Apple Pay, transaction enquiry, verified webhooks, and refunds.
 sidebar:
   order: 8
 ---
 
-`@paykernel/gateway-hesabe` is a portable extra adapter (`GatewayAdapter<"hesabe", HesabeGateway>`) you pass into [`createPaymentClient`](/packages/core). It is **not** a `BuiltInGatewayName` (`"moyasar" | "paypal" | "paymob" | "stripe"`). Core does not import this package. This page describes package version `0.2.0`.
+`@paykernel/gateway-hesabe` is a portable extra adapter (`GatewayAdapter<"hesabe", HesabeGateway>`) you pass into [`createPaymentClient`](/packages/core). It is **not** a `BuiltInGatewayName` (`"moyasar" | "paypal" | "paymob" | "stripe"`). Core does not import this package. This page describes package version `0.3.0`, which introduces embedded checkout, direct Apple Pay, and their action guards.
 
-Runtime dependency is `@paykernel/core` only. Manifest `apiVersion` is `"2.0"`. Surface: encrypted KWD hosted checkout, transaction enquiry, encrypted callback resolution, enquiry-verified notifications, and merchant refunds. Secrets stay closed over by `hesabeGateway` — they are never copied onto the gateway context or manifest.
+Runtime dependency is `@paykernel/core` only. Updated manifest `apiVersion` is `"2.0/3.0"`. Surface: encrypted KWD redirect checkout, embedded Hosted Checkout, direct Apple Pay, transaction enquiry, encrypted callback resolution, enquiry-verified notifications, and merchant refunds. Secrets stay closed over by `hesabeGateway` — they are never copied onto the gateway context or manifest.
 
 `gatewayId` from `createPayment` is a **checkout** ID (`checkout:<checkoutToken>`). A transaction token (from `resolveCallback`, `getPayment`, or a verified webhook) is a different identifier and is the only one accepted by `getPayment` / `refundPayment`.
 
@@ -21,10 +21,10 @@ Do not `import { hesabeGateway } from "@paykernel/core"`. Register the adapter y
 
 ## Install
 
-Package name `@paykernel/gateway-hesabe`, export `"."` only (`./dist/index.js`). Source package version is `0.2.0`.
+Package name `@paykernel/gateway-hesabe`, export `"."` only (`./dist/index.js`). Source package version is `0.3.0`.
 
 ```bash
-bun add @paykernel/gateway-hesabe@0.2.0 @paykernel/core
+bun add @paykernel/gateway-hesabe@0.3.0 @paykernel/core
 ```
 
 ## Public exports
@@ -35,10 +35,14 @@ From `@paykernel/gateway-hesabe` (`packages/gateway-hesabe/src/index.ts`):
 | --- | --- |
 | `hesabeGateway` | factory → `GatewayAdapter<"hesabe", HesabeGateway>` |
 | `HesabeGateway` | class (`name: "hesabe"`) |
-| `HESABE_ADAPTER_VERSION` | `"0.2.0"` — `manifest.version`, matches `package.json` |
+| `HESABE_ADAPTER_VERSION` | `"0.3.0"` — `manifest.version`, matches `package.json` |
 | `HESABE_CAPABILITIES` | frozen capability map |
 | `HesabeConfig` | config type |
 | `HesabeCreatePaymentParams` | create payload (`hesabe*` fields) |
+| `HesabeCheckoutMode` | `"redirect" \| "embedded" \| "applepay"` (since 0.3.0) |
+| `HesabeApplePayPaymentType` | `9 \| 10 \| 11 \| 12 \| 13 \| 14` (since 0.3.0) |
+| `HesabeEmbeddedCheckoutAction` / `HesabeApplePayAction` | typed browser initialization data (since 0.3.0) |
+| `isHesabeEmbeddedCheckoutAction` / `isHesabeApplePayAction` | narrow `nextAction` by its complete shape (since 0.3.0) |
 | `HesabeRefundParams` | refund payload (`RefundParams`) |
 | `HesabeGetPaymentParams` | get payload (`GetPaymentParams`) |
 | `HesabeTransactionEnquiryParams` | exactly one of `token` / `orderReferenceNumber`, plus optional `signal` |
@@ -124,7 +128,7 @@ Claimed: `payments`, `immediateCapture`, `refunds`, `partialRefunds`.
 
 Unclaimed (fail-closed): `authorization`, `partialCapture`, `voids`, `hostedCheckout`, `tokenization`, `customers`, `paymentMethods`, `marketplaceSplits`, `disputes`, `paymentLinks`, `providerRecurring`.
 
-The hosted payment page is a **redirect**, not a first-class Checkout Session product, so `hostedCheckout` stays `false`. Query with `gateway.supports("partialRefunds")` etc. See [/reference/capabilities](/reference/capabilities).
+Redirect, embedded, and Apple Pay flows use `createPayment` and its provider-specific actions. The core Checkout Session API is not implemented, so `hostedCheckout` stays `false`. Query with `gateway.supports("partialRefunds")` etc. See [/reference/capabilities](/reference/capabilities).
 
 ## Charges
 
@@ -132,11 +136,11 @@ The hosted payment page is a **redirect**, not a first-class Checkout Session pr
 
 Required: `amount` (positive KWD `Money`, at most 3 decimals), `currency` (`KWD`), `orderId`, `idempotencyKey`, HTTPS `callbackUrl`.
 
-Encrypted payload: `merchantCode`, `amount` (decimal string such as `"10.000"`), `currency: "KWD"`, `paymentType: 0` (indirect), `version: "2.0"`, `orderReferenceNumber` (`orderId`), `responseUrl` (`callbackUrl`), `failureUrl` (`hesabeFailureUrl`, default `callbackUrl`), optional `webhookUrl` (`hesabeWebhookUrl` or config `webhookUrl`), optional `name` / `email` / `mobile_number` / `variable1`–`variable5`.
+Default redirect payload: `merchantCode`, `amount` (decimal string such as `"10.000"`), `currency: "KWD"`, `paymentType: 0` (indirect), `version: "2.0"`, `orderReferenceNumber` (`orderId`), `responseUrl` (`callbackUrl`), `failureUrl` (`hesabeFailureUrl`, default `callbackUrl`), optional `webhookUrl` (`hesabeWebhookUrl` or config `webhookUrl`), optional `name` / `email` / `mobile_number` / `variable1`–`variable5`.
 
 Optional params: `hesabeName`, `hesabeEmail`, `hesabeMobileNumber` (exactly **8 digits**, no country code), `hesabeWebhookUrl`, `hesabeFailureUrl`, `hesabeVariable1`–`hesabeVariable5`. Every URL is asserted HTTPS before any request; a non-HTTPS `callbackUrl` / `hesabeFailureUrl` / `hesabeWebhookUrl` throws `InvalidRequestError`. Checkout response envelope: `{ status: true, response: { data: "<checkoutToken>" } }` (`code` is not required — the provider docs are inconsistent).
 
-Success mapping (always a redirect, never a settlement):
+Default redirect mapping (initialization, never settlement):
 
 - `gatewayId` = `checkout:<checkoutToken>`
 - `status` = `pending`, `outcome` = `requires_action`
@@ -144,6 +148,54 @@ Success mapping (always a redirect, never a settlement):
 - `references.relatedIds.checkoutToken` carries the raw checkout token; `providerNativeStatus` = `"CHECKOUT"`
 
 Mutating 2xx with an unusable encrypted body (bad hex, bad block size, decrypt failure, non-JSON) is a protocol failure: because it happens after submission it surfaces as `indeterminate`, not as a hard error.
+
+### Embedded Hosted Checkout and direct Apple Pay (since 0.3.0)
+
+`HesabeCreatePaymentParams` accepts these additional options. Existing calls remain redirects; explicitly setting `hesabeCheckoutMode: "redirect"` also preserves existing idempotency fingerprints.
+
+| Option | Contract |
+| --- | --- |
+| `hesabeCheckoutMode` | `"redirect"` (default), `"embedded"`, or `"applepay"` |
+| `hesabeApplePayDomain` | Required only for `applepay`. Bare merchant hostname, trimmed/lowercased and sent as `variable5`; use punycode for internationalized names. URLs, paths, ports, and invalid DNS labels are rejected. |
+| `hesabeApplePayPaymentType` | Optional only for `applepay`: `9` (MPGS, default), `10` (CYBS), `11` (KNET debit), `12` (KNET credit), `13` (KNET international), `14` (AMEX international). Must be enabled on the account. |
+
+Apple Pay fields on another mode, invalid mode/type values, and any independent `hesabeVariable5` on direct Apple Pay throw `InvalidRequestError` before a request. The discriminated input type also rejects invalid combinations.
+
+| Mode | Provider fields | Browser handoff |
+| --- | --- | --- |
+| `embedded` | `version: "3.0"`, `paymentType: 0`, `embeddedPayment: true` | `nextAction: { type: "hesabe_embedded_checkout", sessionId, environment }`. Pass `sessionId` as the embedded SDK's `sessionID`. |
+| `applepay` | `version: "2.0"`, selected `paymentType`, merchant hostname in `variable5` | `nextAction: { type: "hesabe_apple_pay", checkoutToken, environment, scriptUrl }`. `scriptUrl` is `https://{checkoutHost}/applepay?data=<encoded-token>`. |
+
+Both return `requires_action` / `pending` with the same checkout references as redirect mode and an undefined `redirectUrl`. `environment` is `"sandbox"` or `"production"` from the adapter's `live` configuration. They retain the existing hooks, cancellation, idempotency reservations, and enquiry-based confirmation.
+
+Using the server-side client from Quickstart:
+
+```ts
+import { isHesabeApplePayAction } from "@paykernel/gateway-hesabe";
+
+const result = await payments.createPayment({
+  amount: money("10.000", "KWD"),
+  currency: "KWD",
+  orderId: "order-applepay-123",
+  idempotencyKey: "checkout-applepay-123",
+  callbackUrl: "https://merchant.example/hesabe/callback",
+  hesabeCheckoutMode: "applepay",
+  hesabeApplePayDomain: "merchant.example",
+  hesabeApplePayPaymentType: 9,
+});
+if (result.outcome === "indeterminate") {
+  throw new Error("Checkout submission is uncertain; reconcile before retrying");
+}
+if (result.outcome !== "requires_action" || !isHesabeApplePayAction(result.nextAction)) {
+  throw new Error("Apple Pay was not initialized");
+}
+const action = result.nextAction;
+// Return action as JSON through your application's authenticated checkout endpoint.
+```
+
+For embedded checkout, set `hesabeCheckoutMode: "embedded"`, omit the Apple Pay-only fields, and narrow with `isHesabeEmbeddedCheckoutAction`. Select account-enabled `paymentTypes` such as `["knet", "card", "applepay"]` in Hesabe's browser SDK. KNET still redirects. The [package examples](https://github.com/aashahin/paykernel/tree/main/packages/gateway-hesabe#checkout-modes) show both browser integrations, including the required payment container and script loading. Guards check shape, not provenance: use initialization data from your trusted backend and keep credentials server-side.
+
+The [Hosted Checkout guide](https://developer.hesabe.com/docs/guides/embedded-payments/) specifies version `3.0`; its long example still shows `2.0`. The adapter uses the parameter specification without automatic version fallback. Embedded and direct Apple Pay sandbox verification remains outstanding. Follow Hesabe's [Apple Pay setup](https://developer.hesabe.com/docs/guides/direct-apple-pay/) for account activation, domain whitelisting, and the verification file. Browser callbacks are not settlement evidence; confirm through the backend's existing callback/enquiry or verified webhook flow.
 
 ### Checkout IDs are not transaction tokens
 
@@ -322,6 +374,8 @@ The reservation key is `sha256("hesabe", baseUrl, merchantCode, "create" | "refu
 | Ambiguous post-submit failure | Reservation retained; result is `indeterminate` with `reconciliationRequired`. |
 | Provider accepted, local persistence failed | `indeterminate` with `gatewayId` / `gatewayRefundId` preserved. |
 
+Changing checkout mode, Apple Pay type, or merchant domain changes the effective payload and rejects reuse of the same idempotency key. Persist the returned `nextAction` for embedded and Apple Pay flows; replay returns the same initialization data.
+
 The adapter **never** automatically resubmits a checkout or refund. Checkout and refund POSTs are single-attempt; only GET enquiries retry. Retain uncertain reservations beyond your retry horizon — do not let a generic TTL reopen an unresolved payment or refund — and reconcile with Hesabe and your order records before clearing a reservation or minting a new mutation key.
 
 :::caution
@@ -365,7 +419,7 @@ Protocol references: [indirect integration](https://developer.hesabe.com/docs/gu
 
 - Keep `merchantCode`, `accessCode`, `encryptionKey`, `ivKey`, `username`, and `password` on the backend. They never appear on the manifest or in errors.
 - Use the **live** flag deliberately: sandbox and live hosts are different merchant APIs, and the reservation key includes the base URL.
-- Persist the checkout `redirectUrl` before ACK; a pending checkout redirect cannot be recovered from the API.
+- Persist the checkout `redirectUrl` or browser `nextAction` before ACK; a lost initialization response cannot be recovered from the API.
 - `checkout:` IDs are not transaction tokens. Treat them as attempt handles only.
 - Fulfill only from `status === "paid"` after callback/enquiry agreement **and** a claimed webhook, and check order ownership and amount first.
 - Refund acceptance is not settlement — confirm with `getRefund` (`status: 1` + `refund_at`) or a verified notification.

@@ -1,5 +1,11 @@
 # @paykernel/gateway-hesabe
 
+## 0.3.0
+
+### Minor Changes
+
+- Add embedded Hosted Checkout and direct Apple Pay modes to createPayment, with typed browser initialization actions and guards. Preserve redirect defaults, idempotency reservations, and enquiry-based payment confirmation.
+
 ## 0.2.0
 
 ### Minor Changes
@@ -37,8 +43,3 @@
 - 5921bee: Add the portable Hesabe adapter for KWD redirect payments, transaction enquiry,
   enquiry-verified notifications, and full or partial refunds with atomic mutation
   reservations.
-
-## Unreleased
-
-- Add the Hesabe adapter for KWD redirect payments, transaction enquiry, callbacks,
-  enquiry-verified notifications, and merchant refunds.

@@ -1,13 +1,13 @@
 # @paykernel/gateway-hesabe
 
-Hesabe adapter for `@paykernel/core`, supporting KWD hosted payments, transaction enquiry, confirmed callbacks, enquiry-verified webhooks, and full/partial refunds. Register it as an external adapter; it does not extend core's built-in gateway names.
+Hesabe adapter for `@paykernel/core`, supporting KWD redirect payments, embedded Hosted Checkout, direct Apple Pay, transaction enquiry, confirmed callbacks, enquiry-verified webhooks, and full/partial refunds. Register it as an external adapter; it does not extend core's built-in gateway names.
 
-This documentation describes adapter version `0.2.0`. Live sandbox interoperability has not been validated — complete the [sandbox acceptance checklist](./docs/sandbox-acceptance.md) before production use.
+This documentation describes adapter version `0.3.0`, which introduces embedded checkout, direct Apple Pay, and their action guards. Live sandbox interoperability has not been validated — complete the [sandbox acceptance checklist](./docs/sandbox-acceptance.md) before production use.
 
 ## Setup
 
 ```sh
-bun add @paykernel/core @paykernel/gateway-hesabe@0.2.0
+bun add @paykernel/core @paykernel/gateway-hesabe@0.3.0
 ```
 
 ```ts
@@ -44,7 +44,141 @@ if (result.outcome === "requires_action" && result.redirectUrl) {
 
 Keep credentials on your backend. The runtime uses Web `fetch` and Web Crypto `subtle`; inject runtime dependencies through `createPaymentClient({ runtime })` when needed. Defaults are sandbox hosts and a 30-second request timeout (`timeoutMs`). Merchant login is lazy and shared by concurrent refund requests on the same instance. Tokens refresh 60 seconds before expiry.
 
-Checkout requires an order ID, idempotency key, positive KWD `Money` with at most three decimal places, and an HTTPS callback URL. It uses indirect payment type `0`, checkout version `2.0`. Optional fields on `HesabeCreatePaymentParams` are `hesabeName`, `hesabeEmail`, `hesabeMobileNumber` (eight digits without a country code), `hesabeVariable1` through `hesabeVariable5`, `hesabeWebhookUrl`, and `hesabeFailureUrl`. The callback URL is also the failure URL by default. A config-level `webhookUrl` supplies the default notification URL.
+Checkout requires an order ID, idempotency key, positive KWD `Money` with at most three decimal places, and an HTTPS callback URL. By default it uses indirect payment type `0`, checkout version `2.0`. Optional customer fields on `HesabeCreatePaymentParams` are `hesabeName`, `hesabeEmail`, `hesabeMobileNumber` (eight digits without a country code), `hesabeVariable1` through `hesabeVariable5`, `hesabeWebhookUrl`, and `hesabeFailureUrl`. Direct Apple Pay reserves `variable5` for its merchant domain. The callback URL is also the failure URL by default. A config-level `webhookUrl` supplies the default notification URL.
+
+## Checkout modes
+
+Select a flow through `hesabeCheckoutMode`. Omission and `"redirect"` are equivalent, including when replaying an existing idempotency key.
+
+| Mode | Encrypted provider fields | Customer next step |
+| --- | --- | --- |
+| `redirect` (default) | `version: "2.0"`, `paymentType: 0` | Existing `redirectUrl` and redirect action |
+| `embedded` | `version: "3.0"`, `paymentType: 0`, `embeddedPayment: true` | `nextAction: { type: "hesabe_embedded_checkout", sessionId, environment }` |
+| `applepay` | `version: "2.0"`, Apple Pay `paymentType`, merchant domain in `variable5` | `nextAction: { type: "hesabe_apple_pay", checkoutToken, environment, scriptUrl }` |
+
+All three initialize a payment attempt: `outcome: "requires_action"`, `status: "pending"`, and a `checkout:` ID. Embedded and Apple Pay actions have no `redirectUrl`. `environment` is `"sandbox"` or `"production"`, derived from the adapter's `live` setting. Both retain the raw checkout token in `references.relatedIds.checkoutToken`.
+
+### Embedded Hosted Checkout
+
+Using the server-side client from Setup:
+
+```ts
+import { isHesabeEmbeddedCheckoutAction } from "@paykernel/gateway-hesabe";
+
+const embedded = await payments.createPayment({
+  amount: money("10.000", "KWD"),
+  currency: "KWD",
+  orderId: "order-embedded-123",
+  idempotencyKey: "checkout-embedded-123",
+  callbackUrl: "https://merchant.example/hesabe/callback",
+  hesabeCheckoutMode: "embedded",
+});
+if (embedded.outcome === "indeterminate") {
+  throw new Error("Checkout submission is uncertain; reconcile before retrying");
+}
+if (embedded.outcome !== "requires_action" || !isHesabeEmbeddedCheckoutAction(embedded.nextAction)) {
+  throw new Error("Embedded checkout was not initialized");
+}
+const action = embedded.nextAction;
+// Return action as JSON from your application's authenticated checkout endpoint.
+```
+
+Load the browser SDK and its required container on the merchant page:
+
+```html
+<div id="hesabe-payments"></div>
+<script
+  src="https://unpkg.com/@hesabe-pay/embedded-hosted-checkout@1.0.15/cdn/hesabe-payments.min.js"
+  integrity="sha512-iqug3EYPLs4bLenHwhvvlIAXT65UcI+6cJZv19AK/MDBaOFFQbNV+Yyo2oYJ5KbDYOhiaVHf5wQz/zfCYAJdyQ=="
+  crossorigin="anonymous"
+></script>
+```
+
+Once that script loads, initialize it with `action` received from your backend:
+
+```js
+hesabePayment.init({
+  environment: action.environment,
+  sessionID: action.sessionId, // Hesabe's browser SDK uses a capital ID.
+  paymentTypes: ["knet", "card", "applepay"], // Choose account-enabled methods.
+  debug: false,
+});
+```
+
+Without an SDK callback, completion returns to the configured success/failure URLs. If you provide a browser callback instead, confirm the reported transaction on your backend through enquiry before fulfillment. KNET still redirects to its payment page.
+
+The [Hosted Checkout guide](https://developer.hesabe.com/docs/guides/embedded-payments/) specifies version `3.0` and a boolean `embeddedPayment`; its longer example still uses `2.0`. The adapter follows the parameter specification and never retries with a different version. Sandbox acceptance of this flow remains outstanding.
+
+### Direct Apple Pay
+
+Set `hesabeCheckoutMode: "applepay"` and `hesabeApplePayDomain` to the merchant page's whitelisted hostname. The adapter trims and lowercases DNS hostnames; URLs, paths, ports, and invalid DNS labels are rejected. Use punycode for internationalized hostnames.
+
+`hesabeApplePayPaymentType` accepts `9` (MPGS, default), `10` (CYBS), `11` (KNET debit), `12` (KNET credit), `13` (KNET international), or `14` (AMEX international). Choose a type enabled on your account. Apple Pay fields on other modes, unsupported types, and an independently supplied `hesabeVariable5` throw `InvalidRequestError` before any request.
+
+Using the server-side client from Setup:
+
+```ts
+import { isHesabeApplePayAction } from "@paykernel/gateway-hesabe";
+
+const applePay = await payments.createPayment({
+  amount: money("10.000", "KWD"),
+  currency: "KWD",
+  orderId: "order-applepay-123",
+  idempotencyKey: "checkout-applepay-123",
+  callbackUrl: "https://merchant.example/hesabe/callback",
+  hesabeCheckoutMode: "applepay",
+  hesabeApplePayDomain: "merchant.example",
+  hesabeApplePayPaymentType: 9,
+});
+if (applePay.outcome === "indeterminate") {
+  throw new Error("Apple Pay submission is uncertain; reconcile before retrying");
+}
+if (applePay.outcome !== "requires_action" || !isHesabeApplePayAction(applePay.nextAction)) {
+  throw new Error("Apple Pay was not initialized");
+}
+const action = applePay.nextAction;
+// Return action as JSON from your application's authenticated checkout endpoint.
+```
+
+The returned `scriptUrl` uses the configured Hesabe host and a URL-encoded checkout token. It is a script resource, not a navigation destination. On the verified merchant page, follow the [Direct Apple Pay guide](https://developer.hesabe.com/docs/guides/direct-apple-pay/):
+
+```html
+<script src="https://applepay.cdn-apple.com/jsapi/v1/apple-pay-sdk.js"></script>
+<button id="apple-pay-btn" type="button" hidden>Pay with Apple Pay</button>
+<p id="apple-pay-message" role="status"></p>
+```
+
+After the markup and Apple SDK are loaded, use `action` from your trusted backend:
+
+```js
+const button = document.getElementById("apple-pay-btn");
+const message = document.getElementById("apple-pay-message");
+const script = document.createElement("script");
+script.src = action.scriptUrl;
+script.onerror = () => {
+  message.textContent = "Apple Pay could not load. Please try another payment method.";
+};
+script.onload = () => {
+  const available = window.ApplePaySession && window.ApplePaySession.canMakePayments();
+  if (!available || typeof window.handleApplePayClick !== "function") {
+    message.textContent = "Apple Pay is unavailable. Please choose another payment method.";
+    return;
+  }
+  button.hidden = false;
+  button.addEventListener("click", async () => {
+    try {
+      await window.handleApplePayClick();
+    } catch {
+      message.textContent = "Apple Pay could not start. Please try another payment method.";
+    }
+  });
+};
+document.head.appendChild(script);
+```
+
+The action guards validate shape, not provenance. Only initialize scripts from your authenticated backend's response, and send checkout tokens as JSON rather than interpolating them into HTML. Keep creation credentials and encryption keys on the backend. For both embedded and direct Apple Pay, complete Hesabe account activation, domain whitelisting, and the domain-verification file setup described in the provider guides. Browser events alone are not payment confirmation; use the existing callback/enquiry or verified webhook flow.
+
+The exported types are `HesabeCheckoutMode`, `HesabeApplePayPaymentType`, `HesabeEmbeddedCheckoutAction`, and `HesabeApplePayAction`. No browser SDK dependency is added to the adapter. These flows use `createPayment`; core's `hostedCheckout` capability remains `false` because the core Checkout Session API is not implemented.
 
 ## Confirming a payment
 
@@ -143,6 +277,8 @@ An accepted request returns `pending`. A refund becomes completed only when its 
 Every checkout and refund requires a stable `idempotencyKey` and the configured `IdempotencyStore`. Production deployments need a shared durable store whose `reserve()` is atomic across workers. `InMemoryIdempotencyStore` protects only one process and loses records on restart.
 
 The adapter fingerprints effective provider parameters, rejects changed parameters or concurrent requests under the same key, and replays completed results. Eligible GET failures use the SDK’s bounded retry policy (up to three attempts, with backoff and Retry-After). It never automatically resubmits a checkout or refund. A failure after submission can return `indeterminate` with `reconciliationRequired: true`; its reservation stays blocked. A local persistence failure after provider acceptance also requires reconciliation.
+
+Changing checkout mode, Apple Pay type, or merchant domain rejects reuse of the same key. Persist the returned `redirectUrl` or browser `nextAction`; replay returns the same initialization data. An uncertain result must not trigger a second checkout in a different mode.
 
 Retain uncertain reservations beyond your retry horizon; do not let a generic TTL reopen an unresolved payment or refund. Reconcile with Hesabe and your order records before clearing a reservation or choosing a new mutation key. If a checkout response was lost, an order-reference enquiry may locate resulting transactions. An absent match does not make another submission safe, and merchant-side investigation may still be needed.
 

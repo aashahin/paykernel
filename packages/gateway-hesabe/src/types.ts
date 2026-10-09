@@ -1,5 +1,42 @@
 import type { CreatePaymentParams, GetPaymentParams, RefundParams } from "@paykernel/core";
 
+export type HesabeCheckoutMode = "redirect" | "embedded" | "applepay";
+
+/** MPGS, CYBS, KNET debit, KNET credit, KNET international, and AMEX international. */
+export type HesabeApplePayPaymentType = 9 | 10 | 11 | 12 | 13 | 14;
+
+type HesabeCheckoutOptions =
+  | {
+      /** Default: redirect. Embedded mode initializes Hesabe's Hosted Checkout SDK. */
+      hesabeCheckoutMode?: "redirect" | "embedded";
+      hesabeVariable5?: string;
+      hesabeApplePayDomain?: never;
+      hesabeApplePayPaymentType?: never;
+    }
+  | {
+      hesabeCheckoutMode: "applepay";
+      /** Whitelisted merchant hostname (without scheme, path, or port), sent as `variable5`. */
+      hesabeApplePayDomain: string;
+      /** The account must enable this payment type. Default: 9 (MPGS Apple Pay). */
+      hesabeApplePayPaymentType?: HesabeApplePayPaymentType;
+      hesabeVariable5?: never;
+    };
+
+/** Pass `sessionId` as the browser SDK's `sessionID`; initialization is not settlement. */
+export type HesabeEmbeddedCheckoutAction = {
+  type: "hesabe_embedded_checkout";
+  sessionId: string;
+  environment: "sandbox" | "production";
+};
+
+/** Load the Hesabe script on the verified merchant domain; this URL is not a redirect. */
+export type HesabeApplePayAction = {
+  type: "hesabe_apple_pay";
+  checkoutToken: string;
+  environment: "sandbox" | "production";
+  scriptUrl: string;
+};
+
 /**
  * Typed Hesabe create payload. Extends the common create shape with
  * Hesabe-only fields. Do not add these keys to core `CreatePaymentParams`.
@@ -22,8 +59,7 @@ export type HesabeCreatePaymentParams = CreatePaymentParams & {
   hesabeVariable2?: string;
   hesabeVariable3?: string;
   hesabeVariable4?: string;
-  hesabeVariable5?: string;
-};
+} & HesabeCheckoutOptions;
 
 export type HesabeRefundParams = RefundParams;
 

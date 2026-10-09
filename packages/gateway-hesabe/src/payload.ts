@@ -1,7 +1,8 @@
 import { InvalidRequestError, OperationNotSupportedError, type Money } from "@paykernel/core";
 import { assertHesabeHttpsUrl, type HesabeConfig } from "./config";
+import { normalizeHesabeCheckout } from "./checkout";
 import { toHesabeKwd } from "./money";
-import type { HesabeCreatePaymentParams } from "./types";
+import type { HesabeCheckoutMode, HesabeCreatePaymentParams } from "./types";
 
 export function requiredString(value: unknown, field: string): string {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -39,6 +40,7 @@ export function buildHesabeCheckout(
   amount: Money;
   orderId: string;
   idempotencyKey: string;
+  checkoutMode: HesabeCheckoutMode;
 } {
   if (params.capture === false) throw new OperationNotSupportedError("hesabe", "authorizePayment");
   if (params.capture !== undefined && typeof params.capture !== "boolean") {
@@ -54,6 +56,7 @@ export function buildHesabeCheckout(
   const amount = toHesabeKwd(params.amount, params.currency);
   const orderId = requiredString(params.orderId, "orderId");
   const idempotencyKey = requiredString(params.idempotencyKey, "idempotencyKey");
+  const checkout = normalizeHesabeCheckout(params);
   assertHesabeHttpsUrl(params.callbackUrl, "callbackUrl");
   const failureUrl = params.hesabeFailureUrl ?? params.callbackUrl;
   assertHesabeHttpsUrl(failureUrl, "hesabeFailureUrl");
@@ -61,8 +64,7 @@ export function buildHesabeCheckout(
     merchantCode: config.merchantCode,
     amount: amount.amount,
     currency: "KWD",
-    paymentType: 0,
-    version: "2.0",
+    ...checkout.payload,
     orderReferenceNumber: orderId,
     responseUrl: params.callbackUrl.trim(),
     failureUrl: failureUrl.trim(),
@@ -84,5 +86,5 @@ export function buildHesabeCheckout(
       "hesabeMobileNumber must contain 8 digits without a country code",
     );
   }
-  return { payload, amount, orderId, idempotencyKey };
+  return { payload, amount, orderId, idempotencyKey, checkoutMode: checkout.mode };
 }

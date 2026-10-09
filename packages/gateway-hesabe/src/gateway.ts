@@ -182,6 +182,7 @@ export class HesabeGateway extends BaseGateway {
                   orderId,
                   amount: built.amount,
                   baseUrl: checkoutBaseUrl,
+                  checkoutMode: built.checkoutMode,
                 }),
             );
           } catch (error) {
