@@ -10,7 +10,12 @@ import {
   RateLimitError,
   ResourceNotFoundError,
 } from "@paykernel/core";
-import { hesabeGateway, type HesabeConfig, type HesabeTransactionEnquiryParams } from "./index";
+import {
+  hesabeGateway,
+  type HesabeConfig,
+  type HesabeTransactionEnquiryParams,
+  type HesabeTransactionEnquiryResult,
+} from "./index";
 
 // https://developer.hesabe.com/docs/guides/transaction-enquiry/
 const documentedTransaction = {
@@ -76,7 +81,7 @@ function setup(
 
 describe("Hesabe transaction enquiry", () => {
   it("returns the documented transaction and every documented result unchanged", async () => {
-    const response = {
+    const response: HesabeTransactionEnquiryResult = {
       status: true,
       message: "Transaction found",
       data: documentedTransaction,
@@ -111,7 +116,10 @@ describe("Hesabe transaction enquiry", () => {
         [selector === "token" ? "token" : "reference_number"]: identifier,
       });
       const { gateway, calls } = setup(() => Response.json(envelope({ data })), { live });
-      const params = { [selector]: `  ${identifier}  ` } as HesabeTransactionEnquiryParams;
+      const params: HesabeTransactionEnquiryParams =
+        selector === "token"
+          ? { token: `  ${identifier}  ` }
+          : { orderReferenceNumber: `  ${identifier}  ` };
       expect((await gateway.getTransactionEnquiry(params)).data).toEqual(data);
       expect(calls).toHaveLength(1);
       expect(calls[0]?.url).toBe(
@@ -169,8 +177,18 @@ describe("Hesabe transaction enquiry", () => {
   });
 
   it.each([
-    { name: "absent results", response: envelope() },
-    { name: "empty results", response: envelope({ results: [] }) },
+    {
+      name: "absent results",
+      response: { status: true, data: transaction() } satisfies HesabeTransactionEnquiryResult,
+    },
+    {
+      name: "empty results",
+      response: {
+        status: true,
+        data: transaction(),
+        results: [],
+      } satisfies HesabeTransactionEnquiryResult,
+    },
   ])("preserves $name", async ({ response }) => {
     const { gateway } = setup(() => Response.json(response));
     expect(await gateway.getTransactionEnquiry({ token: "tx-1" })).toEqual(response);
@@ -296,9 +314,9 @@ describe("Hesabe transaction enquiry", () => {
           ? envelope({ data: wrong, results: [transaction()] })
           : envelope({ results: [transaction(), wrong] });
       const { gateway } = setup(() => Response.json(response));
-      await expect(
-        gateway.getTransactionEnquiry({ [selector]: expected } as HesabeTransactionEnquiryParams),
-      ).rejects.toBeInstanceOf(NetworkError);
+      const params: HesabeTransactionEnquiryParams =
+        selector === "token" ? { token: expected } : { orderReferenceNumber: expected };
+      await expect(gateway.getTransactionEnquiry(params)).rejects.toBeInstanceOf(NetworkError);
     },
   );
 

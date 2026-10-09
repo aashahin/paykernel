@@ -50,11 +50,11 @@ Checkout requires an order ID, idempotency key, positive KWD `Money` with at mos
 
 Select a flow through `hesabeCheckoutMode`. Omission and `"redirect"` are equivalent, including when replaying an existing idempotency key.
 
-| Mode | Encrypted provider fields | Customer next step |
-| --- | --- | --- |
-| `redirect` (default) | `version: "2.0"`, `paymentType: 0` | Existing `redirectUrl` and redirect action |
-| `embedded` | `version: "3.0"`, `paymentType: 0`, `embeddedPayment: true` | `nextAction: { type: "hesabe_embedded_checkout", sessionId, environment }` |
-| `applepay` | `version: "2.0"`, Apple Pay `paymentType`, merchant domain in `variable5` | `nextAction: { type: "hesabe_apple_pay", checkoutToken, environment, scriptUrl }` |
+| Mode                 | Encrypted provider fields                                                 | Customer next step                                                                |
+| -------------------- | ------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| `redirect` (default) | `version: "2.0"`, `paymentType: 0`                                        | Existing `redirectUrl` and redirect action                                        |
+| `embedded`           | `version: "3.0"`, `paymentType: 0`, `embeddedPayment: true`               | `nextAction: { type: "hesabe_embedded_checkout", sessionId, environment }`        |
+| `applepay`           | `version: "2.0"`, Apple Pay `paymentType`, merchant domain in `variable5` | `nextAction: { type: "hesabe_apple_pay", checkoutToken, environment, scriptUrl }` |
 
 All three initialize a payment attempt: `outcome: "requires_action"`, `status: "pending"`, and a `checkout:` ID. Embedded and Apple Pay actions have no `redirectUrl`. `environment` is `"sandbox"` or `"production"`, derived from the adapter's `live` setting. Both retain the raw checkout token in `references.relatedIds.checkoutToken`.
 
@@ -76,7 +76,10 @@ const embedded = await payments.createPayment({
 if (embedded.outcome === "indeterminate") {
   throw new Error("Checkout submission is uncertain; reconcile before retrying");
 }
-if (embedded.outcome !== "requires_action" || !isHesabeEmbeddedCheckoutAction(embedded.nextAction)) {
+if (
+  embedded.outcome !== "requires_action" ||
+  !isHesabeEmbeddedCheckoutAction(embedded.nextAction)
+) {
   throw new Error("Embedded checkout was not initialized");
 }
 const action = embedded.nextAction;
@@ -285,6 +288,39 @@ Retain uncertain reservations beyond your retry horizon; do not let a generic TT
 ## Supported capabilities
 
 The adapter claims `payments`, `immediateCapture`, `refunds`, and `partialRefunds`. It does not support separate authorization/capture, voids, stored payment methods, customers, recurring payments, splits, disputes, payment links, or the core Checkout Session API.
+
+## Development and local npm publishing
+
+Use a Bun version that supports native `bun check`, with the `@paykernel/core` and `@paykernel/testkit` workspace dependencies already built. From the repository root:
+
+```sh
+bun install --frozen-lockfile
+cd packages/gateway-hesabe
+bun publish --dry-run
+bun run --bun publint
+```
+
+The dry run executes `prepublishOnly`: it type-checks the tests, helpers, and build script with native Bun, runs the tests, checks the production source, and builds the package. Declaration generation uses TypeScript only for emission after Bun's type check. For development, `bun run --bun typecheck` checks the source and the full test project; `bun run --bun test` runs the suite.
+
+To publish, first ensure the version in `package.json` is unused on npm. Create an [npm granular access token](https://docs.npmjs.com/creating-and-viewing-access-tokens/) with **Read and write (publish and stage)** access to `@paykernel/gateway-hesabe`. For token-based publishing, enable bypass 2FA when creating it, as required by [npm's publishing authentication policy](https://docs.npmjs.com/requiring-2fa-for-package-publishing-and-settings-modification/). Package settings that disallow tokens require interactive authentication instead.
+
+Set `NPM_CONFIG_TOKEN` in your local shell. For zsh, this reads the token without echoing it or putting it in shell history:
+
+```zsh
+read -rs 'NPM_CONFIG_TOKEN?npm token: '
+export NPM_CONFIG_TOKEN
+```
+
+Then, from `packages/gateway-hesabe`:
+
+```sh
+bun pm whoami && bun publish --access public
+unset NPM_CONFIG_TOKEN
+```
+
+Proceed only if `whoami` identifies the intended maintainer; a 401 means authentication needs fixing. The publish command repeats the validation and build before uploading. The repository-level release command publishes multiple workspaces, so use the package directory for this release. See [Bun's publishing documentation](https://bun.com/docs/pm/cli/publish) for token and interactive 2FA support.
+
+Local Bun publishing currently does not generate provenance attestations; `publishConfig.provenance` does not add them to this path. Bun tracks support in [oven-sh/bun#15601](https://github.com/oven-sh/bun/issues/15601).
 
 ## Provider references and sandbox validation
 

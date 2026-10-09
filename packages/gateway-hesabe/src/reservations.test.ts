@@ -111,27 +111,30 @@ describe("Hesabe mutation reservations", () => {
       status: "pending",
       rawResponse: {},
     } satisfies GatewayRefundResult,
-  ])("returns indeterminate when submitted results cannot be persisted", async (result) => {
-    const backing = new InMemoryIdempotencyStore();
-    const store: IdempotencyStore = {
-      get: backing.get.bind(backing),
-      reserve: backing.reserve.bind(backing),
-      delete: backing.delete.bind(backing),
-      set: () => {
-        throw new Error("storage unavailable");
-      },
-    };
-    let submissions = 0;
-    const execute = async (markSubmitted: () => void) => {
-      markSubmitted();
-      submissions++;
-      return result;
-    };
-    const uncertain = await withHesabeReservation(input(store), execute);
-    expect(uncertain.outcome).toBe("indeterminate");
-    expect(uncertain.reconciliationRequired).toBe(true);
-    expect(backing.get(input(store).key)?.status).toBe("in_progress");
-    await expect(withHesabeReservation(input(store), execute)).rejects.toThrow("in progress");
-    expect(submissions).toBe(1);
-  });
+  ])(
+    "returns indeterminate when submitted results cannot be persisted",
+    async (result: GatewayPaymentResult | GatewayRefundResult) => {
+      const backing = new InMemoryIdempotencyStore();
+      const store: IdempotencyStore = {
+        get: backing.get.bind(backing),
+        reserve: backing.reserve.bind(backing),
+        delete: backing.delete.bind(backing),
+        set: () => {
+          throw new Error("storage unavailable");
+        },
+      };
+      let submissions = 0;
+      const execute = async (markSubmitted: () => void) => {
+        markSubmitted();
+        submissions++;
+        return result;
+      };
+      const uncertain = await withHesabeReservation(input(store), execute);
+      expect(uncertain.outcome).toBe("indeterminate");
+      expect(uncertain.reconciliationRequired).toBe(true);
+      expect(backing.get(input(store).key)?.status).toBe("in_progress");
+      await expect(withHesabeReservation(input(store), execute)).rejects.toThrow("in progress");
+      expect(submissions).toBe(1);
+    },
+  );
 });

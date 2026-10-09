@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.type-tests.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "types": ["bun"]
+  },
+  "include": ["src/**/*.ts", "test-utils/**/*.ts", "scripts/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

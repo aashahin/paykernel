@@ -6,6 +6,7 @@ import {
   RateLimitError,
   type Clock,
 } from "@paykernel/core";
+import { createFetchStub } from "../test-utils/fetch";
 import { HesabeAuth, parseHesabeAuthEnvelope } from "./auth";
 
 const BASE = "https://merchant.test";
@@ -155,14 +156,14 @@ describe("HesabeAuth login/refresh", () => {
   it("posts login with username/password and caches the token", async () => {
     const { clock } = makeClock();
     const seen: Array<{ url: string; body: unknown }> = [];
-    const fetchImpl = (async (url: unknown, init: unknown) => {
+    const fetchImpl = createFetchStub(async (url: unknown, init: unknown) => {
       const request = init as { body?: string };
       seen.push({
         url: String(url),
         body: JSON.parse(String(request.body ?? "{}")) as unknown,
       });
       return jsonResponse(successBody("access-1", "refresh-1"));
-    }) as typeof globalThis.fetch;
+    });
     const auth = new HesabeAuth(depsFor(fetchImpl, clock));
     const first = await auth.getAccessToken();
     const second = await auth.getAccessToken();
@@ -176,10 +177,10 @@ describe("HesabeAuth login/refresh", () => {
   it("refreshes 60s early using the fake clock", async () => {
     const fake = makeClock();
     let calls = 0;
-    const fetchImpl = (async () => {
+    const fetchImpl = createFetchStub(async () => {
       calls += 1;
       return jsonResponse(successBody(`access-${calls}`, `refresh-${calls}`, 900));
-    }) as typeof globalThis.fetch;
+    });
     const auth = new HesabeAuth(depsFor(fetchImpl, fake.clock));
     await auth.getAccessToken();
     expect(calls).toBe(1);
@@ -201,10 +202,10 @@ describe("HesabeAuth login/refresh", () => {
     // Attach a late noop handler so the test harness never reports an
     // unhandled rejection for the deferred gate itself.
     gate.promise.catch(() => undefined);
-    const fetchImpl = (async () => {
+    const fetchImpl = createFetchStub(async () => {
       calls += 1;
       return gate.promise;
-    }) as typeof globalThis.fetch;
+    });
     const auth = new HesabeAuth(depsFor(fetchImpl, clock));
     const first = auth.getAccessToken();
     const second = auth.getAccessToken();
@@ -222,10 +223,10 @@ describe("HesabeAuth login/refresh", () => {
   it("a pre-aborted caller starts no fetch", async () => {
     const { clock } = makeClock();
     let calls = 0;
-    const fetchImpl = (async () => {
+    const fetchImpl = createFetchStub(async () => {
       calls += 1;
       return jsonResponse(successBody("a", "r"));
-    }) as typeof globalThis.fetch;
+    });
     const auth = new HesabeAuth(depsFor(fetchImpl, clock));
     const controller = new AbortController();
     controller.abort();
@@ -239,7 +240,7 @@ describe("HesabeAuth login/refresh", () => {
     const { clock } = makeClock();
     const gate = deferred<Response>();
     gate.promise.catch(() => undefined);
-    const fetchImpl = (async () => gate.promise) as typeof globalThis.fetch;
+    const fetchImpl = createFetchStub(async () => gate.promise);
     const auth = new HesabeAuth(depsFor(fetchImpl, clock));
     const aborter = new AbortController();
     const abortedCall = auth.getAccessToken(aborter.signal);
@@ -259,11 +260,11 @@ describe("HesabeAuth login/refresh", () => {
     const gate = deferred<Response>();
     gate.promise.catch(() => undefined);
     let calls = 0;
-    const fetchImpl = (async () => {
+    const fetchImpl = createFetchStub(async () => {
       calls += 1;
       if (calls === 1) return gate.promise;
       return jsonResponse(successBody("second", "refresh-second"));
-    }) as typeof globalThis.fetch;
+    });
     const auth = new HesabeAuth(depsFor(fetchImpl, clock));
     const firstController = new AbortController();
     const secondController = new AbortController();
@@ -288,7 +289,7 @@ describe("HesabeAuth login/refresh", () => {
   ])("refresh $name falls back to login", async ({ status, text }) => {
     const fake = makeClock();
     const urls: string[] = [];
-    const fetchImpl = (async (url: unknown) => {
+    const fetchImpl = createFetchStub(async (url: unknown) => {
       urls.push(String(url));
       if (String(url).endsWith("/api/v1/login")) {
         return jsonResponse(
@@ -296,7 +297,7 @@ describe("HesabeAuth login/refresh", () => {
         );
       }
       return text === "" ? new Response("", { status }) : htmlResponse(text, status);
-    }) as typeof globalThis.fetch;
+    });
     const auth = new HesabeAuth(depsFor(fetchImpl, fake.clock));
     await auth.getAccessToken();
     fake.advance(900_000);
@@ -327,13 +328,13 @@ describe("HesabeAuth login/refresh", () => {
   ])("refresh $name never falls back to login", async ({ status, text, html, expectedError }) => {
     const fake = makeClock();
     const urls: string[] = [];
-    const fetchImpl = (async (url: unknown) => {
+    const fetchImpl = createFetchStub(async (url: unknown) => {
       urls.push(String(url));
       if (String(url).endsWith("/api/v1/login")) {
         return jsonResponse(successBody("old", "old-refresh"));
       }
       return html ? htmlResponse(text, status) : new Response(text, { status });
-    }) as typeof globalThis.fetch;
+    });
     const auth = new HesabeAuth(depsFor(fetchImpl, fake.clock));
     await auth.getAccessToken();
     fake.advance(900_000);
@@ -343,19 +344,21 @@ describe("HesabeAuth login/refresh", () => {
 
   it("HTTP 200 status:false is an explicit AuthenticationError", async () => {
     const { clock } = makeClock();
-    const fetchImpl = (async () =>
-      jsonResponse({ status: false, message: "bad credentials" })) as typeof globalThis.fetch;
+    const fetchImpl = createFetchStub(async () =>
+      jsonResponse({ status: false, message: "bad credentials" }),
+    );
     const auth = new HesabeAuth(depsFor(fetchImpl, clock));
     await expect(auth.getAccessToken()).rejects.toBeInstanceOf(AuthenticationError);
   });
 
   it("HTTP 200 malformed success envelope is a protocol NetworkError", async () => {
     const { clock } = makeClock();
-    const fetchImpl = (async () =>
+    const fetchImpl = createFetchStub(async () =>
       jsonResponse({
         status: true,
         response: { token: { token_type: "Bearer" } },
-      })) as typeof globalThis.fetch;
+      }),
+    );
     const auth = new HesabeAuth(depsFor(fetchImpl, clock));
     await expect(auth.getAccessToken()).rejects.toBeInstanceOf(NetworkError);
   });
@@ -365,10 +368,9 @@ describe("HesabeAuth login/refresh", () => {
     { name: "HTML body", text: "<html></html>", status: 200, html: true },
   ])("HTTP 200 $name is an invalid JSON NetworkError", async ({ text, status, html }) => {
     const { clock } = makeClock();
-    const fetchImpl = (async () =>
-      html
-        ? htmlResponse(text, status)
-        : new Response(text, { status })) as typeof globalThis.fetch;
+    const fetchImpl = createFetchStub(async () =>
+      html ? htmlResponse(text, status) : new Response(text, { status }),
+    );
     await expect(new HesabeAuth(depsFor(fetchImpl, clock)).getAccessToken()).rejects.toBeInstanceOf(
       NetworkError,
     );
@@ -380,8 +382,7 @@ describe("HesabeAuth login/refresh", () => {
       status: false,
       echo: `${USER}:${PASS}:supersecret`,
     });
-    const fetchImpl = (async () =>
-      new Response(secretBody, { status: 200 })) as typeof globalThis.fetch;
+    const fetchImpl = createFetchStub(async () => new Response(secretBody, { status: 200 }));
     const auth = new HesabeAuth(depsFor(fetchImpl, clock));
     const error = await auth.getAccessToken().then(
       () => undefined,
@@ -395,7 +396,7 @@ describe("HesabeAuth login/refresh", () => {
 
   it("timeout covers a hanging fetch", async () => {
     const { clock } = makeClock();
-    const fetchImpl = (async (_url: unknown, init: unknown) => {
+    const fetchImpl = createFetchStub(async (_url: unknown, init: unknown) => {
       const signal = (init as { signal?: AbortSignal }).signal;
       return new Promise<Response>((_, reject) => {
         if (signal?.aborted) {
@@ -408,7 +409,7 @@ describe("HesabeAuth login/refresh", () => {
           { once: true },
         );
       });
-    }) as typeof globalThis.fetch;
+    });
     const auth = new HesabeAuth(depsFor(fetchImpl, clock, 30));
     const error = await auth.getAccessToken().then(
       () => undefined,
@@ -420,7 +421,7 @@ describe("HesabeAuth login/refresh", () => {
 
   it("timeout covers a hanging response body that respects the abort signal", async () => {
     const { clock } = makeClock();
-    const fetchImpl = (async (_url: unknown, init: unknown) => {
+    const fetchImpl = createFetchStub(async (_url: unknown, init: unknown) => {
       const signal = (init as { signal?: AbortSignal }).signal;
       const hangingText = () =>
         new Promise<string>((_, reject) => {
@@ -439,7 +440,7 @@ describe("HesabeAuth login/refresh", () => {
         status: 200,
         text: hangingText,
       } as unknown as Response;
-    }) as typeof globalThis.fetch;
+    });
     const auth = new HesabeAuth(depsFor(fetchImpl, clock, 30));
     const error = await auth.getAccessToken().then(
       () => undefined,
@@ -454,13 +455,13 @@ it("observes a shared login failure when fetch synchronously cancels its only ca
   const controller = new AbortController();
   let calls = 0;
   const { clock } = makeClock();
-  const fetchImpl = (async () => {
+  const fetchImpl = createFetchStub(async () => {
     if (++calls === 1) {
       controller.abort();
       throw new Error("transport failed during caller cancellation");
     }
     return jsonResponse(successBody("recovered", "refresh-recovered"));
-  }) as typeof fetch;
+  });
   const auth = new HesabeAuth(depsFor(fetchImpl, clock));
   await expect(auth.getAccessToken(controller.signal)).rejects.toBeInstanceOf(PaymentAbortedError);
   await new Promise((resolve) => setTimeout(resolve, 0));
@@ -468,7 +469,7 @@ it("observes a shared login failure when fetch synchronously cancels its only ca
 });
 
 it("auth timeout settles when injected fetch ignores AbortSignal", async () => {
-  const fetchImpl = (() => new Promise<Response>(() => {})) as typeof fetch;
+  const fetchImpl = createFetchStub(() => new Promise<Response>(() => {}));
   const auth = new HesabeAuth(depsFor(fetchImpl, makeClock().clock, 20));
   await expect(auth.getAccessToken()).rejects.toBeInstanceOf(NetworkError);
 }, 500);

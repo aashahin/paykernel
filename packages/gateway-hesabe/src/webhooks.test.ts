@@ -14,7 +14,7 @@ describe("Hesabe notification normalization", () => {
     ["SUCCESSFUL", "payment.succeeded", "paid"],
     ["FAILED", "payment.failed", "failed"],
     ["PENDING", "payment.processing", "pending"],
-  ])("keeps %s consistent across both event representations", (native, stable, status) => {
+  ] as const)("keeps %s consistent across both event representations", (native, stable, status) => {
     const event = parseHesabeWebhookEvent({ ...notification, status: native }, clock);
     expect(event.status).toBe(status);
     expect(event.stableType).toBe(stable);

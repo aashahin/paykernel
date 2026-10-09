@@ -19,14 +19,15 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir ./dist --target node --format esm --packages external && bun run build:types",
-    "build:types": "tsc --emitDeclarationOnly --declaration --outDir dist",
+    "build": "bun run --bun build:types && bun build ./src/index.ts --outdir ./dist --target node --format esm --packages external",
+    "build:types": "bun check -p tsconfig.json && bun ./scripts/build-types.ts",
     "test": "bun test",
-    "typecheck": "bun check -p tsconfig.json",
+    "typecheck": "bun check -p tsconfig.json && bun check -p tsconfig.tests.json",
+    "typecheck:tests": "bun check -p tsconfig.tests.json",
     "typecheck:types": "bun check -p tsconfig.type-tests.json",
     "publint": "publint",
     "attw": "attw --pack . --profile esm-only --ignore-rules internal-resolution-error",
-    "prepublishOnly": "bun run build"
+    "prepublishOnly": "bun run --bun typecheck:tests && bun run --bun test && bun run --bun build"
   },
   "engines": {
     "node": ">=18",

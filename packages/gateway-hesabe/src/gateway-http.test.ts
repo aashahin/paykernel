@@ -7,6 +7,7 @@ import {
   RateLimitError,
   ResourceNotFoundError,
 } from "@paykernel/core";
+import { createFetchStub } from "../test-utils/fetch";
 import { hesabeRequest } from "./gateway-http";
 
 const URL = "https://merchant.test/api/v1/checkout";
@@ -35,10 +36,10 @@ describe("hesabeRequest", () => {
   it("pre-aborted POST starts no fetch and skips onSubmit", async () => {
     let calls = 0;
     let submitted = 0;
-    const fetchImpl = (async () => {
+    const fetchImpl = createFetchStub(async () => {
       calls += 1;
       return okResponse("deadbeef");
-    }) as typeof globalThis.fetch;
+    });
     const controller = new AbortController();
     controller.abort();
     await expect(
@@ -61,10 +62,10 @@ describe("hesabeRequest", () => {
 
   it("pre-aborted GET starts no fetch", async () => {
     let calls = 0;
-    const fetchImpl = (async () => {
+    const fetchImpl = createFetchStub(async () => {
       calls += 1;
       return okResponse("ok");
-    }) as typeof globalThis.fetch;
+    });
     const controller = new AbortController();
     controller.abort();
     await expect(
@@ -82,10 +83,9 @@ describe("hesabeRequest", () => {
 
   it("makes exactly one POST despite 503 (never retries)", async () => {
     let calls = 0;
-    const fetchImpl = (async () => (
-      (calls += 1),
-      statusResponse(503, "<html>down</html>")
-    )) as typeof globalThis.fetch;
+    const fetchImpl = createFetchStub(
+      async () => ((calls += 1), statusResponse(503, "<html>down</html>")),
+    );
     const error = await hesabeRequest({
       fetch: fetchImpl,
       timeoutMs: 1_000,
@@ -103,10 +103,10 @@ describe("hesabeRequest", () => {
 
   it("sends method/headers/body with redirect:error and calls onSubmit only for POST", async () => {
     const seen: Array<Record<string, unknown>> = [];
-    const fetchImpl = (async (url: unknown, init: unknown) => {
+    const fetchImpl = createFetchStub(async (url: unknown, init: unknown) => {
       seen.push({ url, ...(init as Record<string, unknown>) });
       return okResponse("abcdef");
-    }) as typeof globalThis.fetch;
+    });
     let submitted = 0;
     const text = await hesabeRequest({
       fetch: fetchImpl,
@@ -129,10 +129,10 @@ describe("hesabeRequest", () => {
 
     let getSubmitted = 0;
     const seenGet: Array<Record<string, unknown>> = [];
-    const getFetch = (async (url: unknown, init: unknown) => {
+    const getFetch = createFetchStub(async (url: unknown, init: unknown) => {
       seenGet.push({ url, ...(init as Record<string, unknown>) });
       return okResponse("ok");
-    }) as typeof globalThis.fetch;
+    });
     await hesabeRequest({
       fetch: getFetch,
       timeoutMs: 1_000,
@@ -150,7 +150,7 @@ describe("hesabeRequest", () => {
 
   it("returns raw hex bodies verbatim", async () => {
     const hex = "0e7898bd7464d0c402fe8a949d9cbf9ba";
-    const fetchImpl = (async () => okResponse(hex)) as typeof globalThis.fetch;
+    const fetchImpl = createFetchStub(async () => okResponse(hex));
     await expect(
       hesabeRequest({
         fetch: fetchImpl,
@@ -173,8 +173,7 @@ describe("hesabeRequest", () => {
     { status: 503, expected: NetworkError },
   ])("classifies HTTP $status without leaking raw bodies", async ({ status, expected }) => {
     const secret = "supersecret-accessCode-Bearer-xyz";
-    const fetchImpl = (async () =>
-      statusResponse(status, `body:${secret}`)) as typeof globalThis.fetch;
+    const fetchImpl = createFetchStub(async () => statusResponse(status, `body:${secret}`));
     const error = await hesabeRequest({
       fetch: fetchImpl,
       timeoutMs: 1_000,
@@ -191,8 +190,9 @@ describe("hesabeRequest", () => {
   });
 
   it("timeout covers a hanging POST fetch with afterProviderSubmit", async () => {
-    const fetchImpl = (async (_url: unknown, init: unknown) =>
-      abortReject((init as { signal?: AbortSignal }).signal ?? null)) as typeof globalThis.fetch;
+    const fetchImpl = createFetchStub(async (_url: unknown, init: unknown) =>
+      abortReject((init as { signal?: AbortSignal }).signal ?? null),
+    );
     const error = await hesabeRequest({
       fetch: fetchImpl,
       timeoutMs: 20,
@@ -210,8 +210,9 @@ describe("hesabeRequest", () => {
   });
 
   it("timeout covers a hanging GET fetch without afterProviderSubmit", async () => {
-    const fetchImpl = (async (_url: unknown, init: unknown) =>
-      abortReject((init as { signal?: AbortSignal }).signal ?? null)) as typeof globalThis.fetch;
+    const fetchImpl = createFetchStub(async (_url: unknown, init: unknown) =>
+      abortReject((init as { signal?: AbortSignal }).signal ?? null),
+    );
     const error = await hesabeRequest({
       fetch: fetchImpl,
       timeoutMs: 20,
@@ -228,7 +229,7 @@ describe("hesabeRequest", () => {
   });
 
   it("timeout covers a hanging POST response body", async () => {
-    const fetchImpl = (async (_url: unknown, init: unknown) => {
+    const fetchImpl = createFetchStub(async (_url: unknown, init: unknown) => {
       const signal = (init as { signal?: AbortSignal }).signal;
       const hangingText = () =>
         new Promise<string>((_, reject) => {
@@ -251,7 +252,7 @@ describe("hesabeRequest", () => {
         headers: new Headers(),
         text: () => pending,
       } as unknown as Response;
-    }) as typeof globalThis.fetch;
+    });
     const error = await hesabeRequest({
       fetch: fetchImpl,
       timeoutMs: 20,
@@ -270,13 +271,13 @@ describe("hesabeRequest", () => {
 
   it("caller abort during POST fetch is ambiguous (NetworkError tagged)", async () => {
     const controller = new AbortController();
-    const fetchImpl = (async (_url: unknown, init: unknown) => {
+    const fetchImpl = createFetchStub(async (_url: unknown, init: unknown) => {
       const signal = (init as { signal?: AbortSignal }).signal;
       const gate = abortReject(signal);
       void gate.catch(() => undefined);
       queueMicrotask(() => controller.abort());
       return gate;
-    }) as typeof globalThis.fetch;
+    });
     const error = await hesabeRequest({
       fetch: fetchImpl,
       timeoutMs: 1_000,
@@ -295,13 +296,13 @@ describe("hesabeRequest", () => {
 
   it("caller abort during GET fetch is a clean PaymentAbortedError", async () => {
     const controller = new AbortController();
-    const fetchImpl = (async (_url: unknown, init: unknown) => {
+    const fetchImpl = createFetchStub(async (_url: unknown, init: unknown) => {
       const signal = (init as { signal?: AbortSignal }).signal;
       const gate = abortReject(signal);
       void gate.catch(() => undefined);
       queueMicrotask(() => controller.abort());
       return gate;
-    }) as typeof globalThis.fetch;
+    });
     await expect(
       hesabeRequest({
         fetch: fetchImpl,
@@ -318,10 +319,10 @@ describe("hesabeRequest", () => {
 it.each(["fetch", "body"] as const)(
   "times out when %s ignores AbortSignal",
   async (stage) => {
-    const fetchImpl = (async () => {
+    const fetchImpl = createFetchStub(async () => {
       if (stage === "fetch") return new Promise<Response>(() => {});
       return { text: () => new Promise<string>(() => {}) } as Response;
-    }) as typeof fetch;
+    });
     const error = await hesabeRequest({
       fetch: fetchImpl,
       timeoutMs: 20,
