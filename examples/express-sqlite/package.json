@@ -1,6 +1,6 @@
 {
   "name": "@paykernel/example-express-sqlite",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "description": "Thin Express checkout example over @paykernel/example-checkout-kernel (single-host SQLite).",
   "type": "module",

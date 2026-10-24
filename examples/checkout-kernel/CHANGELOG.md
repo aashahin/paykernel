@@ -1,5 +1,12 @@
 # @paykernel/example-checkout-kernel
 
+## 0.1.5
+
+### Patch Changes
+
+- Updated dependencies [63c3cf3]
+  - @paykernel/core@1.0.1
+
 ## 0.1.4
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@paykernel/example-bun-hono-postgres",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "description": "Thin Bun + Hono checkout example over @paykernel/example-checkout-kernel (Postgres).",
   "type": "module",
