@@ -1,5 +1,11 @@
 # @paykernel/example-express-sqlite
 
+## 0.1.5
+
+### Patch Changes
+
+- @paykernel/example-checkout-kernel@0.1.5
+
 ## 0.1.4
 
 ### Patch Changes
