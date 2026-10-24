@@ -144,7 +144,7 @@ function refineMoneyAmountValue(
     const n = moneyAmountNumericValue(val.amount);
     if (n === undefined) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: "Money.amount must be a finite decimal string",
             path: ["amount"],
         });
@@ -152,7 +152,7 @@ function refineMoneyAmountValue(
     }
     if (isInvalid(n)) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: invalidMessage,
             path: ["amount"],
         });
@@ -213,7 +213,7 @@ function refineMoneyCurrencyMatch(
     const expected = currency.trim().toUpperCase();
     if (moneyCurrency.length > 0 && expected.length > 0 && moneyCurrency !== expected) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: `Money.currency (${moneyCurrency}) must match currency (${expected})`,
             path: [...amountPath, "currency"],
         });
@@ -232,7 +232,7 @@ const MoyasarSplitMoneyAmountSchema = MoneyAmountBaseSchema.superRefine((val, ct
 
 const MoyasarPaymentSplitSchema = z.object({
     amount: MoyasarSplitMoneyAmountSchema,
-    recipient_id: z.string().uuid("Moyasar split recipient_id must be a UUID"),
+    recipient_id: z.guid("Moyasar split recipient_id must be a UUID"),
     reference: z.string().max(255).optional(),
     description: z.string().max(255).optional(),
     fee_source: z.boolean().optional(),
@@ -285,13 +285,14 @@ const MoyasarAftSenderSchema = z.object({
 });
 
 const MoyasarMetadataSchema = z.record(
+    z.string(),
     z.string()
 ).superRefine((metadata, ctx) => {
     const entries = Object.entries(metadata);
 
     if (entries.length > MOYASAR_MAX_METADATA_KEYS) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: `Moyasar metadata can include at most ${MOYASAR_MAX_METADATA_KEYS} keys`,
         });
     }
@@ -299,7 +300,7 @@ const MoyasarMetadataSchema = z.record(
     for (const [key, value] of entries) {
         if (key.length > MOYASAR_MAX_METADATA_KEY_LENGTH) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: 'custom',
                 message: `Moyasar metadata key "${key}" must be ${MOYASAR_MAX_METADATA_KEY_LENGTH} characters or fewer`,
                 path: [key],
             });
@@ -307,7 +308,7 @@ const MoyasarMetadataSchema = z.record(
 
         if (String(value).length > MOYASAR_MAX_METADATA_VALUE_LENGTH) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: 'custom',
                 message: `Moyasar metadata value for "${key}" must be ${MOYASAR_MAX_METADATA_VALUE_LENGTH} characters or fewer`,
                 path: [key],
             });
@@ -352,7 +353,7 @@ const CreatePaymentParamsObjectSchema = z.object({
     callbackUrl: HttpOrHttpsUrlSchema("Callback URL must be a valid URL"),
     orderId: z.string().optional(),
     description: z.string().optional(),
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
     capture: z.boolean().default(true),
     idempotencyKey: OptionalIdempotencyKeySchema,
     customerId: z.string().min(1).optional(),
@@ -368,7 +369,7 @@ export const CreatePaymentParamsSchema = CreatePaymentParamsObjectSchema.superRe
         for (const key of Object.keys(record)) {
             if (key === "tokenId") {
                 ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
+                    code: 'custom',
                     message: `tokenId was removed in 1.0 — use moyasarSource: { type: "token", token }`,
                     path: [key],
                 });
@@ -387,7 +388,7 @@ export const CreatePaymentParamsSchema = CreatePaymentParamsObjectSchema.superRe
                 key === "sender"
             ) {
                 ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
+                    code: 'custom',
                     message: `Unknown field '${key}' — use per-gateway schema (e.g. StripeCreatePaymentParams)`,
                     path: [key],
                 });
@@ -399,7 +400,7 @@ export const CreatePaymentParamsSchema = CreatePaymentParamsObjectSchema.superRe
 export const MoyasarCreatePaymentParamsSchema = CreatePaymentParamsObjectSchema.extend({
     callbackUrl: HttpOrHttpsUrlSchema("Callback URL must be a valid URL").optional(),
     metadata: MoyasarMetadataSchema.optional(),
-    idempotencyKey: z.string().uuid("Moyasar idempotencyKey must be a UUID because it becomes the payment ID").min(1).optional(),
+    idempotencyKey: z.guid("Moyasar idempotencyKey must be a UUID because it becomes the payment ID").min(1).optional(),
     /** Backend-safe sources only — raw creditcard is rejected at schema level. */
     moyasarSource: MoyasarBackendPaymentSourceSchema.optional(),
     applyCoupon: z.boolean().optional(),
@@ -453,7 +454,7 @@ export const PayPalCreatePaymentParamsSchema = CreatePaymentParamsObjectSchema.e
     const hasSuccessReturn = Boolean(params.callbackUrl || params.returnUrl);
     if (!hasSuccessReturn) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message:
                 "PayPal create requires at least one of callbackUrl or returnUrl",
             path: ["returnUrl"],
@@ -465,7 +466,7 @@ export const PayPalCreatePaymentParamsSchema = CreatePaymentParamsObjectSchema.e
     );
     if (!hasCancelFallback) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message:
                 "PayPal create requires at least one of cancelUrl, callbackUrl, or returnUrl for cancel fallback",
             path: ["cancelUrl"],
@@ -503,7 +504,7 @@ const RefundParamsObjectSchema = z.object({
     gatewayPaymentId: z.string().min(1),
     amount: OptionalPositiveAmountInputSchema,
     reason: z.string().optional(),
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
     currency: z.string().length(3).optional(),
     idempotencyKey: OptionalIdempotencyKeySchema,
 }).strict();
@@ -523,7 +524,7 @@ export const GetPaymentParamsSchema = z.object({
     gatewayPaymentId: z.string().min(1, "Gateway payment ID is required"),
 }).strict();
 
-const MoyasarGatewayPaymentIdSchema = z.string().uuid(
+const MoyasarGatewayPaymentIdSchema = z.guid(
     "Moyasar gatewayPaymentId must be a UUID",
 );
 
@@ -582,7 +583,7 @@ const StripeCheckoutLineItemSchema = z.object({
 
         if (hasAmount === hasUnitAmount) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: 'custom',
                 message: "Price data must include exactly one of amount or unitAmount",
                 path: ["amount"],
             });
@@ -602,7 +603,7 @@ const StripeCheckoutLineItemSchema = z.object({
 
     if (hasPrice === hasPriceData) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: "Line item must include exactly one of price or priceData",
             path: ["price"],
         });
@@ -623,7 +624,7 @@ export const CreateCheckoutSessionParamsSchema = z.object({
     lineItems: z.array(StripeCheckoutLineItemSchema).min(1).optional(),
     customerId: z.string().startsWith('cus_').optional(),
     customerEmail: z.string().email().optional(),
-    metadata: z.record(z.unknown()).optional(),
+    metadata: z.record(z.string(), z.unknown()).optional(),
     paymentMethodTypes: z.array(z.string().min(1)).optional(),
     idempotencyKey: OptionalIdempotencyKeySchema,
 }).strict().superRefine((params, ctx) => {
@@ -640,7 +641,7 @@ export const CreateCheckoutSessionParamsSchema = z.object({
 
     if ((mode === 'payment' || mode === 'subscription') && !hasCancelUrl) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message:
                 "Payment and subscription Checkout Sessions require cancelUrl",
             path: ["cancelUrl"],
@@ -649,7 +650,7 @@ export const CreateCheckoutSessionParamsSchema = z.object({
 
     if (hasLineItems && (hasAmount || hasCurrency)) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: "Checkout sessions must use either lineItems or amount and currency, not both",
             path: ["lineItems"],
         });
@@ -657,7 +658,7 @@ export const CreateCheckoutSessionParamsSchema = z.object({
 
     if (mode === 'payment' && !hasLineItems && !hasSimpleAmount) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: "Payment mode requires lineItems or amount and currency",
             path: ["lineItems"],
         });
@@ -665,7 +666,7 @@ export const CreateCheckoutSessionParamsSchema = z.object({
 
     if ((mode === 'payment' || mode === 'subscription') && (hasAmount !== hasCurrency) && !hasLineItems) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: "Amount-based Checkout Sessions require both amount and currency",
             path: hasAmount ? ["currency"] : ["amount"],
         });
@@ -673,7 +674,7 @@ export const CreateCheckoutSessionParamsSchema = z.object({
 
     if (mode === 'subscription' && !hasLineItems) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: "Subscription mode requires lineItems",
             path: ["lineItems"],
         });
@@ -681,7 +682,7 @@ export const CreateCheckoutSessionParamsSchema = z.object({
 
     if (mode === 'payment' && hasLineItems && params.lineItems!.length > STRIPE_CHECKOUT_PAYMENT_LINE_ITEM_LIMIT) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: `Payment mode supports at most ${STRIPE_CHECKOUT_PAYMENT_LINE_ITEM_LIMIT} lineItems`,
             path: ["lineItems"],
         });
@@ -693,7 +694,7 @@ export const CreateCheckoutSessionParamsSchema = z.object({
 
         if (lineItems.length > STRIPE_CHECKOUT_SUBSCRIPTION_TOTAL_LINE_ITEM_LIMIT) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: 'custom',
                 message: "Subscription mode supports at most 40 lineItems (20 recurring and 20 one-time)",
                 path: ["lineItems"],
             });
@@ -701,7 +702,7 @@ export const CreateCheckoutSessionParamsSchema = z.object({
 
         if (inlineRecurringCount > STRIPE_CHECKOUT_SUBSCRIPTION_RECURRING_LINE_ITEM_LIMIT) {
             ctx.addIssue({
-                code: z.ZodIssueCode.custom,
+                code: 'custom',
                 message: `Subscription mode supports at most ${STRIPE_CHECKOUT_SUBSCRIPTION_RECURRING_LINE_ITEM_LIMIT} recurring lineItems`,
                 path: ["lineItems"],
             });
@@ -710,7 +711,7 @@ export const CreateCheckoutSessionParamsSchema = z.object({
 
     if (mode === 'setup' && (hasLineItems || hasAmount)) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: "Setup mode does not accept lineItems or amount",
             path: hasLineItems ? ["lineItems"] : ["amount"],
         });
@@ -720,7 +721,7 @@ export const CreateCheckoutSessionParamsSchema = z.object({
         params.lineItems?.forEach((item, index) => {
             if (item.priceData && !item.priceData.recurring) {
                 ctx.addIssue({
-                    code: z.ZodIssueCode.custom,
+                    code: 'custom',
                     message: "Subscription mode inline priceData requires recurring settings",
                     path: ["lineItems", index, "priceData", "recurring"],
                 });
@@ -730,7 +731,7 @@ export const CreateCheckoutSessionParamsSchema = z.object({
 
     if (mode === 'setup' && !params.currency && !hasPaymentMethodTypes) {
         ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             message: "Setup mode requires currency or paymentMethodTypes",
             path: ["currency"],
         });

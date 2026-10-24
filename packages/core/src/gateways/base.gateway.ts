@@ -193,7 +193,7 @@ export abstract class BaseGateway implements PaymentGateway {
         operation: OperationType,
         params: T,
         executor: (params: T) => Promise<R>,
-        schema?: z.ZodTypeAny
+        schema?: z.ZodType
     ): Promise<R> {
         // AbortSignal is not Zod-friendly (and would fail `.strict()` schemas).
         // Strip before validation, reattach after so the HTTP layer still sees it.
@@ -207,7 +207,7 @@ export abstract class BaseGateway implements PaymentGateway {
             if (!parsed.success) {
                 throw new InvalidRequestError(
                     `Validation failed for ${operation}`,
-                    parsed.error.errors
+                    parsed.error.issues
                 );
             }
             validatedParams = withAbortSignal(parsed.data as T, initialSignal);
@@ -251,7 +251,7 @@ export abstract class BaseGateway implements PaymentGateway {
             if (!parsed.success) {
                 throw new InvalidRequestError(
                     `Validation failed for ${operation}`,
-                    parsed.error.errors
+                    parsed.error.issues
                 );
             }
             finalParams = withAbortSignal(parsed.data as T, hookSignal);
