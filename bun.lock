@@ -187,7 +187,7 @@
       "name": "@paykernel/core",
       "version": "1.0.0",
       "dependencies": {
-        "zod": "3.25.76",
+        "zod": "^4.6.7",
       },
       "devDependencies": {
         "@arethetypeswrong/cli": "^0.18.5",
@@ -204,7 +204,7 @@
       },
       "devDependencies": {
         "@arethetypeswrong/cli": "^0.18.5",
-        "@paykernel/testkit": "^1.0.1",
+        "@paykernel/testkit": "^1.0.2",
         "@types/bun": "latest",
         "publint": "^0.3.22",
         "typescript": "^5.9.3",
@@ -242,10 +242,10 @@
       "name": "@paykernel/integration-cloudflare-workers",
       "version": "0.1.1",
       "dependencies": {
-        "@paykernel/integration-http": "workspace:*",
+        "@paykernel/integration-http": "^0.1.1",
       },
       "devDependencies": {
-        "@paykernel/testkit": "workspace:*",
+        "@paykernel/testkit": "^1.0.1",
         "@types/bun": "latest",
         "typescript": "^5.9.3",
       },
@@ -260,10 +260,10 @@
       "name": "@paykernel/integration-elysia",
       "version": "0.1.1",
       "dependencies": {
-        "@paykernel/integration-http": "workspace:*",
+        "@paykernel/integration-http": "^0.1.1",
       },
       "devDependencies": {
-        "@paykernel/testkit": "workspace:*",
+        "@paykernel/testkit": "^1.0.1",
         "@types/bun": "latest",
         "elysia": "^1.4.29",
         "typescript": "^5.9.3",
@@ -276,10 +276,10 @@
       "name": "@paykernel/integration-express",
       "version": "0.1.1",
       "dependencies": {
-        "@paykernel/integration-http": "workspace:*",
+        "@paykernel/integration-http": "^0.1.1",
       },
       "devDependencies": {
-        "@paykernel/testkit": "workspace:*",
+        "@paykernel/testkit": "^1.0.1",
         "@types/bun": "latest",
         "@types/express": "^4.17.21",
         "express": "^4.21.1",
@@ -293,10 +293,10 @@
       "name": "@paykernel/integration-hono",
       "version": "0.1.1",
       "dependencies": {
-        "@paykernel/integration-http": "workspace:*",
+        "@paykernel/integration-http": "^0.1.1",
       },
       "devDependencies": {
-        "@paykernel/testkit": "workspace:*",
+        "@paykernel/testkit": "^1.0.1",
         "@types/bun": "latest",
         "hono": "^4.13.3",
         "typescript": "^5.9.3",
@@ -322,7 +322,7 @@
       "name": "@paykernel/opentelemetry",
       "version": "0.1.1",
       "dependencies": {
-        "@paykernel/core": "workspace:*",
+        "@paykernel/core": "^1.0.0",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -350,7 +350,7 @@
       "name": "@paykernel/routing",
       "version": "0.1.1",
       "dependencies": {
-        "@paykernel/core": "workspace:*",
+        "@paykernel/core": "^1.0.0",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -381,7 +381,7 @@
         "@paykernel/store-contracts": "^0.1.0",
       },
       "devDependencies": {
-        "@paykernel/testkit": "^1.0.1",
+        "@paykernel/testkit": "^1.0.2",
         "@types/bun": "latest",
         "typescript": "^5.9.3",
       },
@@ -396,11 +396,11 @@
       "name": "@paykernel/store-durable-objects",
       "version": "0.1.1",
       "dependencies": {
-        "@paykernel/sql-foundation": "workspace:*",
-        "@paykernel/store-contracts": "workspace:*",
+        "@paykernel/sql-foundation": "^0.1.0",
+        "@paykernel/store-contracts": "^0.1.0",
       },
       "devDependencies": {
-        "@paykernel/testkit": "workspace:*",
+        "@paykernel/testkit": "^1.0.1",
         "@types/bun": "latest",
         "typescript": "^5.9.3",
       },
@@ -415,11 +415,11 @@
       "name": "@paykernel/store-postgres",
       "version": "0.1.1",
       "dependencies": {
-        "@paykernel/sql-foundation": "workspace:*",
-        "@paykernel/store-contracts": "workspace:*",
+        "@paykernel/sql-foundation": "^0.1.0",
+        "@paykernel/store-contracts": "^0.1.0",
       },
       "devDependencies": {
-        "@paykernel/testkit": "workspace:*",
+        "@paykernel/testkit": "^1.0.1",
         "@types/bun": "latest",
         "@types/pg": "^8.15.5",
         "pg": "^8.16.3",
@@ -441,10 +441,10 @@
       "name": "@paykernel/store-redis",
       "version": "0.1.1",
       "dependencies": {
-        "@paykernel/store-contracts": "workspace:*",
+        "@paykernel/store-contracts": "^0.1.0",
       },
       "devDependencies": {
-        "@paykernel/testkit": "workspace:*",
+        "@paykernel/testkit": "^1.0.1",
         "@types/bun": "latest",
         "@upstash/redis": "^1.35.3",
         "ioredis": "^5.7.0",
@@ -466,11 +466,11 @@
       "name": "@paykernel/store-sqlite",
       "version": "0.1.1",
       "dependencies": {
-        "@paykernel/sql-foundation": "workspace:*",
-        "@paykernel/store-contracts": "workspace:*",
+        "@paykernel/sql-foundation": "^0.1.0",
+        "@paykernel/store-contracts": "^0.1.0",
       },
       "devDependencies": {
-        "@paykernel/testkit": "workspace:*",
+        "@paykernel/testkit": "^1.0.1",
         "@types/better-sqlite3": "^7.6.12",
         "@types/bun": "latest",
         "better-sqlite3": "^11.10.0",
@@ -487,12 +487,12 @@
       "name": "@paykernel/store-turso",
       "version": "0.1.1",
       "dependencies": {
-        "@paykernel/sql-foundation": "workspace:*",
-        "@paykernel/store-contracts": "workspace:*",
+        "@paykernel/sql-foundation": "^0.1.0",
+        "@paykernel/store-contracts": "^0.1.0",
       },
       "devDependencies": {
         "@libsql/client": "^0.17.4",
-        "@paykernel/testkit": "workspace:*",
+        "@paykernel/testkit": "^1.0.1",
         "@tursodatabase/serverless": "^1.4.0",
         "@types/bun": "latest",
         "typescript": "^5.9.3",
@@ -1434,10 +1434,6 @@
     "ajv-draft-04": ["ajv-draft-04@1.0.0", "", { "peerDependencies": { "ajv": "^8.5.0" }, "optionalPeers": ["ajv"] }, "sha512-mv00Te6nmYbRp5DCwclxtt7yV/joXJPGS7nM+97GdxvuttCOfgI3K4U25zboyeX0O+myI8ERluxQe5wljMmVIw=="],
 
     "ajv-formats": ["ajv-formats@3.0.1", "", { "dependencies": { "ajv": "^8.0.0" } }, "sha512-8iUql50EUR+uUcdRQ3HDqa6EVyo3docL8g5WJ3FNcWmu62IbkGUue/pEyLBW8VGKKucTPgqeks4fIU1DA4yowQ=="],
-
-    "ajv-i18n": ["ajv-i18n@4.2.0", "", { "peerDependencies": { "ajv": "^8.0.0-beta.0" } }, "sha512-v/ei2UkCEeuKNXh8RToiFsUclmU+G57LO1Oo22OagNMENIw+Yb8eMwvHu7Vn9fmkjJyv6XclhJ8TbuigSglPkg=="],
-
-    "ajv-keywords": ["ajv-keywords@5.1.0", "", { "dependencies": { "fast-deep-equal": "^3.1.3" }, "peerDependencies": { "ajv": "^8.8.2" } }, "sha512-YCS/JNFAUyr5vAuhk1DWm1CBxRHW9LbJ2ozWeemrIqpbsqKjHVxYPyi5GC0rjZIT5JxJ3virVTS8wk4i/Z+krw=="],
 
     "am-i-vibing": ["am-i-vibing@0.4.0", "", { "dependencies": { "process-ancestry": "^0.1.0" }, "bin": { "am-i-vibing": "dist/cli.mjs" } }, "sha512-MxT4XZL7pzLHpuvhDKdMaQHMGGkJDLluKBLsbstn+8wv9sWcFT6h+0ve9qkml95amVTZtZV83gQe2hY+ojgHLg=="],
 
@@ -2787,7 +2783,7 @@
 
     "youch-core": ["youch-core@0.3.3", "", { "dependencies": { "@poppinss/exception": "^1.2.2", "error-stack-parser-es": "^1.0.5" } }, "sha512-ho7XuGjLaJ2hWHoK8yFnsUGy2Y5uDpqSTq1FkHLK4/oqKtyUU1AFbOOxY4IpC9f0fTLjwYbslUz0Po5BpD1wrA=="],
 
-    "zod": ["zod@3.25.76", "", {}, "sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ=="],
+    "zod": ["zod@4.6.7", "", {}, "sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg=="],
 
     "zwitch": ["zwitch@2.0.4", "", {}, "sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A=="],
 
@@ -2959,10 +2955,6 @@
 
     "ajv-formats/ajv": ["ajv@8.20.0", "", { "dependencies": { "fast-deep-equal": "^3.1.3", "fast-uri": "^3.0.1", "json-schema-traverse": "^1.0.0", "require-from-string": "^2.0.2" } }, "sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA=="],
 
-    "ajv-i18n/ajv": ["ajv@8.20.0", "", { "dependencies": { "fast-deep-equal": "^3.1.3", "fast-uri": "^3.0.1", "json-schema-traverse": "^1.0.0", "require-from-string": "^2.0.2" } }, "sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA=="],
-
-    "ajv-keywords/ajv": ["ajv@8.20.0", "", { "dependencies": { "fast-deep-equal": "^3.1.3", "fast-uri": "^3.0.1", "json-schema-traverse": "^1.0.0", "require-from-string": "^2.0.2" } }, "sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA=="],
-
     "anymatch/picomatch": ["picomatch@2.3.2", "", {}, "sha512-V7+vQEJ06Z+c5tSye8S+nHUfI51xoXIXjHQ99cQtKUkQqqO1kO/KCJUfZXuB47h/YBlDhah2H3hdUGXn8ie0oA=="],
 
     "astro/@clack/prompts": ["@clack/prompts@1.7.0", "", { "dependencies": { "@clack/core": "1.4.3", "fast-string-width": "^3.0.2", "fast-wrap-ansi": "^0.2.0", "sisteransi": "^1.0.5" } }, "sha512-y7/yvZ2TPAnR9+jnc00klvNNLkJiXFFrQA/hlLCcxA9a2A4zQIOimyFQ9XfwYKiGD1fb5GY8vbKIIgO8d5Tb2A=="],
@@ -3049,6 +3041,8 @@
 
     "schema-utils/ajv": ["ajv@8.20.0", "", { "dependencies": { "fast-deep-equal": "^3.1.3", "fast-uri": "^3.0.1", "json-schema-traverse": "^1.0.0", "require-from-string": "^2.0.2" } }, "sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA=="],
 
+    "schema-utils/ajv-keywords": ["ajv-keywords@5.1.0", "", { "dependencies": { "fast-deep-equal": "^3.1.3" }, "peerDependencies": { "ajv": "^8.8.2" } }, "sha512-YCS/JNFAUyr5vAuhk1DWm1CBxRHW9LbJ2ozWeemrIqpbsqKjHVxYPyi5GC0rjZIT5JxJ3virVTS8wk4i/Z+krw=="],
+
     "send/debug": ["debug@2.6.9", "", { "dependencies": { "ms": "2.0.0" } }, "sha512-bC7ElrdJaJnPbAP+1EotYvqZsb3ecl5wi6Bfi6BJTUcNowp6cvspg0jXznRTKDjm/E7AdgFBVeAPVMNcKGsHMA=="],
 
     "sitemap/@types/node": ["@types/node@24.13.3", "", { "dependencies": { "undici-types": "~7.18.0" } }, "sha512-Dh8vAsV36ig5wa9OX4pXvMc9D3Veibfw2wix0CUwYODLD8nkj9UsLjASr49nPg+2eKzxhBV+v7L8pXvT4e639Q=="],
@@ -3082,6 +3076,8 @@
     "wrap-ansi/strip-ansi": ["strip-ansi@7.2.0", "", { "dependencies": { "ansi-regex": "^6.2.2" } }, "sha512-yDPMNjp4WyfYBkHnjIRLfca1i6KMyGCtsVgoKe/z1+6vukgaENdgGBZt+ZmKPc4gavvEZ5OgHfHdrazhgNyG7w=="],
 
     "yaml-language-server/ajv": ["ajv@8.20.0", "", { "dependencies": { "fast-deep-equal": "^3.1.3", "fast-uri": "^3.0.1", "json-schema-traverse": "^1.0.0", "require-from-string": "^2.0.2" } }, "sha512-Thbli+OlOj+iMPYFBVBfJ3OmCAnaSyNn4M1vz9T6Gka5Jt9ba/HIR56joy65tY6kx/FCF5VXNB819Y7/GUrBGA=="],
+
+    "yaml-language-server/ajv-i18n": ["ajv-i18n@4.2.0", "", { "peerDependencies": { "ajv": "^8.0.0-beta.0" } }, "sha512-v/ei2UkCEeuKNXh8RToiFsUclmU+G57LO1Oo22OagNMENIw+Yb8eMwvHu7Vn9fmkjJyv6XclhJ8TbuigSglPkg=="],
 
     "yaml-language-server/request-light": ["request-light@0.5.8", "", {}, "sha512-3Zjgh+8b5fhRJBQZoy+zbVKpAQGLyka0MPgW3zruTF4dFFJ8Fqcfu9YsAvi/rvdcaTeWG3MkbZv4WKxAn/84Lg=="],
 
@@ -3252,10 +3248,6 @@
     "@types/ws/@types/node/undici-types": ["undici-types@7.16.0", "", {}, "sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw=="],
 
     "ajv-formats/ajv/json-schema-traverse": ["json-schema-traverse@1.0.0", "", {}, "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug=="],
-
-    "ajv-i18n/ajv/json-schema-traverse": ["json-schema-traverse@1.0.0", "", {}, "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug=="],
-
-    "ajv-keywords/ajv/json-schema-traverse": ["json-schema-traverse@1.0.0", "", {}, "sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug=="],
 
     "astro/@clack/prompts/@clack/core": ["@clack/core@1.4.3", "", { "dependencies": { "fast-wrap-ansi": "^0.2.0", "sisteransi": "^1.0.5" } }, "sha512-/kr3UWNtdJfxZtPgDqUOmG2pvwlmcLGheex5yiZKdwbzZJxhV+HMNR9QNmyY5cGwTNV6LrR7Jtp+KjhUAP1qBQ=="],
 
