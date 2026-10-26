@@ -79,8 +79,7 @@
     "directory": "packages/store-turso"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "homepage": "https://github.com/aashahin/paykernel/tree/main/packages/store-turso#readme",
   "paymentsSdk": {

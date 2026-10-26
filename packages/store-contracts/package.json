@@ -51,8 +51,7 @@
     "directory": "packages/store-contracts"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "homepage": "https://github.com/aashahin/paykernel/tree/main/packages/store-contracts#readme",
   "paymentsSdk": {

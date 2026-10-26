@@ -72,7 +72,7 @@ Published builds from CI use **npm provenance** (sigstore / OIDC):
 - Workflow: `.github/workflows/release.yml`
 - Permissions: `id-token: write` (OIDC), `contents: write`, `pull-requests: write`
 - Env: `NPM_CONFIG_PROVENANCE=true`
-- Package: `packages/core` also sets `"publishConfig": { "access": "public", "provenance": true }`
+- Packages set only `"publishConfig": { "access": "public" }`. Provenance comes from the workflow env, so a local `bun publish` (which cannot sign provenance) still works.
 
 Provenance requires publish from GitHub Actions with OIDC — not from a random local `npm publish`. Secrets:
 

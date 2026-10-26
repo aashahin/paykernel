@@ -56,8 +56,7 @@
     "directory": "packages/integration-http"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "homepage": "https://github.com/aashahin/paykernel/tree/main/packages/integration-http#readme",
   "paymentsSdk": {
