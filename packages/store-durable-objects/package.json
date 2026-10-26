@@ -66,8 +66,7 @@
     "directory": "packages/store-durable-objects"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "homepage": "https://github.com/aashahin/paykernel/tree/main/packages/store-durable-objects#readme",
   "paymentsSdk": {

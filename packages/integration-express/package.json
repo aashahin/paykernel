@@ -61,8 +61,7 @@
     "directory": "packages/integration-express"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "homepage": "https://github.com/aashahin/paykernel/tree/main/packages/integration-express#readme",
   "paymentsSdk": {

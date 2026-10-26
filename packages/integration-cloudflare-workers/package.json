@@ -64,8 +64,7 @@
     "directory": "packages/integration-cloudflare-workers"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "homepage": "https://github.com/aashahin/paykernel/tree/main/packages/integration-cloudflare-workers#readme",
   "paymentsSdk": {

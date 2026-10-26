@@ -92,8 +92,7 @@
     "directory": "packages/store-postgres"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "homepage": "https://github.com/aashahin/paykernel/tree/main/packages/store-postgres#readme",
   "paymentsSdk": {

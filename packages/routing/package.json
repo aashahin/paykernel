@@ -54,8 +54,7 @@
     "directory": "packages/routing"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "homepage": "https://github.com/aashahin/paykernel/tree/main/packages/routing#readme",
   "paymentsSdk": {

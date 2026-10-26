@@ -52,8 +52,7 @@
     "directory": "packages/reconciliation"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "homepage": "https://github.com/aashahin/paykernel/tree/main/packages/reconciliation#readme",
   "paymentsSdk": {

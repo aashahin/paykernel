@@ -61,8 +61,7 @@
     "directory": "packages/gateway-tap"
   },
   "publishConfig": {
-    "access": "public",
-    "provenance": true
+    "access": "public"
   },
   "homepage": "https://github.com/aashahin/paykernel/tree/main/packages/gateway-tap#readme",
   "paymentsSdk": {
