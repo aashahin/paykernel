@@ -45,6 +45,10 @@ Engine returns `handler_failed { retryable: true }` (at-least-once) and never
 
 Modes are never mixed implicitly inside `process*`. `processRetryable` throws on `inline` engines. `processRetryable` claims one-at-a-time so later leases cannot expire during earlier handler I/O (NEW-WEBHOOKS-1). Worker `claim` uses the listed hash with `ifMatchPayloadHash` so idle WEBHOOKS-3 supersede cannot roll a newer body backwards (S19-WH-HASH-TOCTOU). Best-effort fail-after-`lease_lost` reclaim uses the same CAS (S20-WH-FAIL-RECLAIM). Heartbeat `stopHeartbeat` closes renew so a queued tick cannot rotate the token used by `complete` (S20-HEARTBEAT-RACE).
 
+### Processing one receipt by key (`processOne`)
+
+`processOne({ key, handler, owner?, leaseMs?, resolveEvent? })` is the by-key counterpart of one `processRetryable` row (durable_retry only; it throws on `inline`). It reads the row with `store.get(key)`, then claims it through the store's normal compare-and-set `claim` (`ifMatchPayloadHash`), so the lease (30 s default), attempts, `availableAt` backoff, terminal classification and fencing are exactly those of a poll. It adds no store method, so it works on every adapter. A completed, dead-lettered, leased or not-yet-due row is reported as its usual outcome and the handler does not run; an unknown key returns `{ found: false }`. Use it when a queue pointer or webhook delivery names the receipt: it cannot be starved by older stuck rows, and it touches no other key. Keep a scheduled `processRetryable` as the backstop for crashed holders and rows whose pointer was lost. Callers that must also run on 0.1.1 feature-test `typeof engine.processOne === "function"`.
+
 ## Outcomes (10.4)
 
 Outcomes are framework-agnostic. **Silent ACK of failed work is forbidden.** Map outcomes to HTTP only in your adapter — and **always read `scheduled_for_retry.reason`**:

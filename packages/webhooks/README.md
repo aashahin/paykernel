@@ -193,6 +193,7 @@ idle supersede yet:
 
 Mode is fixed at `createWebhookInboxEngine` construction. Process methods never switch modes implicitly.
 `processRetryable` is valid **only** on `durable_retry` engines (throws on `inline`).
+To process one known row (a queue pointer names its key) use `processOne({ key, handler })`: same lease, attempts and backoff, no other row is touched; see [docs/inbox-engine.md](docs/inbox-engine.md).
 `ackAfterClaim` is valid **only** with `durable_retry` (constructor throws otherwise).
 `ackAfterClaim` also requires `workerGuaranteed: true` (constructor throws if omitted on the engine; per-call park without it is retryable `handler_failed`, never parked).
 `defaultLeaseMs` / per-call `leaseMs` must be finite and **`> 0`** (constructor / call throws otherwise; default remains 30s).

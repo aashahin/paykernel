@@ -58,6 +58,8 @@ import {
 import type {
   CreateWebhookInboxEngineOptions,
   EngineClock,
+  ProcessOneInput,
+  ProcessOneResult,
   ProcessRetryableInput,
   ProcessRetryableResult,
   ProcessVerifiedInput,
@@ -1525,165 +1527,173 @@ export function createWebhookInboxEngine(
     const pending = await store.listRetryable({ limit });
 
     const items: ProcessRetryableResult["items"] = [];
-
-    type PreparedRetryable = {
-      rec: (typeof pending)[number];
-      gateway: string;
-      providerEventId: string;
-      payloadHash: string;
-      event: unknown | undefined;
-      payloadRef: string | undefined;
-    };
-
-    const prepared: PreparedRetryable[] = [];
-    for (const rec of pending) {
-      let gateway: string;
-      let providerEventId: string;
-      let payloadHash: string;
-      let event: unknown | undefined;
-
-      let payloadRef = rec.payloadRef;
-      if (input.resolveEvent) {
-        const resolved = input.resolveEvent(rec);
-        gateway = resolved.gateway;
-        providerEventId = resolved.providerEventId;
-        payloadHash = resolved.payloadHash;
-        event = resolved.event;
-        if (resolved.envelope !== undefined) {
-          const snap = resolveDurablePayloadRef({
-            envelope: resolved.envelope,
-            payloadHash,
-          });
-          if (snap.ok) payloadRef = snap.payloadRef;
-        }
-        // WEBHOOKS-5: redact / materialize with same rules as first delivery.
-        // Prefer custom resolveEvent.event when provided; else payloadRef.
-        if (event !== undefined) {
-          event = resolveHandlerEvent(event, undefined);
-        } else if (payloadRef !== undefined) {
-          event = materializeEventFromPayloadRef(payloadRef);
-        }
-      } else {
-        const parsed = parseWebhookEventKey(rec.key);
-        gateway = parsed?.gateway ?? "unknown";
-        providerEventId = parsed?.providerEventId ?? rec.key;
-        payloadHash = rec.payloadHash;
-        if (rec.payloadRef) {
-          event = materializeEventFromPayloadRef(rec.payloadRef);
-        }
-        // WEBHOOKS-1: never stub `{ key, payloadHash }` — paid data would be lost.
-      }
-
-      prepared.push({
-        rec,
-        gateway,
-        providerEventId,
-        payloadHash,
-        event,
-        payloadRef,
-      });
-    }
+    const prepared = pending.map((rec) => prepareRetryableRow(rec, input));
 
     // NEW-WEBHOOKS-1: list is discovery only. Do not hold N unexpired leases
     // across serial handler I/O — defaults (limit=10, leaseMs=30s) overrun
     // if handlers average >=3s and a peer reclaims the tail. Claim the next
     // row only after the previous handler returns.
     for (const row of prepared) {
-      // I14: list snapshot can go stale before get. Skip if the idle hash
-      // moved forward — do not claim with a hash the list did not show.
-      const latest = await store.get(row.rec.key);
-      if (
-        latest === undefined ||
-        latest.payloadHash !== row.payloadHash
-      ) {
-        items.push({
-          key: row.rec.key,
-          outcome: outcomeHandlerFailed(true),
-        });
-        continue;
-      }
-
-      // S19: claim the *listed* hash under ifMatch so get→claim idle
-      // supersede cannot roll the row back to this snapshot (WEBHOOKS-3
-      // must not run backwards on the worker path).
-      const claimInput: ClaimWebhookInput = {
+      items.push({
         key: row.rec.key,
-        payloadHash: row.payloadHash,
-        owner,
-        leaseMs,
-        ifMatchPayloadHash: row.payloadHash,
-      };
-      const payloadRef = latest.payloadRef ?? row.payloadRef;
-      if (payloadRef !== undefined) {
-        claimInput.payloadRef = payloadRef;
-      }
-      const claim = await store.claim(claimInput);
-      const { rec, gateway, providerEventId, event } = row;
-
-      if (claim.kind !== "acquired") {
-        // CAS miss / active-lease hash mismatch: skip this poll. Do not
-        // surface payload_conflict — the worker is not a delivery ACK.
-        if (claim.kind === "payload_hash_conflict") {
-          items.push({
-            key: rec.key,
-            outcome: outcomeHandlerFailed(true),
-          });
-          continue;
-        }
-        const outcome = mapClaimKindToOutcome(
-          claim,
-          retryAfterFromRecord,
-          clock.nowMs(),
-        );
-        items.push({ key: rec.key, outcome });
-        continue;
-      }
-
-      // WEBHOOKS-4: missing payloadRef (inline-era rows / refused snapshot)
-      // must not dead-letter paid work. Refuse this poll as retryable so
-      // provider redelivery or a custom resolveEvent can recover.
-      if (event === undefined) {
-        try {
-          await store.fail({
-            key: rec.key,
-            leaseToken: claim.leaseToken,
-            error:
-              "missing payloadRef: cannot redrive durable webhook without stored envelope/event",
-            retryAfterMs: defaultRetryAfterMs,
-            restoreAttempt: true,
-          });
-        } catch (failErr) {
-          if (isStoreLeaseLostError(failErr)) {
-            items.push({
-              key: rec.key,
-              outcome: outcomeHandlerFailed(true),
-            });
-            continue;
-          }
-          throw failErr;
-        }
-        items.push({
-          key: rec.key,
-          outcome: outcomeHandlerFailed(true),
-        });
-        continue;
-      }
-
-      const outcome = await runHandlerUnderLease({
-        key: rec.key,
-        leaseToken: claim.leaseToken,
-        record: claim.record,
-        gateway,
-        providerEventId,
-        event,
-        handler: input.handler,
-        leaseMs,
-        owner,
+        outcome: await claimAndRunRetryableRow(row, input.handler, owner, leaseMs),
       });
-      items.push({ key: rec.key, outcome });
     }
 
     return { items };
+  }
+
+  async function processOne(input: ProcessOneInput): Promise<ProcessOneResult> {
+    if (mode !== "durable_retry") {
+      throw new Error(
+        'processOne is only valid when mode is "durable_retry" (engine mode is fixed at construction)',
+      );
+    }
+    const owner = input.owner ?? defaultOwner;
+    const leaseMs = assertPositiveLeaseMs(
+      input.leaseMs ?? defaultLeaseMs,
+      input.leaseMs !== undefined ? "leaseMs" : "defaultLeaseMs",
+    );
+    // Same path as one `processRetryable` row, addressed by key instead of
+    // listed: `get` for the hash/payloadRef snapshot, then the store's own
+    // compare-and-set `claim` (ifMatchPayloadHash, one lease, attempts and
+    // backoff gates). Terminal, leased and not-yet-due rows come back from
+    // `claim` as their usual outcomes, so no row state is decided here.
+    const rec = await store.get(input.key);
+    if (rec === undefined) return { key: input.key, found: false };
+    const row = prepareRetryableRow(rec, input);
+    return {
+      key: input.key,
+      found: true,
+      outcome: await claimAndRunRetryableRow(row, input.handler, owner, leaseMs, rec),
+    };
+  }
+
+  type PreparedRetryable = {
+    rec: WebhookInboxRecord;
+    gateway: string;
+    providerEventId: string;
+    payloadHash: string;
+    event: unknown | undefined;
+    payloadRef: string | undefined;
+  };
+
+  function prepareRetryableRow(
+    rec: WebhookInboxRecord,
+    input: Pick<ProcessRetryableInput, "resolveEvent">,
+  ): PreparedRetryable {
+    let gateway: string;
+    let providerEventId: string;
+    let payloadHash: string;
+    let event: unknown | undefined;
+
+    let payloadRef = rec.payloadRef;
+    if (input.resolveEvent) {
+      const resolved = input.resolveEvent(rec);
+      gateway = resolved.gateway;
+      providerEventId = resolved.providerEventId;
+      payloadHash = resolved.payloadHash;
+      event = resolved.event;
+      if (resolved.envelope !== undefined) {
+        const snap = resolveDurablePayloadRef({
+          envelope: resolved.envelope,
+          payloadHash,
+        });
+        if (snap.ok) payloadRef = snap.payloadRef;
+      }
+      // WEBHOOKS-5: redact / materialize with same rules as first delivery.
+      // Prefer custom resolveEvent.event when provided; else payloadRef.
+      if (event !== undefined) {
+        event = resolveHandlerEvent(event, undefined);
+      } else if (payloadRef !== undefined) {
+        event = materializeEventFromPayloadRef(payloadRef);
+      }
+    } else {
+      const parsed = parseWebhookEventKey(rec.key);
+      gateway = parsed?.gateway ?? "unknown";
+      providerEventId = parsed?.providerEventId ?? rec.key;
+      payloadHash = rec.payloadHash;
+      if (rec.payloadRef) {
+        event = materializeEventFromPayloadRef(rec.payloadRef);
+      }
+      // WEBHOOKS-1: never stub `{ key, payloadHash }` — paid data would be lost.
+    }
+
+    return { rec, gateway, providerEventId, payloadHash, event, payloadRef };
+  }
+
+  async function claimAndRunRetryableRow(
+    row: PreparedRetryable,
+    handler: WebhookHandler,
+    owner: string,
+    leaseMs: number,
+    /** A read the caller made just now (`processOne`); omit to re-read after a list. */
+    fresh?: WebhookInboxRecord,
+  ): Promise<WebhookProcessingOutcome> {
+    // I14: list snapshot can go stale before get. Skip if the idle hash
+    // moved forward — do not claim with a hash the list did not show.
+    const latest = fresh ?? (await store.get(row.rec.key));
+    if (latest === undefined || latest.payloadHash !== row.payloadHash) {
+      return outcomeHandlerFailed(true);
+    }
+
+    // S19: claim the *listed* hash under ifMatch so get→claim idle
+    // supersede cannot roll the row back to this snapshot (WEBHOOKS-3
+    // must not run backwards on the worker path).
+    const claimInput: ClaimWebhookInput = {
+      key: row.rec.key,
+      payloadHash: row.payloadHash,
+      owner,
+      leaseMs,
+      ifMatchPayloadHash: row.payloadHash,
+    };
+    const payloadRef = latest.payloadRef ?? row.payloadRef;
+    if (payloadRef !== undefined) {
+      claimInput.payloadRef = payloadRef;
+    }
+    const claim = await store.claim(claimInput);
+    const { rec, gateway, providerEventId, event } = row;
+
+    if (claim.kind !== "acquired") {
+      // CAS miss / active-lease hash mismatch: skip this poll. Do not
+      // surface payload_conflict — the worker is not a delivery ACK.
+      if (claim.kind === "payload_hash_conflict") {
+        return outcomeHandlerFailed(true);
+      }
+      return mapClaimKindToOutcome(claim, retryAfterFromRecord, clock.nowMs());
+    }
+
+    // WEBHOOKS-4: missing payloadRef (inline-era rows / refused snapshot)
+    // must not dead-letter paid work. Refuse this poll as retryable so
+    // provider redelivery or a custom resolveEvent can recover.
+    if (event === undefined) {
+      try {
+        await store.fail({
+          key: rec.key,
+          leaseToken: claim.leaseToken,
+          error:
+            "missing payloadRef: cannot redrive durable webhook without stored envelope/event",
+          retryAfterMs: defaultRetryAfterMs,
+          restoreAttempt: true,
+        });
+      } catch (failErr) {
+        if (isStoreLeaseLostError(failErr)) return outcomeHandlerFailed(true);
+        throw failErr;
+      }
+      return outcomeHandlerFailed(true);
+    }
+
+    return runHandlerUnderLease({
+      key: rec.key,
+      leaseToken: claim.leaseToken,
+      record: claim.record,
+      gateway,
+      providerEventId,
+      event,
+      handler,
+      leaseMs,
+      owner,
+    });
   }
 
   async function renewLease(
@@ -1711,6 +1721,7 @@ export function createWebhookInboxEngine(
     processVerified,
     processWithVerifier,
     processRetryable,
+    processOne,
     renewLease,
   };
 }
