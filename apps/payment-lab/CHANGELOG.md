@@ -1,5 +1,13 @@
 # @paykernel/payment-lab
 
+## 0.1.4
+
+### Patch Changes
+
+- Updated dependencies [cb7a41f]
+  - @paykernel/webhooks@0.2.0
+  - @paykernel/integration-http@0.1.3
+
 ## 0.1.3
 
 ### Patch Changes

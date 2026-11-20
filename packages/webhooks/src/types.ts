@@ -280,6 +280,23 @@ export type ProcessRetryableResult = {
   items: ProcessRetryableItemResult[];
 };
 
+/**
+ * One receipt, addressed by key. Same handler, `resolveEvent`, `leaseMs` and
+ * `owner` semantics as {@link ProcessRetryableInput} (without `limit`).
+ */
+export type ProcessOneInput = Omit<ProcessRetryableInput, "limit"> & {
+  key: WebhookEventKey;
+};
+
+/**
+ * `found: false` — no row for the key (never stored, or pruned); nothing ran.
+ * `found: true` — `outcome` is what the same row would have produced inside
+ * `processRetryable` (terminal/leased/not-yet-due rows are reported, not run).
+ */
+export type ProcessOneResult =
+  | { key: WebhookEventKey; found: false }
+  | { key: WebhookEventKey; found: true; outcome: WebhookProcessingOutcome };
+
 // ─── Engine options ──────────────────────────────────────────────────────────
 
 export type SanitizeErrorFn = (error: unknown) => string;
@@ -393,6 +410,23 @@ export type WebhookInboxEngine = {
    * retryable `handler_failed` (not `payload_conflict`).
    */
   processRetryable(input: ProcessRetryableInput): Promise<ProcessRetryableResult>;
+  /**
+   * Claim and process exactly one receipt by key (durable_retry only; throws
+   * in `inline`). The by-key counterpart of one `processRetryable` row:
+   * `store.get(key)` for the hash/payloadRef snapshot, then the store's own
+   * compare-and-set `claim` with `ifMatchPayloadHash`, so lease length
+   * (`leaseMs`, default 30s), attempt accounting, backoff (`availableAt`),
+   * terminal classification and lease fencing are the store's, unchanged.
+   * It needs no store method beyond the existing `get` and `claim`, so every
+   * adapter supports it. Unlike a list poll it never touches other keys, so
+   * a due receipt cannot be starved by older stuck ones.
+   *
+   * A row that is not due, held by a live lease, completed or dead-lettered
+   * is reported as its usual outcome and the handler does not run.
+   * Added in 0.2.0: callers that must also run on older versions should
+   * feature-test `typeof engine.processOne === "function"`.
+   */
+  processOne(input: ProcessOneInput): Promise<ProcessOneResult>;
   /**
    * Extend lease for a key. Rotates token on success; returns new token.
    * Stale token → `{ ok: false, reason: "lease_lost" }` (same as store.renew).

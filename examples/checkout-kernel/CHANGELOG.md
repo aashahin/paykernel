@@ -1,5 +1,14 @@
 # @paykernel/example-checkout-kernel
 
+## 0.1.6
+
+### Patch Changes
+
+- Updated dependencies [cb7a41f]
+  - @paykernel/webhooks@0.2.0
+  - @paykernel/integration-http@0.1.3
+  - @paykernel/testkit@1.0.3
+
 ## 0.1.5
 
 ### Patch Changes

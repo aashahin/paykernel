@@ -68,6 +68,8 @@ export type {
   VerifyAndNormalize,
   ProcessWithVerifierInput,
   ProcessRetryableInput,
+  ProcessOneInput,
+  ProcessOneResult,
   ProcessRetryableItemResult,
   ProcessRetryableResult,
   SanitizeErrorFn,
