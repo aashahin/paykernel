@@ -423,7 +423,7 @@ export type WebhookInboxEngine = {
    *
    * A row that is not due, held by a live lease, completed or dead-lettered
    * is reported as its usual outcome and the handler does not run.
-   * Added in 0.1.2: callers that must also run on older versions should
+   * Added in 0.2.0: callers that must also run on older versions should
    * feature-test `typeof engine.processOne === "function"`.
    */
   processOne(input: ProcessOneInput): Promise<ProcessOneResult>;
